@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { ArrowUpDown, ChevronLeft, ChevronRight, Copy, Plus } from 'lucide-react'
+import { ArrowUpDown, CalendarDays, ChevronLeft, ChevronRight, Copy, Plus } from 'lucide-react'
 import { m } from 'framer-motion'
 import { t } from '../i18n'
 import { SourcePicker, useActive } from '../components/common'
 import { ImportExportSheet } from '../components/ImportExport'
 import { WorkoutRow } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
-import { EmptyState, Fixed, MascotPeek, PageHeader, Segmented } from '../components/ui'
+import { EmptyState, Fixed, PageHeader, Segmented } from '../components/ui'
 import { DISCIPLINES } from '../lib/disciplines'
 import { addDays, addMonths, fmtDay, fmtMonth, fmtWeekRange, monthGrid, monthStart, todayISO, weekDays, weekStart } from '../lib/dates'
 import { duplicateSession, upsertSession } from '../lib/db'
@@ -50,7 +50,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
 
       {view === 'week' ? (
         <div className="space-y-3">
-          <MascotPeek kind="zenitsu" side="left">
+          <>
             <div className="card flex items-center justify-between p-4">
               <div>
                 <p className="label !mb-0">{t('Settimana')}</p>
@@ -58,7 +58,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
               </div>
               {canEdit && <button className="btn btn-soft" onClick={copyPrev}><Copy size={16} />{t('Copia sett. precedente')}</button>}
             </div>
-          </MascotPeek>
+          </>
           {days.map((d) => {
             const ss = db.sessions.filter((s) => s.date === d)
             return (
@@ -72,7 +72,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
               </section>
             )
           })}
-          {!weekSessions.length && <EmptyState kind="pair" title={t('Settimana libera')} text={canEdit ? t('Aggiungi un allenamento o importa un piano JSON.') : t('Il tuo coach non ha ancora programmato questa settimana.')} />}
+          {!weekSessions.length && <EmptyState icon={CalendarDays} title={t('Settimana libera')} text={canEdit ? t('Aggiungi un allenamento o importa un piano JSON.') : t('Il tuo coach non ha ancora programmato questa settimana.')} />}
         </div>
       ) : (
         <div className="card p-3">

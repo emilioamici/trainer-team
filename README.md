@@ -2,7 +2,7 @@
 
 Web app **mobile-first (PWA)** per gestire e tracciare piani di allenamento — running, Hyrox, fitness funzionale, palestra, tennis — con ruoli **Atleta** e **Coach** e sincronizzazione su **Google Drive**. Nessun backend: tutto gira nel browser, i dati stanno nel tuo Drive.
 
-Stile grafico e architettura seguono le linee guida di Money Duo (`LINEE_GUIDA_MONEYDUO.md`): temi **Mochi** (chiaro) e **Zenitsu** (scuro) + automatico, Liquid Glass solo su navigazione/fogli/avvisi, sfondo vivo, mascotte che fanno capolino.
+Stile grafico e architettura seguono le linee guida di Money Duo (`LINEE_GUIDA_MONEYDUO.md`): temi grigio chiaro e grigio antracite + automatico, Liquid Glass solo su navigazione/fogli/avvisi, sfondo vivo, logo VHYPE Training Lab in testata.
 
 **Stack:** React 18 · Vite · TypeScript strict · Tailwind CSS 3.4 · Framer Motion · lucide-react · vite-plugin-pwa.
 

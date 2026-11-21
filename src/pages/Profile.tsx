@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { SyncBadge, useActive } from '../components/common'
-import { Accordion, Field, MascotPeek, Notice, PageHeader, Segmented, Toggle, catSrc } from '../components/ui'
+import { Accordion, Field, Notice, PageHeader, Segmented, Toggle } from '../components/ui'
 import { applyTheme, getTheme, THEME_COLOR, type ThemePref } from '../lib/theme'
 import { clearPendingJoin, pendingJoin } from '../lib/invite'
 import { downloadJSON, readFileText } from '../lib/files'
@@ -44,30 +44,28 @@ export default function Profile() {
     catch (x) { setImportMsg(x instanceof Error ? x.message : t('File non valido')) }
   }
 
-  const themeOpt: { id: ThemePref; label: string; cat: 'mochi' | 'zenitsu' | 'pair'; bg: string }[] = [
-    { id: 'auto', label: t('Automatico'), cat: 'pair', bg: `linear-gradient(135deg, ${THEME_COLOR.light} 50%, ${THEME_COLOR.dark} 50%)` },
-    { id: 'light', label: t('Modalità Mochi'), cat: 'mochi', bg: THEME_COLOR.light },
-    { id: 'dark', label: t('Modalità Zenitsu'), cat: 'zenitsu', bg: THEME_COLOR.dark },
+  const themeOpt: { id: ThemePref; label: string; bg: string }[] = [
+    { id: 'auto', label: t('Automatico'), bg: `linear-gradient(135deg, ${THEME_COLOR.light} 50%, ${THEME_COLOR.dark} 50%)` },
+    { id: 'light', label: t('Modalità chiara'), bg: THEME_COLOR.light },
+    { id: 'dark', label: t('Modalità scura'), bg: THEME_COLOR.dark },
   ]
 
   return (
     <div>
       <PageHeader title={t('Profilo')} sub={e.account?.email ?? t('Non collegato a Google')} />
       <div className="space-y-3">
-        <MascotPeek kind="pair" side="right">
+        <>
           <Accordion id="role" icon={<Users size={22} />} title={t('Ruolo')} summary={e.role === 'coach' ? t('Coach') : t('Atleta')} defaultOpen>
             <Segmented id="role" value={e.role} onChange={(r: UserRole) => e.setRole(r)} options={[{ value: 'athlete', label: t('Atleta') }, { value: 'coach', label: t('Coach') }]} />
             <p className="text-xs text-muted">{e.role === 'coach' ? t('Come coach gestisci gli atleti: ognuno ha un file dedicato sul tuo Drive. Puoi allenare anche te stesso dal tab "Piano" scegliendo "Il mio piano".') : t('Come atleta vedi il tuo piano, completi gli allenamenti e lasci feedback. Puoi avere un piano personale e uno o più piani collegati a un coach.')}</p>
           </Accordion>
-        </MascotPeek>
+        </>
 
         <Accordion id="look" icon={<Palette size={22} />} title={t('Aspetto')} summary={`${themeOpt.find((o) => o.id === theme)?.label} · ${{ auto: t('Lingua automatica'), it: 'Italiano', en: 'English' }[getLangPref()]}`}>
           <div className="grid grid-cols-3 gap-2">
             {themeOpt.map((o) => (
               <button key={o.id} onClick={() => pickTheme(o.id)} aria-pressed={theme === o.id} className={`rounded-2xl border p-2 text-center text-xs font-semibold ${theme === o.id ? 'border-brand bg-brand/10' : 'border-line'}`}>
-                <span className="mb-1.5 flex h-16 items-end justify-center overflow-hidden rounded-xl border border-line/60" style={{ background: o.bg }}>
-                  <img src={catSrc(o.cat)} alt="" draggable={false} className="h-14 w-auto select-none" />
-                </span>
+                <span className="mb-1.5 block h-12 rounded-xl border border-line/60" style={{ background: o.bg }} />
                 {o.label}
               </button>
             ))}

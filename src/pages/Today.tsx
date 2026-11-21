@@ -1,9 +1,9 @@
-import { Check, Plus } from 'lucide-react'
+import { CalendarOff, Check, Plus } from 'lucide-react'
 import { t } from '../i18n'
 import { SourcePicker, SyncBadge, useActive } from '../components/common'
 import { BlockList, FeedbackSummary } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
-import { Badge, EmptyState, MascotPeek, PageHeader } from '../components/ui'
+import { Badge, EmptyState, PageHeader } from '../components/ui'
 import { DISCIPLINES, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
 import { addDays, fmtDay, fmtLong, todayISO, weekDays, weekStart } from '../lib/dates'
 import type { WorkoutSession } from '../types'
@@ -20,7 +20,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
   const st = e.statusOf(src.id)
   const isCoachView = role === 'coach' && src.kind !== 'personal'
 
-  const Card = ({ s, peek }: { s: WorkoutSession; peek?: boolean }) => {
+  const Card = ({ s }: { s: WorkoutSession }) => {
     const d = DISCIPLINES[s.discipline]
     const Icon = d.icon
     const body = (
@@ -41,7 +41,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
         </div>
       </article>
     )
-    return peek ? <MascotPeek kind="mochi" side="right">{body}</MascotPeek> : body
+    return body
   }
 
   return (
@@ -50,8 +50,8 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
       <SourcePicker />
 
       <div className="space-y-3">
-        {list.length ? list.map((s, i) => <Card key={s.id} s={s} peek={i === 0} />) : (
-          <EmptyState kind="mochi" title={t('Nessun allenamento oggi')} text={upcoming ? t('Prossimo: {title} · {date}', { title: upcoming.title, date: fmtDay(upcoming.date) }) : t('Il piano non ha altre sessioni in programma.')}
+        {list.length ? list.map((s) => <Card key={s.id} s={s} />) : (
+          <EmptyState icon={CalendarOff} title={t('Nessun allenamento oggi')} text={upcoming ? t('Prossimo: {title} · {date}', { title: upcoming.title, date: fmtDay(upcoming.date) }) : t('Il piano non ha altre sessioni in programma.')}
             action={canEdit && <button className="btn btn-primary" onClick={() => sheets.openNew(today)}><Plus size={16} />{t('Aggiungi allenamento')}</button>} />
         )}
         {!list.length && upcoming && (

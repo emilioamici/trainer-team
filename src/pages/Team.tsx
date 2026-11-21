@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { ChevronRight, MessageSquare, Plus, Settings2 } from 'lucide-react'
+import { ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, Users } from 'lucide-react'
 import { t } from '../i18n'
 import { ManageAthleteSheet, NewAthleteSheet } from '../components/AthleteSheets'
 import { SourcePicker, SyncBadge, useActive } from '../components/common'
 import { WorkoutRow } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
-import { Badge, EmptyState, MascotPeek, PageHeader, Segmented } from '../components/ui'
+import { Badge, EmptyState, PageHeader, Segmented } from '../components/ui'
 import { FEELS } from '../lib/disciplines'
 import { addDays, fmtDay, todayISO, weekStart } from '../lib/dates'
 import { lastCompleted, periodStats } from '../lib/db'
@@ -35,8 +35,8 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
     <div>
       <PageHeader title={t('I miei atleti')} sub={t('{n} atleti', { n: list.length })} action={<button className="btn btn-primary" onClick={() => setNewOpen(true)}><Plus size={16} />{t('Nuovo atleta')}</button>} />
       <div className="space-y-3">
-        {list.length === 0 && <EmptyState kind="pair" title={t('Nessun atleta')} text={t('Crea il primo atleta: avrà un file dedicato sul tuo Drive.')} />}
-        {list.map((s, i) => {
+        {list.length === 0 && <EmptyState icon={Users} title={t('Nessun atleta')} text={t('Crea il primo atleta: avrà un file dedicato sul tuo Drive.')} />}
+        {list.map((s) => {
           const db = e.dbOf(s.id)
           if (!db) return null
           const ws = db.sessions.filter((x) => x.date >= mon && x.date <= addDays(mon, 6))
@@ -63,7 +63,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
               </div>
             </article>
           )
-          return i === 0 ? <MascotPeek key={s.id} kind="mochi" side="right">{card}</MascotPeek> : <div key={s.id}>{card}</div>
+          return <div key={s.id}>{card}</div>
         })}
 
         {feedbacks.length > 0 && (
@@ -141,7 +141,7 @@ function Progress() {
       <PageHeader title={t('Progressi')} sub={db.athlete.name} />
       <SourcePicker />
       <div className="space-y-3">
-        <MascotPeek kind="zenitsu" side="left">
+        <>
           <div className="card space-y-3 p-4">
             <Segmented id="period" value={period} onChange={setPeriod} options={[{ value: 'week', label: t('Settimana') }, { value: 'month', label: t('Mese') }]} />
             <div className="grid grid-cols-2 gap-2">
@@ -151,7 +151,7 @@ function Progress() {
               <Stat v={st.avgRpe ? (Math.round(st.avgRpe * 10) / 10).toString() : '–'} l={t('RPE medio')} />
             </div>
           </div>
-        </MascotPeek>
+        </>
         <section className="card p-4"><h3 className="mb-2 font-bold">{t('Ore a settimana (ultime 6)')}</h3><BarChart data={weeks} label={t('Ore a settimana')} unit=" h" /></section>
         <section className="card p-4">
           <h3 className="mb-2 font-bold">{t('Trend RPE')}</h3>
@@ -160,7 +160,7 @@ function Progress() {
         <section>
           <h3 className="mb-2 px-1 font-bold">{t('Storico allenamenti')}</h3>
           {history.length ? <div className="space-y-2">{history.map((s: WorkoutSession) => <div key={s.id}><p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p><WorkoutRow s={s} onClick={() => sheets.openDetail(s)} /></div>)}</div>
-            : <EmptyState kind="mochi" title={t('Ancora nessun allenamento completato')} text={t('Quando segni una sessione come completata la trovi qui.')} />}
+            : <EmptyState icon={ChartNoAxesColumn} title={t('Ancora nessun allenamento completato')} text={t('Quando segni una sessione come completata la trovi qui.')} />}
         </section>
       </div>
       {sheets.node}

@@ -1,6 +1,6 @@
 export type ThemePref = 'auto' | 'light' | 'dark'
 const KEY = 'trainer:theme'
-export const THEME_COLOR = { light: '#fff7ee', dark: '#16181d' }
+export const THEME_COLOR = { light: '#e8e9eb', dark: '#26282b' }
 
 export const getTheme = (): ThemePref => {
   try { const v = localStorage.getItem(KEY); return v === 'light' || v === 'dark' ? v : 'auto' } catch { return 'auto' }

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, animate, m, useMotionValue } from 'framer-motion'
-import { Check, ChevronDown, X } from 'lucide-react'
+import { Check, ChevronDown, Dumbbell, X, type LucideIcon } from 'lucide-react'
 import { t } from '../i18n'
 import { useEngine } from '../state/store'
 
@@ -18,24 +18,20 @@ export function Background() {
   )
 }
 
-// ---------- mascotte ----------
-export type CatKind = 'mochi' | 'zenitsu' | 'pair'
-export const catSrc = (k: CatKind) => asset(`cats/${k === 'pair' ? 'pair' : k}.png`)
-
-/** Il gattino fa capolino da dietro il bordo alto della card (contenuto pieno, mai vetro). */
-export function MascotPeek({ kind, side = 'right', children }: { kind: CatKind; side?: 'left' | 'right'; children: ReactNode }) {
+// ---------- logo ----------
+/** Il marchio (PNG bianco con trasparenza) usato come maschera: prende il colore del tema (`bg-ink`). Una sola volta per schermata. */
+export function Logo({ className = 'h-7 w-8' }: { className?: string }) {
+  const url = `url(${asset('brand/logo-mark.png')})`
   return (
-    <div className="relative pt-11">
-      <img src={catSrc(kind)} alt="" draggable={false} className={`pointer-events-none absolute top-0 h-16 w-auto select-none ${side === 'right' ? 'right-6' : 'left-6'}`} />
-      <div className="relative">{children}</div>
-    </div>
+    <span role="img" aria-label="VHYPE Training Lab" className={`inline-block bg-ink ${className}`}
+      style={{ WebkitMaskImage: url, maskImage: url, WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskPosition: 'left center', maskPosition: 'left center' }} />
   )
 }
 
-export function EmptyState({ kind = 'mochi', title, text, action }: { kind?: CatKind; title: string; text?: string; action?: ReactNode }) {
+export function EmptyState({ icon: Icon = Dumbbell, title, text, action }: { icon?: LucideIcon; title: string; text?: string; action?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center px-5 py-8 text-center">
-      <img src={catSrc(kind)} alt="" draggable={false} className="pointer-events-none mb-3 h-20 w-auto select-none" />
+      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-line/50 text-muted"><Icon size={26} /></span>
       <p className="font-bold">{title}</p>
       {text && <p className="mt-1 text-sm text-muted">{text}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -194,11 +190,12 @@ export function ToastHost() {
 export const Fixed = ({ children }: { children: ReactNode }) => createPortal(children, document.body)
 
 export const PageHeader = ({ title, sub, action }: { title: string; sub?: string; action?: ReactNode }) => (
-  <header className="flex items-start justify-between gap-3 pb-4 pt-safe">
-    <div className="min-w-0 pt-4">
-      <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
-      {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
+  <header className="pb-4 pt-safe">
+    <div className="flex items-center justify-between gap-3 pt-4">
+      <Logo />
+      {action && <div className="shrink-0">{action}</div>}
     </div>
-    {action && <div className="shrink-0 pt-4">{action}</div>}
+    <h1 className="mt-3 text-3xl font-extrabold tracking-tight">{title}</h1>
+    {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
   </header>
 )

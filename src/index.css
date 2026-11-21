@@ -2,36 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Token: Mochi (chiaro) ===== */
+/* ===== Token: chiaro (grigio chiaro) ===== */
 :root {
-  --bg: 255 247 238; --surface: 255 253 249; --ink: 67 50 42; --muted: 125 106 93; --line: 240 225 209;
-  --brand: 176 82 15; --onbrand: 255 255 255;
-  --inc: 35 118 75; --exp: 192 40 63; --trf: 42 107 153; --warn: 133 77 14;
-  --glass: 255 253 249 / 0.78; --glass-strong: 255 253 249 / 0.9;
-  --glass-edge: 255 255 255 / 0.75; --glass-edge-soft: 255 255 255 / 0.35; --glass-shade: 67 50 42 / 0.16;
-  --blob-a: 244 140 58 / 0.38; --blob-b: 255 196 150 / 0.5; --blob-c: 240 120 110 / 0.28;
+  --bg: 232 233 235; --surface: 244 245 246; --ink: 33 35 38; --muted: 92 96 104; --line: 208 210 214;
+  --brand: 33 35 38; --onbrand: 255 255 255;
+  --inc: 20 96 58; --exp: 171 31 55; --trf: 28 90 136; --warn: 122 68 6;
+  --glass: 244 245 246 / 0.78; --glass-strong: 244 245 246 / 0.9;
+  --glass-edge: 255 255 255 / 0.75; --glass-edge-soft: 255 255 255 / 0.35; --glass-shade: 33 35 38 / 0.16;
+  --blob-a: 255 255 255 / 0.7; --blob-b: 170 176 188 / 0.5; --blob-c: 140 148 162 / 0.3;
   color-scheme: light;
 }
-/* ===== Token: Zenitsu (scuro), automatico ===== */
+/* ===== Token: scuro (grigio antracite), automatico ===== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: 22 24 29; --surface: 33 36 43; --ink: 236 238 242; --muted: 163 169 181; --line: 53 58 68;
-    --brand: 230 187 120; --onbrand: 28 23 16;
-    --inc: 111 214 163; --exp: 244 144 154; --trf: 124 196 234; --warn: 246 196 83;
-    --glass: 33 36 43 / 0.72; --glass-strong: 33 36 43 / 0.9;
+    --bg: 38 40 43; --surface: 49 52 56; --ink: 238 239 241; --muted: 168 172 179; --line: 70 74 80;
+    --brand: 238 239 241; --onbrand: 38 40 43;
+    --inc: 120 216 168; --exp: 246 150 160; --trf: 130 198 236; --warn: 246 200 90;
+    --glass: 49 52 56 / 0.72; --glass-strong: 49 52 56 / 0.9;
     --glass-edge: 255 255 255 / 0.22; --glass-edge-soft: 255 255 255 / 0.08; --glass-shade: 0 0 0 / 0.5;
-    --blob-a: 230 187 120 / 0.2; --blob-b: 90 120 170 / 0.22; --blob-c: 50 80 150 / 0.2;
+    --blob-a: 120 128 142 / 0.28; --blob-b: 70 76 90 / 0.4; --blob-c: 150 158 172 / 0.16;
     color-scheme: dark;
   }
 }
-/* ===== Token: Zenitsu, scelta manuale ===== */
+/* ===== Token: scuro, scelta manuale ===== */
 :root[data-theme='dark'] {
-  --bg: 22 24 29; --surface: 33 36 43; --ink: 236 238 242; --muted: 163 169 181; --line: 53 58 68;
-  --brand: 230 187 120; --onbrand: 28 23 16;
-  --inc: 111 214 163; --exp: 244 144 154; --trf: 124 196 234; --warn: 246 196 83;
-  --glass: 33 36 43 / 0.72; --glass-strong: 33 36 43 / 0.9;
+  --bg: 38 40 43; --surface: 49 52 56; --ink: 238 239 241; --muted: 168 172 179; --line: 70 74 80;
+  --brand: 238 239 241; --onbrand: 38 40 43;
+  --inc: 120 216 168; --exp: 246 150 160; --trf: 130 198 236; --warn: 246 200 90;
+  --glass: 49 52 56 / 0.72; --glass-strong: 49 52 56 / 0.9;
   --glass-edge: 255 255 255 / 0.22; --glass-edge-soft: 255 255 255 / 0.08; --glass-shade: 0 0 0 / 0.5;
-  --blob-a: 230 187 120 / 0.2; --blob-b: 90 120 170 / 0.22; --blob-c: 50 80 150 / 0.2;
+  --blob-a: 120 128 142 / 0.28; --blob-b: 70 76 90 / 0.4; --blob-c: 150 158 172 / 0.16;
   color-scheme: dark;
 }
 :root[data-theme='light'] { color-scheme: light; }
@@ -72,7 +72,7 @@ body {
   }
   .btn::after {
     content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
-    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%); transition: transform 0.9s;
+    background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.25) 50%, transparent 70%); transition: transform 0.9s;
   }
   .btn:hover::after, .btn:active::after { transform: translateX(120%); }
   .btn-primary { @apply bg-brand text-onbrand; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 8px 20px -8px rgb(var(--brand) / 0.7); }
