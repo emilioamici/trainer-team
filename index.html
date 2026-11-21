@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Trainer Team" />
+    <meta name="theme-color" content="#e8e9eb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#26282b" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content="Piani di allenamento per atleti e coach, sincronizzati su Google Drive." />
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="%BASE_URL%icons/favicon-64.png" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
+    <title>Trainer Team</title>
+    <script>
+      try {
+        var t = localStorage.getItem('trainer:theme')
+        if (t === 'light' || t === 'dark') {
+          document.documentElement.dataset.theme = t
+          var c = t === 'dark' ? '#26282b' : '#e8e9eb'
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = c })
+        }
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

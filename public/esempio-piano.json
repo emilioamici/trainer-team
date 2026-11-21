@@ -1,0 +1,35 @@
+{
+  "format": "trainer-team-plan",
+  "version": 1,
+  "note": "Modello: \"day\" va da 1 (lunedì) a 7 (domenica); \"week\" (facoltativo) sposta in avanti di N settimane. In alternativa usa \"date\": \"AAAA-MM-GG\". Discipline: run_quality, run_long, hyrox, strength, ergo, other, recovery. Fasi: warmup, main, cooldown.",
+  "sessions": [
+    {
+      "day": 1, "title": "Ripetute 6×800 m", "discipline": "run_quality",
+      "coachNotes": "Mantieni lo stesso passo su tutte le ripetute.",
+      "blocks": [
+        { "phase": "warmup", "title": "Corsa facile + andature", "duration": "15'", "zone": "Z2" },
+        { "phase": "main", "title": "Ripetute", "sets": "6", "distance": "800 m", "pace": "4:05 /km", "rest": "90'' trotando" },
+        { "phase": "cooldown", "title": "Defaticamento", "duration": "10'", "zone": "Z1" }
+      ]
+    },
+    {
+      "day": 3, "title": "SkiErg + BikeErg", "discipline": "ergo",
+      "blocks": [
+        { "phase": "warmup", "title": "BikeErg facile", "duration": "8'", "zone": "Z1-Z2" },
+        { "phase": "main", "title": "SkiErg", "sets": "5", "distance": "500 m", "pace": "2:00 /500 m", "rest": "60''" },
+        { "phase": "main", "title": "BikeErg", "sets": "4", "duration": "4'", "load": "220 W", "rest": "2'" }
+      ]
+    },
+    {
+      "day": 4, "title": "Hyrox · Metcon", "discipline": "hyrox",
+      "blocks": [
+        { "phase": "warmup", "title": "Riscaldamento specifico", "duration": "10'" },
+        { "phase": "main", "title": "Giro Hyrox (×3)", "sets": "3", "notes": "1 km corsa + 50 m sled push + 25 wall ball", "rest": "3'" }
+      ]
+    },
+    {
+      "day": 6, "title": "Lungo progressivo", "discipline": "run_long",
+      "blocks": [ { "phase": "main", "title": "Corsa continua", "distance": "16 km", "zone": "Z2 → Z3 ultimi 4 km" } ]
+    }
+  ]
+}

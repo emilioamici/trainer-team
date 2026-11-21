@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy · Trainer Team</title>
+<style>
+  body { font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #212326; background: #e8e9eb; }
+  h1, h2 { line-height: 1.2; } a { color: #212326; }
+  @media (prefers-color-scheme: dark) { body { color: #eeeff1; background: #26282b; } a { color: #eeeff1; } }
+</style>
+</head>
+<body>
+<h1>Privacy · Trainer Team</h1>
+<p>Trainer Team è un'app web per pianificare e registrare allenamenti. Non ha un server proprio: i dati restano nel tuo Google Drive e sul tuo dispositivo.</p>
+
+<h2>Quali dati usa l'app</h2>
+<ul>
+  <li><strong>Piani di allenamento</strong>: allenamenti, blocchi, note del coach, feedback dell'atleta (durata, distanza, RPE, sensazioni, commenti) e il nome/obiettivo dell'atleta.</li>
+  <li><strong>Indirizzo email e nome del tuo account Google</strong>, per riconoscerti e, se sei un coach, per condividere il file con l'atleta che indichi.</li>
+</ul>
+
+<h2>Dove sono salvati</h2>
+<ul>
+  <li><strong>Google Drive</strong>: ogni atleta ha un file JSON dedicato. Nella modalità <em>Solo Atleta</em> il file è sul Drive dell'atleta; nella modalità <em>Coach</em> è sul Drive del coach, condiviso con l'atleta invitato (permesso di modifica). Il coach ha inoltre un file "registro" con l'elenco dei suoi atleti.</li>
+  <li><strong>Il tuo dispositivo</strong> (IndexedDB e localStorage del browser): copia locale per lavorare offline, preferenze (tema, lingua, ruolo) e il Client ID di Google, se lo inserisci a mano.</li>
+</ul>
+
+<h2>Permessi richiesti a Google</h2>
+<p>L'app richiede soltanto il permesso <code>drive.file</code>: vede esclusivamente i file che crea o che apri tu stesso con il selettore di Google (Picker). Non può leggere gli altri file del tuo Drive.</p>
+
+<h2>Condivisione</h2>
+<p>I dati di un atleta sono visibili solo a chi ha accesso al suo file su Drive (l'atleta e il coach che lo ha invitato). Il coach può togliere l'accesso in qualsiasi momento dalle impostazioni di condivisione di Drive. Nessun dato è venduto o inviato a terzi; l'app non usa analytics né pubblicità.</p>
+
+<h2>Cancellazione</h2>
+<p>Puoi eliminare i file dal tuo Drive e svuotare i dati del sito dal browser. Per revocare il permesso all'app vai su <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+</body>
+</html>
