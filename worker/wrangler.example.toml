@@ -1,0 +1,19 @@
+# Copia in wrangler.toml (ignorato da Git) e compila i valori.
+name = "trainer-team"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "INCOLLA_QUI_L_ID_DEL_KV"   # npx wrangler kv namespace create KV
+
+[vars]
+GOOGLE_CLIENT_ID = "1234-abc.apps.googleusercontent.com"
+ALLOWED_ORIGINS = "https://TUO-UTENTE.github.io"          # solo schema + dominio, senza percorso (più origini separate da virgola)
+VAPID_PUBLIC_KEY = "INCOLLA_LA_CHIAVE_PUBBLICA_VAPID"       # output di scripts/gen-keys.mjs
+VAPID_SUBJECT = "mailto:tua-email@esempio.it"               # contatto per i servizi push (richiesto)
+
+# SEGRETI: NON metterli qui. Si impostano con:
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
+#   npx wrangler secret put SESSION_KEY
+#   npx wrangler secret put VAPID_PRIVATE_KEY

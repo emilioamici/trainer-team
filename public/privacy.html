@@ -12,7 +12,7 @@
 </head>
 <body>
 <h1>Privacy · Trainer Team</h1>
-<p>Trainer Team è un'app web per pianificare e registrare allenamenti. Non ha un server proprio: i dati restano nel tuo Google Drive e sul tuo dispositivo.</p>
+<p>Trainer Team è un'app web per pianificare e registrare allenamenti. I dati restano nel tuo Google Drive e sul tuo dispositivo; un server facoltativo (vedi sotto) fa solo da tramite per l'accesso persistente e le notifiche.</p>
 
 <h2>Quali dati usa l'app</h2>
 <ul>
@@ -25,6 +25,9 @@
   <li><strong>Google Drive</strong>: ogni atleta ha un file JSON dedicato. Nella modalità <em>Solo Atleta</em> il file è sul Drive dell'atleta; nella modalità <em>Coach</em> è sul Drive del coach, condiviso con l'atleta invitato (permesso di modifica). Il coach ha inoltre un file "registro" con l'elenco dei suoi atleti.</li>
   <li><strong>Il tuo dispositivo</strong> (IndexedDB e localStorage del browser): copia locale per lavorare offline, preferenze (tema, lingua, ruolo) e il Client ID di Google, se lo inserisci a mano.</li>
 </ul>
+
+<h2>Server facoltativo (accesso persistente e notifiche)</h2>
+<p>Se l'app è configurata con un Worker Cloudflare, questo fa da tramite per due funzioni. <strong>Accesso persistente</strong>: il Worker conserva il token di rinnovo di Google <em>cifrato</em> (fino a 180 giorni, cancellato al logout); all'app arriva solo un identificativo di sessione casuale. <strong>Notifiche</strong>: il Worker conserva l'iscrizione push del dispositivo e, per ogni file condiviso, l'elenco delle email iscritte; il testo delle notifiche (es. "Completato: Test 10 km") lo attraversa cifrato e non viene salvato. Il Worker non legge né conserva i piani di allenamento.</p>
 
 <h2>Permessi richiesti a Google</h2>
 <p>L'app richiede soltanto il permesso <code>drive.file</code>: vede esclusivamente i file che crea o che apri tu stesso con il selettore di Google (Picker). Non può leggere gli altri file del tuo Drive.</p>

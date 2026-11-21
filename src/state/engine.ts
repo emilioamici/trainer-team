@@ -8,7 +8,9 @@ import { slug, uid } from '../lib/ids'
 import { nowISO } from '../lib/dates'
 import { sampleDb } from '../lib/sample'
 import * as drive from '../services/googleDriveService'
-import type { CoachRegistry, RegistryEntry, Source, SyncStatus, TrainingPlanDatabase, UserRole } from '../types'
+import * as push from '../services/pushService'
+import { captureSession, getSession, health, logoutSession, workerUrl, type Health } from '../services/workerService'
+import type { CoachRegistry, RegistryEntry, SessionStatus, Source, SyncStatus, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 
 export const SYNC_EVERY_MS = 120_000
 export const DEBOUNCE_MS = 2_000
@@ -27,6 +29,9 @@ interface RT {
 interface Linked { id: string; fileId: string; name: string }
 export interface Toast { id: number; msg: string; kind: 'ok' | 'err' | 'info' }
 export type AuthState = 'out' | 'in' | 'expired'
+/** Notifica in coda: parte dopo che i dati sono stati inviati a Drive. */
+interface Notice { tag: string; source: string; title: string; body: string; at: number }
+export type PlanEvent = { type: 'plan'; title?: string } | { type: 'log'; session: WorkoutSession; status: SessionStatus }
 
 const LS = {
   get: (k: string) => { try { return localStorage.getItem('trainer:' + k) } catch { return null } },
@@ -56,7 +61,12 @@ export class Engine {
   private registryRev: string | null = null
   private registryReconciled = false
   account: drive.About | null = null
-  authState: AuthState = drive.getToken() ? 'in' : drive.rememberedAccount() ? 'expired' : 'out'
+  authState: AuthState = drive.getToken() ? 'in' : drive.rememberedAccount() || getSession() ? 'expired' : 'out'
+  /** Esito del ritorno dalla pagina di consenso del Worker (letto prima che l'indirizzo venga ripulito). */
+  private sessionReturn = typeof location !== 'undefined' ? captureSession() : null
+  workerHealth: Health | null = null
+  private pushQ: Notice[] = []
+  private tokenP: Promise<boolean> | null = null
   ready = false
   online = typeof navigator === 'undefined' ? true : navigator.onLine
   toast: Toast | null = null
@@ -76,15 +86,28 @@ export class Engine {
     if (reg) this.registry = parseRegistry(reg)
     if (this.registryFileId) { const r = await idbGet<{ rev: string }>('registry-meta'); this.registryRev = r?.rev ?? null }
     await Promise.all(this.allSources().map((s) => this.ensureLoaded(s)))
+    this.pushQ = (await idbGet<Notice[]>('pushq')) ?? []
     this.ready = true
     this.emit()
+    void health().then((h) => { this.workerHealth = h; this.emit() })
     window.addEventListener('online', () => { this.online = true; this.emit(); void this.syncAll() })
     window.addEventListener('offline', () => { this.online = false; this.emit() })
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void this.syncAll() })
     this.interval = setInterval(() => void this.syncAll(), SYNC_EVERY_MS)
+    this.renewTimer = setInterval(() => void this.renewIfNeeded(), 60_000)
+    if (this.sessionReturn === 'error') this.notify(t('Accesso a Google non riuscito.'), 'err')
+    if (await this.ensureToken()) {
+      await this.loadAccount()
+      if (this.sessionReturn === 'ok' && this.account) this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
+    }
     void this.syncAll()
   }
-  stop() { if (this.interval) clearInterval(this.interval); this.timers.forEach(clearTimeout) }
+  private renewTimer: ReturnType<typeof setInterval> | null = null
+  /** Con la sessione persistente il token si rinnova da solo, anche in background, prima che scada. */
+  private async renewIfNeeded() {
+    if (getSession() && drive.tokenSecondsLeft() < 600 && navigator.onLine) await this.ensureToken(true)
+  }
+  stop() { if (this.interval) clearInterval(this.interval); if (this.renewTimer) clearInterval(this.renewTimer); this.timers.forEach(clearTimeout) }
 
   // ---------- elenco dei piani ----------
   private personal = (): Source => ({ id: 'personal', kind: 'personal', fileId: this.personalFileId, name: t('Il mio piano') })
@@ -198,11 +221,20 @@ export class Engine {
   }
 
   // ---------- account Google ----------
-  /** Token valido, tentando un rinnovo silenzioso se serve. */
-  private async ensureToken(): Promise<boolean> {
-    if (drive.getToken()) { this.setAuth('in'); return true }
-    if (!drive.rememberedAccount() || !drive.config.clientId()) { this.setAuth('out'); return false }
-    try { await drive.signIn(false); this.setAuth('in'); return true } catch { this.setAuth('expired'); return false }
+  /** Token valido, rinnovandolo (sessione del Worker o rinnovo silenzioso di Google) se serve. Le chiamate parallele condividono lo stesso rinnovo. */
+  private ensureToken(force = false): Promise<boolean> {
+    if (!force && drive.getToken()) { this.setAuth('in'); return Promise.resolve(true) }
+    if (this.tokenP) return this.tokenP
+    this.tokenP = (async () => {
+      const session = !!getSession()
+      if (!session && (!drive.rememberedAccount() || !drive.config.clientId())) { this.setAuth('out'); return false }
+      try { await drive.signIn(false); this.setAuth('in'); return true }
+      catch (e) {
+        if (e instanceof drive.DriveError && e.status === 0 && session) return !!drive.getToken() // Worker irraggiungibile: nessuna schermata di accesso, si resta sui dati locali
+        this.setAuth('expired'); return false
+      }
+    })().finally(() => { this.tokenP = null })
+    return this.tokenP
   }
   private setAuth(s: AuthState) { if (this.authState !== s) { this.authState = s; this.emit() } }
 
@@ -219,18 +251,23 @@ export class Engine {
     if (this.account || !drive.getToken()) return
     try { this.account = await drive.getAbout(); this.emit() } catch { /* ignora */ }
   }
-  disconnect() {
+  async disconnect() {
+    const tok = drive.getToken()
+    if (push.pushWanted()) await push.disablePush(tok).catch(() => undefined)
+    await logoutSession()
     drive.signOut()
     this.account = null; this.authState = 'out'
     this.rt.forEach((r) => { if (r.status !== 'local') r.status = r.dirty ? 'pending' : 'local' })
     this.emit()
   }
+  hasPersistentLogin = () => !!getSession()
 
   // ---------- sincronizzazione ----------
   async syncAll() {
     if (!this.started) return
     await this.syncRegistry()
     await Promise.all(this.allSources().filter((s) => s.kind !== 'demo').map((s) => this.syncSource(s.id)))
+    void this.syncPush()
   }
 
   syncSource(id: string): Promise<void> {
@@ -283,6 +320,7 @@ export class Engine {
         else r.dirty = false
       }
       r.status = r.dirty ? 'pending' : 'synced'; r.lastSync = nowISO(); if (r.status === 'synced') r.error = null
+      if (!r.dirty) void this.flushNotices(id) // tutto ciò che è locale è su Drive: ora si può avvisare gli altri
     } catch (e) {
       const st = e instanceof drive.DriveError ? e.status : 0
       if (st === 401) { this.setAuth('expired'); r.status = 'auth' }
@@ -418,6 +456,63 @@ export class Engine {
     this.rt.delete(id); void idbDel('db:' + id)
     if (this.storedActive === id) { this.storedActive = null; LS.set('active', null) }
     this.emit()
+  }
+
+  // ---------- notifiche push ----------
+  pushFileIds = () => this.allSources().filter((s) => (s.kind === 'coach-athlete' || s.kind === 'linked') && s.fileId).map((s) => s.fileId as string)
+
+  /** Mette in coda un avviso per chi condivide il piano; parte dopo l'invio dei dati a Drive (anche se la modifica era offline). */
+  announce(sourceId: string, ev: PlanEvent) {
+    const s = this.allSources().find((x) => x.id === sourceId)
+    const db = this.dbOf(sourceId)
+    if (!s || !db || !workerUrl() || (s.kind !== 'coach-athlete' && s.kind !== 'linked')) return
+    let n: Omit<Notice, 'at' | 'source'>
+    if (ev.type === 'log') {
+      if (s.kind !== 'linked') return
+      const sess = ev.session
+      const label = ev.status === 'done' ? t('Completato: {title}', { title: sess.title }) : ev.status === 'partial' ? t('Parziale: {title}', { title: sess.title }) : t('Saltato: {title}', { title: sess.title })
+      const rpe = sess.feedback?.rpe
+      n = { tag: `log:${sess.id}`, title: db.athlete.name, body: rpe && ev.status !== 'skipped' ? `${label} · RPE ${rpe}` : label }
+    } else if (s.kind === 'coach-athlete') {
+      n = { tag: `plan:${s.id}:${ev.title ?? 'bulk'}`, title: t('Piano aggiornato'), body: ev.title ? t('Il coach ha modificato «{title}»', { title: ev.title }) : t('Il coach ha aggiornato il piano di allenamento') }
+    } else {
+      n = { tag: `plan:${s.id}:${ev.title ?? 'bulk'}`, title: t('Piano modificato'), body: ev.title ? t('{name} ha modificato «{title}»', { name: db.athlete.name, title: ev.title }) : t('{name} ha aggiornato il piano', { name: db.athlete.name }) }
+    }
+    const now = Date.now()
+    this.pushQ = [...this.pushQ.filter((x) => x.tag !== n.tag && now - x.at < 86_400_000), { ...n, source: sourceId, at: now }].slice(-100)
+    void idbSet('pushq', this.pushQ)
+  }
+
+  private async flushNotices(sourceId: string) {
+    const mine = this.pushQ.filter((n) => n.source === sourceId)
+    const s = this.allSources().find((x) => x.id === sourceId)
+    if (!mine.length || !s?.fileId || !drive.getToken()) return
+    const done = new Set<string>()
+    for (const n of mine) {
+      try { await push.sendNotify(drive.getToken()!, { fileId: s.fileId, title: n.title, body: n.body, tag: n.tag }); done.add(n.tag) }
+      catch (e) { if (e instanceof Error && 'status' in e && (e as { status: number }).status >= 400 && (e as { status: number }).status < 500) done.add(n.tag) } // rifiutata: inutile riprovare; errori di rete: si riprova al ciclo dopo
+    }
+    if (done.size) { this.pushQ = this.pushQ.filter((n) => !(n.source === sourceId && done.has(n.tag))); await idbSet('pushq', this.pushQ) }
+  }
+
+  pushOn = () => push.pushWanted() && push.permission() === 'granted'
+  async setPush(on: boolean): Promise<string | null> {
+    try {
+      if (!(await this.ensureToken())) return t('Collega prima Google.')
+      const tok = drive.getToken()!
+      if (on) await push.enablePush(tok, this.pushFileIds())
+      else await push.disablePush(tok)
+      this.emit()
+      return null
+    } catch (e) { this.emit(); return e instanceof Error ? e.message : String(e) }
+  }
+  async testPush(): Promise<string> {
+    if (!(await this.ensureToken())) return t('Collega prima Google.')
+    return push.testPush(drive.getToken()!)
+  }
+  private async syncPush() {
+    const tok = drive.getToken()
+    if (tok && workerUrl()) await push.syncPushFiles(tok, this.pushFileIds()).catch(() => undefined)
   }
 
   // ---------- backup ----------

@@ -30,6 +30,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
     const prev = db.sessions.filter((s) => s.date >= addDays(start, -7) && s.date <= addDays(start, -1))
     if (!prev.length) { e.notify(t('La settimana precedente è vuota'), 'info'); return }
     e.mutate(src.id, (d) => prev.reduce((acc, s) => upsertSession(acc, duplicateSession(s, addDays(s.date, 7)), e.by()), d))
+    e.announce(src.id, { type: 'plan' })
     e.notify(t('Copiate {n} sessioni dalla settimana precedente', { n: prev.length }))
   }
 

@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['cats/*.png', 'icons/*.png', 'privacy.html', 'esempio-piano.json'],
+      includeAssets: ['cats/*.png', 'icons/*.png', 'privacy.html', 'esempio-piano.json', 'push-sw.js'],
       manifest: {
         name: 'Trainer Team',
         short_name: 'Trainer',
@@ -34,8 +34,9 @@ export default defineConfig({
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/privacy\.html$/],
         cleanupOutdatedCaches: true,
+        importScripts: ['push-sw.js'],
       },
     }),
   ],
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: { environment: 'node', include: ['src/**/*.test.ts', 'worker/src/**/*.test.ts'] },
 })

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
+import { Bell, Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { SyncBadge, useActive } from '../components/common'
 import { Accordion, Field, Notice, PageHeader, Segmented, Toggle } from '../components/ui'
@@ -10,6 +10,8 @@ import { slug } from '../lib/ids'
 import { updateAthlete } from '../lib/db'
 import { fmtDay } from '../lib/dates'
 import { config, pickerAvailable } from '../services/googleDriveService'
+import { isIos, isStandalone, pushSupported } from '../services/pushService'
+import { saveWorkerCfg, vapidKey, workerUrl } from '../services/workerService'
 import type { UserRole } from '../types'
 
 export default function Profile() {
@@ -23,6 +25,10 @@ export default function Profile() {
   const [cid, setCid] = useState(config.clientId())
   const [api, setApi] = useState(config.apiKey())
   const [app, setApp] = useState(config.appId())
+  const [wurl, setWurl] = useState(workerUrl())
+  const [vapid, setVapid] = useState(vapidKey())
+  const [pushMsg, setPushMsg] = useState('')
+  const [pushBusy, setPushBusy] = useState(false)
   const [mode, setMode] = useState<'merge' | 'replace'>('merge')
   const [importMsg, setImportMsg] = useState('')
   const file = useRef<HTMLInputElement>(null)
@@ -86,8 +92,10 @@ export default function Profile() {
           {!config.fromBuild() && (
             <div className="space-y-2">
               <Field label="Google Client ID"><input className="input" value={cid} onChange={(ev) => setCid(ev.target.value)} onBlur={() => config.save('clientId', cid)} placeholder="1234-abc.apps.googleusercontent.com" autoCapitalize="none" /></Field>
-              <details className="text-sm"><summary className="cursor-pointer py-1 font-semibold text-brand">{t('Opzioni avanzate (Picker)')}</summary>
+              <details className="text-sm"><summary className="cursor-pointer py-1 font-semibold text-brand">{t('Opzioni avanzate (Picker, server)')}</summary>
                 <div className="mt-2 space-y-2">
+                  <Field label={t('Indirizzo del Worker')}><input className="input" value={wurl} onChange={(ev) => setWurl(ev.target.value)} onBlur={() => { saveWorkerCfg('pushUrl', wurl); location.reload() }} placeholder="https://trainer-team.xxx.workers.dev" autoCapitalize="none" /></Field>
+                  <Field label={t('Chiave VAPID pubblica')}><input className="input" value={vapid} onChange={(ev) => setVapid(ev.target.value)} onBlur={() => saveWorkerCfg('vapidKey', vapid)} autoCapitalize="none" /></Field>
                   <Field label="API key"><input className="input" value={api} onChange={(ev) => setApi(ev.target.value)} onBlur={() => config.save('apiKey', api)} autoCapitalize="none" /></Field>
                   <Field label="App ID (project number)"><input className="input" value={app} onChange={(ev) => setApp(ev.target.value)} onBlur={() => config.save('appId', app)} inputMode="numeric" /></Field>
                 </div>
@@ -97,7 +105,7 @@ export default function Profile() {
           {!config.clientId() && <Notice kind="warn">{t('Inserisci il Client ID OAuth di Google Cloud per attivare la sincronizzazione (vedi README). Senza, l’app funziona solo su questo dispositivo.')}</Notice>}
           <div className="flex flex-wrap gap-2">
             {e.isAuthed()
-              ? <button className="btn btn-danger flex-1" onClick={() => e.disconnect()}>{t('Scollega account')}</button>
+              ? <button className="btn btn-danger flex-1" onClick={() => void e.disconnect()}>{t('Scollega account')}</button>
               : <button className="btn btn-primary flex-1" disabled={!config.clientId()} onClick={() => e.connect()}>{e.authState === 'expired' ? t('Riconnetti Google') : t('Collega Google')}</button>}
             <button className="btn btn-soft flex-1" onClick={() => void e.syncAll()}><RefreshCw size={16} />{t('Sincronizza ora')}</button>
           </div>
@@ -110,7 +118,27 @@ export default function Profile() {
             </div>
           )}
           {!e.cacheOk && <Notice kind="warn">{t('Non riesco a salvare la copia locale: le modifiche restano solo in memoria finché non sono sincronizzate.')}</Notice>}
+          <p className="text-xs text-muted">{e.hasPersistentLogin() ? t('Accesso persistente attivo: il token si rinnova da solo, senza popup.') : e.workerHealth?.auth ? t('Accesso persistente disponibile: al prossimo accesso resti collegato.') : t('Senza server l’accesso va rinnovato ogni ora (di solito in automatico).')}</p>
           <p className="text-xs text-muted">{t('L’app vede soltanto i file che crea o che apri con il Picker (permesso "drive.file"). Si sincronizza ogni 2 minuti e dopo ogni modifica; offline lavora sulla copia locale.')}</p>
+        </Accordion>
+
+        <Accordion id="push" icon={<Bell size={22} />} title={t('Notifiche')} summary={e.pushOn() ? t('Attive su questo dispositivo') : t('Disattivate')}>
+          {!workerUrl() || e.workerHealth?.push === false ? (
+            <Notice kind="warn">{t('Le notifiche richiedono il server (Worker) con le chiavi VAPID: vedi worker/README.md.')}</Notice>
+          ) : !pushSupported() ? (
+            <Notice kind="warn">{isIos() && !isStandalone() ? t('Su iPhone servono iOS 16.4+ e l’app aggiunta alla schermata Home (Condividi → Aggiungi alla schermata Home).') : t('Questo browser non supporta le notifiche push.')}</Notice>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">
+                <div><p className="font-semibold">{t('Attiva notifiche')}</p><p className="text-xs text-muted">{t('Il coach ti avvisa dei cambi di piano; l’atleta avvisa il coach dei completamenti.')}</p></div>
+                <Toggle checked={e.pushOn()} label={t('Attiva notifiche')} onChange={async (v) => { setPushBusy(true); const err = await e.setPush(v); setPushMsg(err ?? ''); setPushBusy(false) }} />
+              </div>
+              {e.pushOn() && <button className="btn btn-soft w-full" disabled={pushBusy} onClick={async () => { setPushBusy(true); setPushMsg(await e.testPush()); setPushBusy(false) }}>{t('Invia una notifica di prova')}</button>}
+              {pushMsg && <Notice kind="trf">{pushMsg}</Notice>}
+              {isIos() && !isStandalone() && <Notice kind="warn">{t('Su iPhone le notifiche funzionano solo con l’app aggiunta alla schermata Home.')}</Notice>}
+              <p className="text-xs text-muted">{t('Il contenuto delle notifiche passa dal server in forma cifrata e non viene conservato. Vale per questo dispositivo.')}</p>
+            </>
+          )}
         </Accordion>
 
         <Accordion id="link" icon={<Link2 size={22} />} title={t('Collegati a un Coach')} summary={linked.length ? linked.map((l) => l.name).join(', ') : t('Nessun piano collegato')} defaultOpen={!!pendingJoin()}>
@@ -146,7 +174,7 @@ export default function Profile() {
           {e.demoEnabled && <button className="btn btn-soft w-full" onClick={() => void e.resetDemo().then(() => e.notify(t('Dati demo ripristinati')))}>{t('Ripristina dati demo')}</button>}
         </Accordion>
 
-        <p className="px-2 pb-4 text-center text-xs text-muted">{t('Nessun server nostro: i dati stanno nel tuo Google Drive e su questo dispositivo.')} <a className="font-semibold text-brand underline" href={`${import.meta.env.BASE_URL}privacy.html`}>{t('Privacy')}</a></p>
+        <p className="px-2 pb-4 text-center text-xs text-muted">{t('I dati stanno nel tuo Google Drive e su questo dispositivo; il server facoltativo non li conserva.')} <a className="font-semibold text-brand underline" href={`${import.meta.env.BASE_URL}privacy.html`}>{t('Privacy')}</a></p>
       </div>
     </div>
   )

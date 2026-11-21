@@ -4,6 +4,7 @@
  * Un file JSON per atleta; il registro del coach è un file a parte.
  */
 import { t } from '../i18n'
+import { clearSession, getSession, health, refreshSession, startLogin, WorkerError } from './workerService'
 
 export const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 const API = 'https://www.googleapis.com/drive/v3'
@@ -56,8 +57,28 @@ export const getToken = (): string | null => {
 export const tokenSecondsLeft = () => { const t = readToken(); return t ? Math.round((t.exp - Date.now()) / 1000) : 0 }
 export const rememberedAccount = (): string | null => { try { return localStorage.getItem(CONNECTED_KEY) } catch { return null } }
 
-/** `interactive: true` apre il popup di Google (da un tocco dell'utente); false tenta il rinnovo silenzioso. */
+const storeToken = (token: string, exp: number) => {
+  try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ token, exp } satisfies StoredToken)) } catch { /* ignora */ }
+}
+
+/**
+ * Ordine: 1) sessione persistente del Worker (rinnovo senza popup, anche in background);
+ * 2) con il Worker attivo e `interactive` → pagina di consenso di Google (si torna all'app con la sessione);
+ * 3) senza Worker → popup di Google Identity Services (token da 1 ora).
+ */
 export const signIn = async (interactive: boolean): Promise<string> => {
+  if (getSession()) {
+    try { const r = await refreshSession(); storeToken(r.token, r.exp); try { localStorage.setItem(CONNECTED_KEY, r.email) } catch { /* ignora */ } return r.token }
+    catch (e) {
+      if (e instanceof WorkerError && e.status === 0) throw new DriveError(0, t('Rete non raggiungibile'))
+      if (e instanceof WorkerError && e.status >= 500) throw new DriveError(0, t('Rete non raggiungibile'))
+      clearSession() // revocata da Google o scaduta: serve un nuovo accesso
+    }
+  }
+  if (interactive && (await health())?.auth) {
+    startLogin(rememberedAccount())
+    return new Promise<string>(() => undefined) // la pagina sta per cambiare
+  }
   const clientId = config.clientId()
   if (!clientId) throw new DriveError(0, t('Manca il Google Client ID (Profilo → Sincronizzazione).'))
   await loadScript('https://accounts.google.com/gsi/client')
@@ -67,7 +88,7 @@ export const signIn = async (interactive: boolean): Promise<string> => {
       client_id: clientId, scope: SCOPE, hint,
       callback: (r: { access_token?: string; expires_in?: number; error?: string }) => {
         if (!r.access_token) return reject(new DriveError(401, r.error || t('Accesso negato')))
-        try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ token: r.access_token, exp: Date.now() + (r.expires_in ?? 3600) * 1000 } satisfies StoredToken)) } catch { /* ignora */ }
+        storeToken(r.access_token, Date.now() + (r.expires_in ?? 3600) * 1000)
         resolve(r.access_token)
       },
       error_callback: (e: { type?: string; message?: string }) => reject(new DriveError(401, e?.message || e?.type || t('Accesso annullato'))),
