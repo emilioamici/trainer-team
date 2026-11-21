@@ -5,3 +5,7 @@ dev-dist
 .env.local
 *.log
 .DS_Store
+
+worker/wrangler.toml
+worker/.wrangler
+worker/.dev.vars

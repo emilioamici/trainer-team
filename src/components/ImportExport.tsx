@@ -25,6 +25,7 @@ export function ImportExportSheet({ open, onClose, src, db, week, canEdit }: { o
       const r = parsePlanFile(text, weekStart(start), e.role === 'coach' && src.kind !== 'linked' ? 'coach' : 'athlete')
       if (!r.sessions.length) { setErr(t('Nessuna sessione valida trovata nel file.')); return }
       e.mutate(src.id, (d) => addSessions(d, r.sessions, e.by()))
+      e.announce(src.id, { type: 'plan' })
       e.notify(r.skipped ? t('Importate {n} sessioni ({k} ignorate)', { n: r.sessions.length, k: r.skipped }) : t('Importate {n} sessioni', { n: r.sessions.length }))
       setText(''); onClose()
     } catch (x) { setErr(x instanceof Error ? x.message : String(x)) }

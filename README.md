@@ -1,6 +1,6 @@
 # Trainer Team 🐱🏋️
 
-Web app **mobile-first (PWA)** per gestire e tracciare piani di allenamento — running, Hyrox, fitness funzionale, palestra, tennis — con ruoli **Atleta** e **Coach** e sincronizzazione su **Google Drive**. Nessun backend: tutto gira nel browser, i dati stanno nel tuo Drive.
+Web app **mobile-first (PWA)** per gestire e tracciare piani di allenamento — running, Hyrox, fitness funzionale, palestra, tennis — con ruoli **Atleta** e **Coach** e sincronizzazione su **Google Drive**. Nessun backend per i dati: tutto gira nel browser e i dati stanno nel tuo Drive. Un **Worker Cloudflare facoltativo** aggiunge l'accesso persistente e le notifiche push (vedi sotto).
 
 Stile grafico e architettura seguono le linee guida di Money Duo (`LINEE_GUIDA_MONEYDUO.md`): temi grigio chiaro e grigio antracite + automatico, Liquid Glass solo su navigazione/fogli/avvisi, sfondo vivo, logo VHYPE Training Lab in testata.
 
@@ -40,7 +40,7 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 
 1. Vai su <https://console.cloud.google.com/> e crea un **progetto** (es. "Trainer Team").
 2. **API e servizi → Libreria** → abilita **Google Drive API** e **Google Picker API**.
-3. **API e servizi → Schermata consenso OAuth** (Google Auth Platform): tipo *Esterno*; nome app, email di supporto; in *Accesso ai dati* aggiungi lo scope `.../auth/drive.file` (non sensibile: non richiede verifica). Aggiungi come **utenti di prova** i tuoi account (e quelli di coach/atleti) finché l'app è in modalità *Testing*. *Non caricare un logo*: obbligherebbe alla verifica dell'app.
+3. **API e servizi → Schermata consenso OAuth** (Google Auth Platform): tipo *Esterno*; nome app, email di supporto; in *Accesso ai dati* aggiungi lo scope `.../auth/drive.file` (non sensibile: non richiede verifica). Aggiungi come **utenti di prova** i tuoi account (e quelli di coach/atleti) finché l'app è in modalità *Testing*. **Attenzione:** in modalità *Testing* Google fa scadere il token di rinnovo dopo **7 giorni**, quindi l'accesso persistente del Worker non dura. Per la persistenza vera passa l'app in **Produzione** (*Pubblico → Pubblica app*): con il solo scope `drive.file` non serve nessuna verifica. *Non caricare un logo*: obbligherebbe alla verifica dell'app.
 4. **Credenziali → Crea credenziali → ID client OAuth** → tipo **Applicazione web**. In **Origini JavaScript autorizzate** aggiungi:
    - `https://<tuo-utente>.github.io` (solo schema + dominio, **senza** percorso)
    - `http://localhost:5173` per lo sviluppo.
@@ -49,6 +49,10 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 6. Il **numero del progetto** (Console → Impostazioni progetto) è l'`APP_ID` del Picker.
 
 > Il Picker (API key + App ID) serve **solo** per collegare un atleta al file del coach. Senza, la modalità Solo Atleta e il coach funzionano comunque.
+
+## Worker (facoltativo): accesso persistente e notifiche
+
+Senza Worker l'app funziona: il token Google dura 1 ora (rinnovo silenzioso o popup) e non ci sono push. Con il Worker (`worker/`, guida in [`worker/README.md`](worker/README.md)) resti collegato per mesi e ricevi le notifiche: l'**atleta** avvisa il **coach** quando completa un allenamento, il coach avvisa l'atleta quando cambia il piano. Gli avvisi partono **dopo** che i dati sono arrivati su Drive (anche se la modifica era stata fatta offline). Il Worker non vede né conserva i piani; la funzione si attiva solo se `/health` la dichiara. Il deploy del Worker è manuale (`npx wrangler deploy`).
 
 ## Variabili di configurazione
 
@@ -59,6 +63,8 @@ Nessun segreto nel repository: sono variabili **pubbliche** della build (hanno l
 | `VITE_GOOGLE_CLIENT_ID` | Client ID OAuth (tipo Web) |
 | `VITE_GOOGLE_API_KEY` | Chiave API ristretta al Picker |
 | `VITE_GOOGLE_APP_ID` | Numero del progetto Google Cloud |
+| `VITE_PUSH_URL` | *(Worker)* indirizzo del Worker, senza `/` finale |
+| `VITE_VAPID_PUBLIC_KEY` | *(Worker)* chiave pubblica VAPID per le push |
 
 In GitHub: **Settings → Secrets and variables → Actions → Variables → New repository variable**. In locale copia `.env.example` in `.env.local`.
 
@@ -67,11 +73,11 @@ In GitHub: **Settings → Secrets and variables → Actions → Variables → Ne
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # Vitest: merge, import/export, inviti, date, traduzioni
+npm test           # Vitest: merge, import/export, inviti, date, traduzioni, Worker
 npm run build      # tsc + build di produzione (con service worker)
 ```
 
-Il flusso coach → invito → atleta → feedback → offline si prova con Google/Drive/Picker simulati: `npx vite preview --port 4173 &` poi `node e2e/drive-flow.cjs` (serve `playwright`).
+I flussi coach → invito → atleta → feedback → offline (`e2e/drive-flow.cjs`) e accesso persistente + notifiche in coda (`e2e/worker-flow.cjs`) si provano con Google/Drive/Worker simulati: `npx vite preview --port 4173 &` poi `node e2e/<file>.cjs` (serve `playwright`).
 
 ## Pubblicare su GitHub Pages
 
@@ -98,6 +104,10 @@ Nessun server proprio, nessun analytics. I dati vivono nel Drive dell'utente (o 
 ```
 src/
   services/googleDriveService.ts   GIS + Drive v3 (crea, leggi, aggiorna, condividi) + Picker
+  services/workerService.ts        sessione persistente col Worker (/auth/*, /health)
+  services/pushService.ts          iscrizione push, prova, avvisi
+worker/                            Worker Cloudflare (OAuth broker + Web Push) — vedi worker/README.md
+public/push-sw.js                  gestione push nel service worker (mostra sempre la notifica)
   state/engine.ts                  piani, registro coach, sincronizzazione (pull→merge→push), inviti
   lib/db.ts                        schema, parseDb, merge per record, mutazioni, statistiche
   lib/planIO.ts                    import/export JSON e modello

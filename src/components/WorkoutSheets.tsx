@@ -32,12 +32,12 @@ export function useWorkoutSheets(src: Source | null, db: TrainingPlanDatabase | 
         <WorkoutDetail s={detail} onClose={() => setDetailId(null)} canEdit={canEdit} canLog={canLog}
           onEdit={(s) => { setDetailId(null); setEditing(s) }}
           onFeedback={(s) => { setDetailId(null); setFbId(s.id) }}
-          onDuplicate={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, duplicateSession(s, addDays(s.date, 7)), e.by())); e.notify(t('Duplicato alla settimana successiva')) } setDetailId(null) }}
-          onDelete={(s) => { if (src) e.mutate(src.id, (d) => removeSession(d, s.id, e.by())); setDetailId(null) }} />
+          onDuplicate={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, duplicateSession(s, addDays(s.date, 7)), e.by())); e.announce(src.id, { type: 'plan', title: s.title }); e.notify(t('Duplicato alla settimana successiva')) } setDetailId(null) }}
+          onDelete={(s) => { if (src) { e.mutate(src.id, (d) => removeSession(d, s.id, e.by())); e.announce(src.id, { type: 'plan' }) } setDetailId(null) }} />
         <WorkoutEditor open={!!editing} initial={editing} onClose={() => setEditing(null)} suggestions={suggestions}
-          onSave={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, s, e.by())); e.notify(t('Allenamento salvato')) } }} />
+          onSave={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, s, e.by())); e.announce(src.id, { type: 'plan', title: s.title }); e.notify(t('Allenamento salvato')) } }} />
         <FeedbackSheet s={fb} onClose={() => setFbId(null)}
-          onSave={(status, f) => { if (src && fb) { e.mutate(src.id, (d) => setLog(d, fb.id, status, f, e.by())); e.notify(t('Feedback salvato: il coach lo vedrà alla prossima sincronizzazione')) } }} />
+          onSave={(status, f) => { if (src && fb) { e.mutate(src.id, (d) => setLog(d, fb.id, status, f, e.by())); e.announce(src.id, { type: 'log', session: { ...fb, feedback: f }, status }); e.notify(t('Feedback salvato: il coach lo vedrà alla prossima sincronizzazione')) } }} />
       </>
     ),
   }
