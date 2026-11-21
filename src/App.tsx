@@ -3,7 +3,8 @@ import { AnimatePresence, m } from 'framer-motion'
 import { BottomNav, type Tab } from './components/BottomNav'
 import { Background, ToastHost } from './components/ui'
 import { useLangPref } from './i18n'
-import { captureJoinFromUrl } from './lib/invite'
+import { Gate } from './components/Gate'
+import { captureJoinFromUrl, pendingJoin } from './lib/invite'
 import Plan from './pages/Plan'
 import Profile from './pages/Profile'
 import Team from './pages/Team'
@@ -18,12 +19,14 @@ export default function App() {
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
+  const gate = e.gateMode()
   const goPlan = (date?: string) => { setPlanDate(date ?? null); setTab('plan') }
 
   return (
     <>
       <Background />
       <ToastHost />
+      {gate && <Gate mode={gate} onLoggedIn={() => { if (pendingJoin()) setTab('profile') }} />}
       {!e.ready ? (
         <div className="flex h-full items-center justify-center text-sm text-muted">…</div>
       ) : (
