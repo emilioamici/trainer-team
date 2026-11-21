@@ -7,6 +7,8 @@ Il Worker è **facoltativo**: senza, l'app funziona (popup di Google ogni ora, n
 
 Il piano gratuito di Cloudflare basta e avanza per una squadra.
 
+> **Importante:** con l'app Google in modalità *Testing* il token di rinnovo scade dopo 7 giorni e l'accesso non è davvero persistente. In Google Cloud → *Pubblico* (schermata di consenso) scegli **Pubblica app / In produzione**: con il solo scope `drive.file` non serve verifica. Non caricare un logo nel branding (lo richiederebbe).
+
 ## Cosa conserva il Worker
 Solo: sessioni (token di rinnovo **cifrato**, 180 giorni), iscrizioni push dei dispositivi, e per ogni file Drive l'elenco delle email iscritte. **Non** vede né conserva i piani di allenamento.
 

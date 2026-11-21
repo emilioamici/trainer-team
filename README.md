@@ -40,7 +40,7 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 
 1. Vai su <https://console.cloud.google.com/> e crea un **progetto** (es. "Trainer Team").
 2. **API e servizi → Libreria** → abilita **Google Drive API** e **Google Picker API**.
-3. **API e servizi → Schermata consenso OAuth** (Google Auth Platform): tipo *Esterno*; nome app, email di supporto; in *Accesso ai dati* aggiungi lo scope `.../auth/drive.file` (non sensibile: non richiede verifica). Aggiungi come **utenti di prova** i tuoi account (e quelli di coach/atleti) finché l'app è in modalità *Testing*. *Non caricare un logo*: obbligherebbe alla verifica dell'app.
+3. **API e servizi → Schermata consenso OAuth** (Google Auth Platform): tipo *Esterno*; nome app, email di supporto; in *Accesso ai dati* aggiungi lo scope `.../auth/drive.file` (non sensibile: non richiede verifica). Aggiungi come **utenti di prova** i tuoi account (e quelli di coach/atleti) finché l'app è in modalità *Testing*. **Attenzione:** in modalità *Testing* Google fa scadere il token di rinnovo dopo **7 giorni**, quindi l'accesso persistente del Worker non dura. Per la persistenza vera passa l'app in **Produzione** (*Pubblico → Pubblica app*): con il solo scope `drive.file` non serve nessuna verifica. *Non caricare un logo*: obbligherebbe alla verifica dell'app.
 4. **Credenziali → Crea credenziali → ID client OAuth** → tipo **Applicazione web**. In **Origini JavaScript autorizzate** aggiungi:
    - `https://<tuo-utente>.github.io` (solo schema + dominio, **senza** percorso)
    - `http://localhost:5173` per lo sviluppo.
