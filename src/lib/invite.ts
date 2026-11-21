@@ -22,4 +22,5 @@ export const captureJoinFromUrl = (): string | null => {
   } catch { return null }
 }
 export const clearPendingJoin = () => { try { localStorage.removeItem(JOIN_KEY) } catch { /* ignora */ } }
+export const setPendingJoin = (code: string) => { try { localStorage.setItem(JOIN_KEY, code) } catch { /* ignora */ } }
 export const pendingJoin = () => { try { return localStorage.getItem(JOIN_KEY) } catch { return null } }

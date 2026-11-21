@@ -3,7 +3,7 @@ import { idbDel, idbGet, idbSet } from '../lib/idb'
 import {
   emptyRegistry, mergeDb, mergeRegistry, newAthlete, newDb, parseDb, parseRegistry, removeEntry, sameContent, updateAthlete, upsertEntry,
 } from '../lib/db'
-import { inviteLink, parseInviteCode } from '../lib/invite'
+import { inviteLink, parseInviteCode, setPendingJoin } from '../lib/invite'
 import { slug, uid } from '../lib/ids'
 import { nowISO } from '../lib/dates'
 import { sampleDb } from '../lib/sample'
@@ -68,6 +68,9 @@ export class Engine {
   private pushQ: Notice[] = []
   private tokenP: Promise<boolean> | null = null
   ready = false
+  /** false finché non si sa se c'è già un accesso valido (evita il lampo della schermata di accesso). */
+  authChecked = false
+  private gateDismissed = false
   online = typeof navigator === 'undefined' ? true : navigator.onLine
   toast: Toast | null = null
   cacheOk = true
@@ -99,7 +102,10 @@ export class Engine {
     if (await this.ensureToken()) {
       await this.loadAccount()
       if (this.sessionReturn === 'ok' && this.account) this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
+      this.finishOnboarding()
     }
+    this.authChecked = true
+    this.emit()
     void this.syncAll()
   }
   private renewTimer: ReturnType<typeof setInterval> | null = null
@@ -244,8 +250,39 @@ export class Engine {
       this.account = await drive.getAbout()
       this.setAuth('in')
       this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
+      this.finishOnboarding()
       await this.syncAll()
     } catch (e) { this.notify(errMsg(e), 'err') }
+  }
+
+  // ---------- schermata di accesso ----------
+  /** 'login' = primo accesso, 'relogin' = sessione scaduta; null = nessuna schermata. Chi ha scelto la demo non la vede. */
+  gateMode = (): 'login' | 'relogin' | null => {
+    if (!this.authChecked || LS.get('gate') === 'skip') return null
+    if (this.authState === 'out') return 'login'
+    if (this.authState === 'expired' && this.online && !this.gateDismissed) return 'relogin'
+    return null
+  }
+  /** Prova senza account: l'app resta locale (dati demo) finché non si collega Google dal Profilo. */
+  skipGate() { LS.set('gate', 'skip'); this.emit() }
+  dismissRelogin() { this.gateDismissed = true; this.emit() }
+  /** Accesso dalla schermata iniziale: ruolo scelto, eventuale codice d'invito da usare dopo l'accesso. */
+  async beginLogin(role: UserRole, inviteCode?: string) {
+    this.role = role; LS.set('role', role)
+    const code = inviteCode ? parseInviteCode(inviteCode) : null
+    if (code) setPendingJoin(code)
+    if (LS.get('gate') !== 'skip' && !LS.get('onboarded')) LS.set('onboard', '1')
+    this.emit()
+    await this.connect()
+  }
+  /** Al primo accesso riuscito: via i dati demo, si parte dal piano personale (atleta). */
+  private finishOnboarding() {
+    if (LS.get('onboard') !== '1') return
+    LS.set('onboard', null); LS.set('onboarded', '1'); LS.set('gate', null)
+    this.demoEnabled = false; LS.set('demo', '0')
+    void idbDel('db:demo:1'); void idbDel('db:demo:2'); this.rt.delete('demo:1'); this.rt.delete('demo:2')
+    this.storedActive = this.role === 'athlete' ? 'personal' : null; LS.set('active', this.storedActive)
+    this.emit()
   }
   async loadAccount() {
     if (this.account || !drive.getToken()) return
@@ -293,8 +330,8 @@ export class Engine {
     try {
       if (!s.fileId) {
         if (s.kind === 'linked') return
-        // il piano personale vuoto resta locale: il file su Drive nasce quando c'è qualcosa da salvare
-        if (s.kind === 'personal' && r.db.sessions.length === 0) { r.status = 'local'; this.emit(); return }
+        // il coach non è obbligato ad avere un piano personale: per lui il file nasce quando c'è qualcosa; l'atleta lo ha subito dopo l'accesso
+        if (s.kind === 'personal' && this.role === 'coach' && r.db.sessions.length === 0) { r.status = 'local'; this.emit(); return }
         const meta = await drive.createFile(this.fileNameFor(s), r.db, 'athlete')
         this.setFileId(s, meta.id)
         r.rev = meta.version; r.dirty = false; r.reconciled = true; r.canEdit = true

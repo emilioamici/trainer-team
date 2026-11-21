@@ -69,11 +69,11 @@ const today = new Date(); const iso = `${today.getFullYear()}-${String(today.get
   // ---- COACH ----
   const C = await setup(b, 'coach@x.it'); const cp = C.page
   await cp.goto(BASE); await cp.waitForSelector('text=Oggi')
-  await nav(cp, 'Profilo')
-  await cp.getByRole('tab', { name: 'Coach' }).click()
-  await cp.getByRole('button', { name: 'Collega Google' }).click()
-  await cp.waitForSelector('text=Scollega account')
-  ok(true, 'coach collegato a Google')
+  ok(await cp.getByRole('dialog', { name: 'Accesso' }).count() === 1, 'primo avvio: schermata di accesso')
+  await cp.getByRole('button', { name: /Sono un coach/ }).click()
+  await cp.getByRole('button', { name: 'Continua con Google' }).click()
+  await cp.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' })
+  ok(true, 'coach collegato a Google dalla schermata di accesso')
   await nav(cp, 'Atleti')
   await cp.getByRole('button', { name: 'Nuovo atleta' }).first().click()
   await cp.getByLabel('Nome').fill('Luca Rossi')
@@ -104,8 +104,11 @@ const today = new Date(); const iso = `${today.getFullYear()}-${String(today.get
 
   // ---- ATLETA ----
   const A = await setup(b, 'atleta@x.it'); const ap = A.page
-  await ap.goto(BASE); await ap.waitForSelector('text=Oggi'); await nav(ap, 'Profilo')
-  await ap.getByRole('button', { name: 'Collega Google' }).click(); await ap.waitForSelector('text=Scollega account')
+  await ap.goto(BASE); await ap.waitForSelector('text=Oggi')
+  await ap.getByRole('button', { name: /Sono un atleta/ }).click(); await ap.getByRole('button', { name: 'Continua con Google' }).click()
+  await ap.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' }); await nav(ap, 'Profilo')
+  await new Promise((r) => setTimeout(r, 2000))
+  ok([...files.values()].some((f) => f.owner === 'atleta@x.it' && f.name === 'training-plan-personal.json'), 'atleta: il file personale su Drive viene creato subito dopo l’accesso')
   await ap.getByRole('button', { name: /Collegati a un Coach/ }).click()
   await ap.getByLabel('Link d’invito o codice').fill(`https://x.github.io/trainer-team/#join=${athleteFile.id}`)
   await ap.getByRole('button', { name: 'Collega', exact: true }).click()

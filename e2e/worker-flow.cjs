@@ -85,9 +85,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const b = await chromium.launch()
   const C = await setup(b, 'coach@x.it', 'coach'); const cp = C.page
   await cp.goto(BASE); await cp.waitForSelector('text=Oggi')
-  await nav(cp, 'Profilo')
-  await cp.getByRole('tab', { name: 'Coach' }).click()
-  await cp.getByRole('button', { name: 'Collega Google' }).click()
+  await cp.getByRole('button', { name: /Sono un coach/ }).click()
+  await cp.getByRole('button', { name: 'Continua con Google' }).click()
   await cp.waitForSelector('text=Collegato a Google come coach@x.it', { timeout: 10000 })
   ok(true, 'login via Worker: ritorno con sessione e account riconosciuto')
   ok(gisHits === 0, 'nessun popup/script di Google Identity Services usato')
@@ -117,8 +116,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
   // atleta: login, collega, completa
   const A = await setup(b, 'atleta@x.it', 'atleta'); const ap = A.page
-  await ap.goto(BASE); await ap.waitForSelector('text=Oggi'); await nav(ap, 'Profilo')
-  await ap.getByRole('button', { name: 'Collega Google' }).click(); await ap.waitForSelector('text=Collegato a Google come atleta@x.it', { timeout: 10000 })
+  await ap.goto(BASE); await ap.waitForSelector('text=Oggi')
+  await ap.getByRole('button', { name: /Sono un atleta/ }).click(); await ap.getByRole('button', { name: 'Continua con Google' }).click()
+  await ap.waitForSelector('text=Collegato a Google come atleta@x.it', { timeout: 10000 })
   await nav(ap, 'Profilo'); await ap.getByRole('button', { name: /Collegati a un Coach/ }).click()
   await ap.getByLabel('Link d’invito o codice').fill(f.id); await ap.getByRole('button', { name: 'Collega', exact: true }).click(); await ap.waitForSelector('text=Collegato!')
   await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
