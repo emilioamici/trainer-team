@@ -68,7 +68,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
                   <h3 className={`text-sm font-bold capitalize ${d === today ? 'text-brand' : ''}`}>{fmtDay(d)}{d === today && ` · ${t('oggi')}`}</h3>
                   {canEdit && <button className="icon-btn !min-h-8 !min-w-8 !p-1.5" onClick={() => sheets.openNew(d)} aria-label={t('Aggiungi allenamento')}><Plus size={16} /></button>}
                 </div>
-                {ss.length ? <div className="space-y-2">{ss.map((s) => <WorkoutRow key={s.id} s={s} onClick={() => sheets.openDetail(s)} />)}</div>
+                {ss.length ? <div className="space-y-2">{ss.map((s) => <WorkoutRow key={s.id} s={s} groupMembers={db.athlete.members ?? []} onClick={() => sheets.openDetail(s)} />)}</div>
                   : <p className="px-1 text-xs text-muted">{t('Riposo')}</p>}
               </section>
             )

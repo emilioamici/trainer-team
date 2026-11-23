@@ -139,36 +139,38 @@ export const parsePlanFile = (text: string, startMonday: string, by: 'coach' | '
 export const templatePlan = () => ({
   format: PLAN_FORMAT,
   version: 1,
-  note: 'Modello: "day" va da 1 (lunedì) a 7 (domenica); "week" (facoltativo) sposta in avanti di N settimane. In alternativa usa "date": "AAAA-MM-GG". Discipline ammesse: run_quality, run_long, hyrox, strength, ergo, other, recovery. Fasi: warmup, main, cooldown.',
+  note: 'Modello: "day" va da 1 (lunedì) a 7 (domenica); "week" (facoltativo) sposta in avanti di N settimane. In alternativa usa "date": "AAAA-MM-GG". Discipline ammesse: strength, power_plyo, agility_footwork, tennis_conditioning, mobility_prehab, ergo, recovery, other. Fasi: warmup, main, cooldown.',
   sessions: [
     {
-      day: 1, title: 'Ripetute 6×800 m', discipline: 'run_quality',
-      coachNotes: 'Mantieni lo stesso passo su tutte le ripetute.',
+      day: 1, title: 'Forza funzionale & Core tennis', discipline: 'strength',
+      coachNotes: 'Cura la profondità dello squat e la stabilità.',
       blocks: [
-        { phase: 'warmup', title: 'Corsa facile + andature', duration: "15'", zone: 'Z2' },
-        { phase: 'main', title: 'Ripetute', sets: '6', distance: '800 m', pace: '4:05 /km', rest: "90'' trotando" },
-        { phase: 'cooldown', title: 'Defaticamento', duration: "10'", zone: 'Z1' },
+        { phase: 'warmup', title: 'Mobilità anche 90-90 e caviglie', duration: "8'" },
+        { phase: 'main', title: 'Back Squat con bilanciere', sets: '4', reps: '6', load: 'Bilanciere con 45 kg', rest: "2'" },
+        { phase: 'cooldown', title: 'Foam roller & allungamento', duration: "6'" },
       ],
     },
     {
-      day: 3, title: 'SkiErg + BikeErg', discipline: 'ergo',
+      day: 3, title: 'Agilità & Footwork tennis', discipline: 'agility_footwork',
       blocks: [
-        { phase: 'warmup', title: 'BikeErg facile', duration: "8'", zone: 'Z1-Z2' },
-        { phase: 'main', title: 'SkiErg', sets: '5', distance: '500 m', pace: "2:00 /500 m", rest: "60''" },
-        { phase: 'main', title: 'BikeErg', sets: '4', duration: "4'", load: '220 W', rest: "2'" },
+        { phase: 'warmup', title: 'Scaletta coordinazione: Icky Shuffle', sets: '4', reps: '1 passaggio', rest: "45''" },
+        { phase: 'main', title: 'Spider Drill con coni', sets: '3', reps: '1 giro', rest: "2'" },
+        { phase: 'main', title: 'Navette 5-10-5 m con frenata decisa', sets: '4', reps: '1 navetta', rest: "75''" },
       ],
     },
     {
-      day: 4, title: 'Forza gambe', discipline: 'strength',
+      day: 4, title: 'Potenza rotazionale & Pliometria', discipline: 'power_plyo',
       blocks: [
-        { phase: 'warmup', title: 'Mobilità anche e caviglie', duration: "8'" },
-        { phase: 'main', title: 'Back squat', sets: '4', reps: '6', load: '70 kg', rest: "2'" },
-        { phase: 'main', title: 'Affondi camminati', sets: '3', reps: '12+12', load: '2×16 kg', rest: "90''" },
+        { phase: 'warmup', title: 'Extrarotatori spalla con elastico', sets: '3', reps: '12+12', load: 'Elastico rosso', rest: "30''" },
+        { phase: 'main', title: 'Lanci palla medica rotazionali', sets: '4', reps: '6+6', load: 'Palla medica 3 kg', rest: "60''" },
+        { phase: 'main', title: 'Box Jump con atterraggio morbido', sets: '4', reps: '5', load: 'Box 50 cm', rest: "90''" },
       ],
     },
     {
-      day: 6, title: 'Lungo progressivo', discipline: 'run_long',
-      blocks: [{ phase: 'main', title: 'Corsa continua', distance: '16 km', zone: 'Z2 → Z3 ultimi 4 km' }],
+      day: 6, title: 'Mobilità & Prevenzione Cuffia Rotatori', discipline: 'mobility_prehab',
+      blocks: [
+        { phase: 'main', title: 'Extrarotatori ed intrarotatori con elastico', sets: '3', reps: '15+15', load: 'Elastico medio', rest: "30''" },
+      ],
     },
   ],
 })

@@ -1,5 +1,5 @@
 import type {
-  AthleteProfile, CoachRegistry, DbMeta, RegistryEntry, SessionStatus, TrainingPlanDatabase,
+  AthleteProfile, CoachRegistry, DbMeta, RegistryEntry, SessionStatus, TargetKind, TrainingPlanDatabase,
   UserRole, WorkoutBlock, WorkoutFeedback, WorkoutSession,
 } from '../types'
 import { T } from '../i18n'
@@ -15,13 +15,33 @@ const num = (v: unknown): number | undefined => (typeof v === 'number' && Number
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 export const PHASES_LIST = ['warmup', 'main', 'cooldown'] as const
-export const DISCIPLINES_LIST = ['run_quality', 'run_long', 'hyrox', 'strength', 'ergo', 'other', 'recovery'] as const
+export const DISCIPLINES_LIST = [
+  'strength', 'power_plyo', 'agility_footwork', 'tennis_conditioning', 'mobility_prehab', 'ergo', 'recovery', 'other',
+  'run_quality', 'run_long', 'hyrox',
+] as const
 const STATUSES: SessionStatus[] = ['planned', 'done', 'partial', 'skipped']
 const FEELS = ['great', 'good', 'ok', 'tired', 'bad']
 
 // ---------- creazione ----------
-export const newAthlete = (name: string, focus = '', email: string | null = null, coachName: string | null = null): AthleteProfile => ({
-  id: uid('a-'), name, focus, email, athleteCanEdit: false, coachName, updatedAt: nowISO(),
+export const newAthlete = (
+  name: string,
+  focus = '',
+  email: string | null = null,
+  coachName: string | null = null,
+  targetKind: TargetKind = 'individual',
+  members: string[] = [],
+  schedule = ''
+): AthleteProfile => ({
+  id: uid('a-'),
+  name,
+  focus,
+  email,
+  athleteCanEdit: false,
+  coachName,
+  updatedAt: nowISO(),
+  targetKind,
+  members: members.length ? members : undefined,
+  schedule: schedule.trim() || undefined,
 })
 
 export const newDb = (athlete: AthleteProfile, by = ''): TrainingPlanDatabase => {
@@ -45,6 +65,7 @@ export const parseBlock = (raw: unknown): WorkoutBlock | null => {
     title: str(raw.title),
     sets: opt(raw.sets), reps: opt(raw.reps), distance: opt(raw.distance), duration: opt(raw.duration),
     pace: opt(raw.pace), zone: opt(raw.zone), load: opt(raw.load), rest: opt(raw.rest), notes: opt(raw.notes),
+    equipment: opt(raw.equipment),
   }
 }
 
@@ -64,11 +85,12 @@ export const parseSession = (raw: unknown): WorkoutSession | null => {
   if (!isObj(raw) || !/^\d{4}-\d{2}-\d{2}$/.test(str(raw.date))) return null
   const base = str(raw.updatedAt) || nowISO()
   const blocks = Array.isArray(raw.blocks) ? raw.blocks.map(parseBlock).filter((b): b is WorkoutBlock => !!b) : []
+  const attendance = Array.isArray(raw.attendance) ? raw.attendance.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : undefined
   return {
     id: str(raw.id) || uid('s-'),
     date: str(raw.date),
     title: str(raw.title, 'Allenamento'),
-    discipline: (DISCIPLINES_LIST as readonly string[]).includes(raw.discipline as string) ? (raw.discipline as WorkoutSession['discipline']) : 'other',
+    discipline: (DISCIPLINES_LIST as readonly string[]).includes(raw.discipline as string) ? (raw.discipline as WorkoutSession['discipline']) : 'strength',
     blocks,
     coachNotes: str(raw.coachNotes),
     createdBy: raw.createdBy === 'athlete' ? 'athlete' : 'coach',
@@ -77,6 +99,7 @@ export const parseSession = (raw: unknown): WorkoutSession | null => {
     feedback: parseFeedback(raw.feedback),
     logUpdatedAt: str(raw.logUpdatedAt) || base,
     updatedAt: base,
+    ...(attendance && attendance.length > 0 ? { attendance } : {}),
   }
 }
 
@@ -88,6 +111,7 @@ const parseDeleted = (raw: unknown): Record<string, string> => {
 
 export const parseAthlete = (raw: unknown): AthleteProfile => {
   const r = isObj(raw) ? raw : {}
+  const members = Array.isArray(r.members) ? r.members.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : undefined
   return {
     id: str(r.id) || uid('a-'),
     name: str(r.name, 'Atleta'),
@@ -96,6 +120,9 @@ export const parseAthlete = (raw: unknown): AthleteProfile => {
     athleteCanEdit: r.athleteCanEdit === true,
     coachName: typeof r.coachName === 'string' && r.coachName ? r.coachName : null,
     updatedAt: str(r.updatedAt) || nowISO(),
+    targetKind: r.targetKind === 'group' ? 'group' : 'individual',
+    ...(members && members.length > 0 ? { members } : {}),
+    schedule: opt(r.schedule),
   }
 }
 
@@ -118,12 +145,16 @@ export const parseRegistry = (raw: unknown): CoachRegistry => {
   const r = isObj(raw) ? raw : {}
   const athletes: RegistryEntry[] = (Array.isArray(r.athletes) ? r.athletes : []).flatMap((a): RegistryEntry[] => {
     if (!isObj(a) || !str(a.athleteId)) return []
+    const members = Array.isArray(a.members) ? a.members.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : undefined
     return [{
       athleteId: str(a.athleteId), name: str(a.name, 'Atleta'), focus: str(a.focus),
       email: typeof a.email === 'string' && a.email ? a.email.toLowerCase() : null,
       fileId: typeof a.fileId === 'string' && a.fileId ? a.fileId : null,
       addedAt: str(a.addedAt) || nowISO(), invitedAt: typeof a.invitedAt === 'string' ? a.invitedAt : null,
       updatedAt: str(a.updatedAt) || nowISO(),
+      targetKind: a.targetKind === 'group' ? 'group' : 'individual',
+      ...(members && members.length > 0 ? { members } : {}),
+      schedule: opt(a.schedule),
     }]
   })
   return { schemaVersion: REGISTRY_VERSION, coachName: str(r.coachName), athletes, deleted: parseDeleted(r.deleted), updatedAt: str(r.updatedAt) || nowISO() }
@@ -138,6 +169,7 @@ export const mergeSession = (a: WorkoutSession, b: WorkoutSession): WorkoutSessi
   return {
     ...plan,
     status: log.status, feedback: log.feedback, logUpdatedAt: log.logUpdatedAt,
+    attendance: newerOrEqual(a.planUpdatedAt, b.planUpdatedAt) ? (a.attendance ?? b.attendance) : (b.attendance ?? a.attendance),
     updatedAt: a.updatedAt > b.updatedAt ? a.updatedAt : b.updatedAt,
   }
 }
@@ -212,6 +244,14 @@ export const setLog = (db: TrainingPlanDatabase, id: string, status: SessionStat
   }
 }
 
+export const setAttendance = (db: TrainingPlanDatabase, id: string, attendance: string[], by: string): TrainingPlanDatabase => {
+  const now = nowISO()
+  return {
+    ...db, meta: touch(db, by),
+    sessions: db.sessions.map((s) => (s.id === id ? { ...s, attendance, planUpdatedAt: now, updatedAt: now } : s)),
+  }
+}
+
 export const updateAthlete = (db: TrainingPlanDatabase, patch: Partial<AthleteProfile>, by: string): TrainingPlanDatabase => ({
   ...db, meta: touch(db, by), athlete: { ...db.athlete, ...patch, updatedAt: nowISO() },
 })
@@ -225,7 +265,7 @@ export const addSessions = (db: TrainingPlanDatabase, list: WorkoutSession[], by
 export const blankSession = (date: string, createdBy: UserRole): WorkoutSession => {
   const now = nowISO()
   return {
-    id: uid('s-'), date, title: '', discipline: 'run_quality', blocks: [], coachNotes: '', createdBy,
+    id: uid('s-'), date, title: '', discipline: 'strength', blocks: [], coachNotes: '', createdBy,
     planUpdatedAt: now, status: 'planned', feedback: null, logUpdatedAt: now, updatedAt: now,
   }
 }

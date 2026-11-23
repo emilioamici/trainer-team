@@ -10,7 +10,7 @@ import { sampleDb } from '../lib/sample'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
 import { captureSession, getSession, health, logoutSession, workerUrl, type Health } from '../services/workerService'
-import type { CoachRegistry, RegistryEntry, SessionStatus, Source, SyncStatus, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
+import type { CoachRegistry, RegistryEntry, SessionStatus, Source, SyncStatus, TargetKind, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 
 export const SYNC_EVERY_MS = 120_000
 export const DEBOUNCE_MS = 2_000
@@ -179,7 +179,11 @@ export class Engine {
     else if (s.kind === 'personal') r.db = newDb(newAthlete(this.profileName || t('Io')), this.by())
     else if (s.kind === 'coach-athlete') {
       const e = this.registry.athletes.find((x) => 'athlete:' + x.athleteId === s.id)
-      if (e) { const a = newAthlete(e.name, e.focus, e.email, this.profileName || null); a.id = e.athleteId; r.db = newDb(a, this.by()) }
+      if (e) {
+        const a = newAthlete(e.name, e.focus, e.email, this.profileName || null, e.targetKind ?? 'individual', e.members ?? [], e.schedule ?? '')
+        a.id = e.athleteId
+        r.db = newDb(a, this.by())
+      }
     }
     if (r.db) { r.dirty = s.kind !== 'demo'; await this.persist(s.id) }
   }
@@ -206,8 +210,23 @@ export class Engine {
     // il nome/profilo dell'atleta si rispecchia nel registro del coach
     if (s?.kind === 'coach-athlete') {
       const e = this.registry.athletes.find((x) => 'athlete:' + x.athleteId === id)
-      if (e && (e.name !== r.db.athlete.name || e.focus !== r.db.athlete.focus)) {
-        this.registry = upsertEntry(this.registry, { ...e, name: r.db.athlete.name, focus: r.db.athlete.focus }); this.touchRegistry(false)
+      if (
+        e &&
+        (e.name !== r.db.athlete.name ||
+          e.focus !== r.db.athlete.focus ||
+          e.targetKind !== r.db.athlete.targetKind ||
+          e.schedule !== r.db.athlete.schedule ||
+          JSON.stringify(e.members) !== JSON.stringify(r.db.athlete.members))
+      ) {
+        this.registry = upsertEntry(this.registry, {
+          ...e,
+          name: r.db.athlete.name,
+          focus: r.db.athlete.focus,
+          targetKind: r.db.athlete.targetKind,
+          schedule: r.db.athlete.schedule,
+          members: r.db.athlete.members,
+        })
+        this.touchRegistry(false)
       }
     }
     this.emit()
@@ -413,13 +432,43 @@ export class Engine {
   }
 
   // ---------- coach: atleti e inviti ----------
-  async addAthlete(input: { name: string; focus: string; email: string }): Promise<Source> {
-    const a = newAthlete(input.name.trim(), input.focus.trim(), input.email.trim().toLowerCase() || null, this.profileName || null)
-    const entry: RegistryEntry = { athleteId: a.id, name: a.name, focus: a.focus, email: a.email, fileId: null, addedAt: nowISO(), invitedAt: null, updatedAt: nowISO() }
+  async addAthlete(input: {
+    name: string
+    focus: string
+    email: string
+    targetKind?: TargetKind
+    members?: string[]
+    schedule?: string
+  }): Promise<Source> {
+    const kind = input.targetKind ?? 'individual'
+    const a = newAthlete(
+      input.name.trim(),
+      input.focus.trim(),
+      input.email.trim().toLowerCase() || null,
+      this.profileName || null,
+      kind,
+      input.members ?? [],
+      input.schedule?.trim() ?? ''
+    )
+    const entry: RegistryEntry = {
+      athleteId: a.id,
+      name: a.name,
+      focus: a.focus,
+      email: a.email,
+      fileId: null,
+      addedAt: nowISO(),
+      invitedAt: null,
+      updatedAt: nowISO(),
+      targetKind: kind,
+      members: a.members,
+      schedule: a.schedule,
+    }
     this.registry = upsertEntry(this.registry, entry)
     const src: Source = { id: 'athlete:' + a.id, kind: 'coach-athlete', fileId: null, name: a.name }
     const r = this.ensureRT(src.id)
-    r.db = newDb(a, this.by()); r.dirty = true; r.status = 'local'
+    r.db = newDb(a, this.by())
+    r.dirty = true
+    r.status = 'local'
     await this.persist(src.id)
     this.touchRegistry(false)
     this.setActive(src.id)
