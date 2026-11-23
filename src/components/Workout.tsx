@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, CirclePlus, Copy, Dumbbell, MessageSquare, Pencil, Trash2, Users, X } from 'lucide-react'
 import { t, T } from '../i18n'
 import { DISCIPLINES, DISCIPLINE_ORDER, FEELS, PHASES, PHASE_ORDER, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
@@ -333,38 +333,61 @@ export function ExercisePickerSheet({
   const [cat, setCat] = useState<ExerciseCategory | 'all'>('all')
   const [q, setQ] = useState('')
 
+  useEffect(() => {
+    if (open) {
+      setQ('')
+      setCat('all')
+    }
+  }, [open])
+
   const list = searchExercises(q, cat)
 
   return (
-    <Sheet open={open} onClose={onClose} title={t('Libreria esercizi FIT')}>
-      <div className="space-y-3 pb-3">
-        <input
-          className="input"
-          placeholder={t('Cerca esercizio (es. Squat, Palla medica, Scaletta...)')}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          autoFocus
-        />
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            type="button"
-            className={`chip whitespace-nowrap ${cat === 'all' ? 'chip-on' : ''}`}
-            onClick={() => setCat('all')}
-          >
-            {t('Tutti')}
-          </button>
-          {EXERCISE_CATEGORIES.map((c) => (
+    <Sheet open={open} onClose={onClose} title={t('Libreria esercizi FIT')} zIndex={60}>
+      <div className="flex flex-col">
+        {/* Barra di ricerca e filtri bloccati in alto */}
+        <div className="sticky top-0 z-20 -mx-5 -mt-2 space-y-2 border-b border-line/50 bg-surface/95 px-5 pb-3 pt-1 backdrop-blur-md">
+          <div className="relative">
+            <input
+              className="input !pr-9"
+              placeholder={t('Cerca esercizio (es. Squat, Palla medica, Scaletta...)')}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            {q && (
+              <button
+                type="button"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:text-ink active:scale-90"
+                onClick={() => setQ('')}
+                aria-label={t('Cancella')}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             <button
-              key={c.id}
               type="button"
-              className={`chip whitespace-nowrap ${cat === c.id ? 'chip-on' : ''}`}
-              onClick={() => setCat(c.id)}
+              className={`chip whitespace-nowrap !py-1.5 !text-xs ${cat === 'all' ? 'chip-on' : ''}`}
+              onClick={() => setCat('all')}
             >
-              {t(c.label)}
+              {t('Tutti')}
             </button>
-          ))}
+            {EXERCISE_CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`chip whitespace-nowrap !py-1.5 !text-xs ${cat === c.id ? 'chip-on' : ''}`}
+                onClick={() => setCat(c.id)}
+              >
+                {t(c.label)}
+              </button>
+            ))}
+          </div>
         </div>
-        <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+
+        {/* Lista degli esercizi con scroll fluido nel corpo del foglio */}
+        <ul className="space-y-2 pt-3 pb-2">
           {list.map((item) => (
             <li key={item.id}>
               <button
@@ -468,16 +491,27 @@ function EditorForm({
   const patchBlock = (id: string, p: Partial<WorkoutBlock>) =>
     setS({ ...s, blocks: s.blocks.map((b) => (b.id === id ? { ...b, ...p } : b)) })
 
-  const addBlock = (phase: WorkoutBlock['phase']) =>
-    setS({ ...s, blocks: [...s.blocks, { id: uid('b-'), phase, title: '' }] })
+  const addBlock = (phase: WorkoutBlock['phase']) => {
+    const newId = uid('b-')
+    setS({ ...s, blocks: [...s.blocks, { id: newId, phase, title: '' }] })
+    setTimeout(() => {
+      const el = document.getElementById(`block-${newId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const input = el.querySelector<HTMLInputElement>('input')
+        if (input) input.focus()
+      }
+    }, 150)
+  }
 
   const addFromLibrary = (phase: WorkoutBlock['phase'], item: ExerciseItem) => {
+    const newId = uid('b-')
     setS({
       ...s,
       blocks: [
         ...s.blocks,
         {
-          id: uid('b-'),
+          id: newId,
           phase,
           title: item.name,
           sets: item.defaultSets,
@@ -489,6 +523,12 @@ function EditorForm({
         },
       ],
     })
+    setTimeout(() => {
+      const el = document.getElementById(`block-${newId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 200)
   }
 
   const valid = s.title.trim().length > 0
@@ -571,7 +611,11 @@ function EditorForm({
           {s.blocks
             .filter((b) => b.phase === ph)
             .map((b) => (
-              <div key={b.id} className="space-y-2 rounded-2xl border border-line bg-surface p-3">
+              <div
+                key={b.id}
+                id={`block-${b.id}`}
+                className="space-y-2 rounded-2xl border border-line bg-surface p-3 transition-colors focus-within:border-brand/60"
+              >
                 <div className="flex items-center gap-2">
                   <input
                     className="input font-medium"

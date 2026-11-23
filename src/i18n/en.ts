@@ -63,6 +63,7 @@ export const en: Record<string, string> = {
   "Box pliometrico": "Plyo Box",
   "Busto inclinato a 45°, rotazione controllata delle spalle.": "Torso at 45°, controlled shoulder turn.",
   "Campo & Tennis": "Court & Tennis",
+  "Cancella": "Clear",
   "Cardio & Ergometri": "Cardio & Ergometers",
   "Carico / Impostazioni": "Load / Settings",
   "Categoria / Obiettivo": "Category / Goal",

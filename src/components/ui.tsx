@@ -43,8 +43,48 @@ export function EmptyState({ icon: Icon = Dumbbell, title, text, action }: { ico
 }
 
 // ---------- foglio (bottom sheet) ----------
-export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  zIndex = 50,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+  footer?: ReactNode
+  zIndex?: number
+}) {
   const dragY = useMotionValue(0)
+  const [vpHeight, setVpHeight] = useState<number | null>(null)
+  const [vpOffsetTop, setVpOffsetTop] = useState(0)
+
+  useEffect(() => {
+    if (!open) {
+      setVpHeight(null)
+      setVpOffsetTop(0)
+      return
+    }
+    const vp = window.visualViewport
+    if (!vp) return
+
+    const handleViewport = () => {
+      setVpHeight(vp.height)
+      setVpOffsetTop(vp.offsetTop)
+    }
+
+    handleViewport()
+    vp.addEventListener('resize', handleViewport)
+    vp.addEventListener('scroll', handleViewport)
+    return () => {
+      vp.removeEventListener('resize', handleViewport)
+      vp.removeEventListener('scroll', handleViewport)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -69,10 +109,26 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label={title}>
+        <div
+          className={`fixed inset-x-0 flex items-end justify-center md:items-center ${!vpHeight ? 'inset-y-0' : ''}`}
+          style={{
+            zIndex,
+            top: vpOffsetTop > 0 ? `${vpOffsetTop}px` : 0,
+            height: vpHeight ? `${vpHeight}px` : undefined,
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
           <m.div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <m.div className="relative w-full max-w-lg" initial={{ y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 38 }}>
-            <m.div style={{ y: dragY }} className="glass-strong flex max-h-[92dvh] w-full flex-col rounded-t-[2rem] md:rounded-[2rem]">
+            <m.div
+              style={{
+                y: dragY,
+                maxHeight: vpHeight ? `${Math.min(vpHeight * 0.94, window.innerHeight * 0.92)}px` : undefined,
+              }}
+              className="glass-strong flex max-h-[92dvh] w-full flex-col rounded-t-[2rem] md:rounded-[2rem]"
+            >
               <div className="flex touch-none justify-center pb-1 pt-2.5" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
                 <div className="h-1.5 w-10 rounded-full bg-muted/50" />
               </div>
@@ -80,7 +136,19 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
                 <h2 className="text-xl font-bold">{title}</h2>
                 <button className="icon-btn" onClick={onClose} aria-label={t('Chiudi')}><X size={18} /></button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4">{children}</div>
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4"
+                onFocusCapture={(e) => {
+                  const target = e.target as HTMLElement
+                  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                    setTimeout(() => {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 300)
+                  }
+                }}
+              >
+                {children}
+              </div>
               {footer && <div className="pb-safe border-t border-line/60 px-5 pb-4 pt-3">{footer}</div>}
             </m.div>
           </m.div>
