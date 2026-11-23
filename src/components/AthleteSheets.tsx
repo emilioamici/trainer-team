@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpDown,
-  Calendar,
   Check,
   Copy,
   Mail,
@@ -30,6 +29,7 @@ import {
   getGroupColor,
   getGroupIcon,
   parseScheduleToSlots,
+  sortScheduleSlots,
 } from '../lib/branding'
 
 const DEFAULT_POOL = [
@@ -75,8 +75,8 @@ export function ColorIconPicker({
       </div>
 
       <div>
-        <span className="mb-1 block text-[11px] font-semibold text-muted">{t('Colore tema:')}</span>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <span className="mb-1.5 block text-[11px] font-semibold text-muted">{t('Colore tema:')}</span>
+        <div className="flex flex-wrap items-center gap-2.5 py-1">
           {GROUP_COLORS.map((c) => {
             const active = color === c.id
             return (
@@ -85,12 +85,14 @@ export function ColorIconPicker({
                 type="button"
                 onClick={() => onColorChange(c.id)}
                 title={c.name}
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 ${
-                  active ? 'ring-2 ring-brand ring-offset-2 ring-offset-bg scale-105' : 'hover:scale-105'
+                className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all active:scale-90 ${
+                  active
+                    ? 'ring-2 ring-white ring-offset-2 ring-offset-surface shadow-sm scale-105'
+                    : 'opacity-85 hover:opacity-100 hover:scale-105'
                 }`}
                 style={{ backgroundColor: c.hex }}
               >
-                {active && <Check size={14} className="text-white drop-shadow" strokeWidth={3} />}
+                {active && <Check size={13} className="text-white drop-shadow-sm" strokeWidth={3} />}
               </button>
             )
           })}
@@ -98,8 +100,8 @@ export function ColorIconPicker({
       </div>
 
       <div>
-        <span className="mb-1 block text-[11px] font-semibold text-muted">{t('Icona:')}</span>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <span className="mb-1.5 block text-[11px] font-semibold text-muted">{t('Icona:')}</span>
+        <div className="flex flex-wrap items-center gap-2 py-1">
           {GROUP_ICONS.map((i) => {
             const IconComp = i.icon
             const active = icon === i.id
@@ -111,8 +113,8 @@ export function ColorIconPicker({
                 title={i.label}
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-all active:scale-90 ${
                   active
-                    ? 'border-brand bg-brand text-onbrand shadow-sm'
-                    : 'border-line bg-bg text-muted hover:border-brand/40 hover:text-ink'
+                    ? 'border-brand bg-brand text-onbrand shadow-sm scale-105'
+                    : 'border-line bg-bg text-muted hover:border-brand/40 hover:text-ink hover:scale-105'
                 }`}
               >
                 <IconComp size={16} />
@@ -147,29 +149,18 @@ export function ScheduleSlotEditor({
     if (exists) {
       onChange(slots.filter((s) => s.day !== day))
     } else {
-      onChange([
-        ...slots,
-        {
-          id: uid('slot-'),
-          day,
-          startTime: '15:30',
-          endTime: '17:00',
-        },
-      ])
+      onChange(
+        sortScheduleSlots([
+          ...slots,
+          {
+            id: uid('slot-'),
+            day,
+            startTime: '15:30',
+            endTime: '17:00',
+          },
+        ])
+      )
     }
-  }
-
-  const addDateSlot = (dateStr: string) => {
-    if (!dateStr) return
-    onChange([
-      ...slots,
-      {
-        id: uid('slot-'),
-        day: dateStr,
-        startTime: '15:30',
-        endTime: '17:00',
-      },
-    ])
   }
 
   const updateSlot = (id: string, patch: Partial<ScheduleSlot>) => {
@@ -180,26 +171,14 @@ export function ScheduleSlotEditor({
     onChange(slots.filter((s) => s.id !== id))
   }
 
+  const sortedSlots = useMemo(() => sortScheduleSlots(slots), [slots])
+
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface p-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold uppercase tracking-wide text-muted">
           {t('Giorni e orari in palestra')}
         </span>
-        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-brand hover:underline">
-          <Calendar size={13} />
-          <span>{t('+ Data')}</span>
-          <input
-            type="date"
-            className="sr-only"
-            onChange={(e) => {
-              if (e.target.value) {
-                addDateSlot(e.target.value)
-                e.target.value = ''
-              }
-            }}
-          />
-        </label>
       </div>
 
       {/* Selezione rapida giorni della settimana */}
@@ -223,9 +202,9 @@ export function ScheduleSlotEditor({
       </div>
 
       {/* Righe con selettore orario (time picker) per ciascun giorno */}
-      {slots.length > 0 ? (
+      {sortedSlots.length > 0 ? (
         <div className="space-y-2 pt-1">
-          {slots.map((slot) => (
+          {sortedSlots.map((slot) => (
             <div
               key={slot.id}
               className="flex items-center gap-2 rounded-xl border border-line bg-bg p-2 text-xs"

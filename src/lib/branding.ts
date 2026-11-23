@@ -157,9 +157,35 @@ export const WEEK_DAYS_SHORT: Record<string, string> = {
   Domenica: 'Dom',
 }
 
+export const DAY_ORDER_INDEX: Record<string, number> = {
+  lunedì: 0,
+  lun: 0,
+  martedì: 1,
+  mar: 1,
+  mercoledì: 2,
+  mer: 2,
+  giovedì: 3,
+  gio: 3,
+  venerdì: 4,
+  ven: 4,
+  sabato: 5,
+  sab: 5,
+  domenica: 6,
+  dom: 6,
+}
+
+export function sortScheduleSlots(slots: ScheduleSlot[]): ScheduleSlot[] {
+  return [...slots].sort((a, b) => {
+    const da = DAY_ORDER_INDEX[a.day.toLowerCase()] ?? 99
+    const db = DAY_ORDER_INDEX[b.day.toLowerCase()] ?? 99
+    if (da !== db) return da - db
+    return (a.startTime || '').localeCompare(b.startTime || '')
+  })
+}
+
 export function formatSchedule(slots: ScheduleSlot[]): string {
   if (!slots || !slots.length) return ''
-  return slots
+  return sortScheduleSlots(slots)
     .map((s) => {
       const day = WEEK_DAYS_SHORT[s.day] || s.day
       if (s.startTime && s.endTime) {

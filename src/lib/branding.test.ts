@@ -5,16 +5,28 @@ import {
   getGroupColor,
   getGroupIcon,
   parseScheduleToSlots,
+  sortScheduleSlots,
   type ScheduleSlot,
 } from './branding'
 
 describe('branding & schedule helpers', () => {
-  it('formats schedule slots correctly', () => {
+  it('formats schedule slots correctly and sorts chronologically', () => {
     const slots: ScheduleSlot[] = [
-      { id: '1', day: 'Lunedì', startTime: '15:30', endTime: '17:00' },
-      { id: '2', day: 'Mercoledì', startTime: '16:00', endTime: '17:30' },
+      { id: '1', day: 'Venerdì', startTime: '15:30', endTime: '17:00' },
+      { id: '2', day: 'Martedì', startTime: '16:00', endTime: '17:30' },
+      { id: '3', day: 'Lunedì', startTime: '14:00', endTime: '15:30' },
     ]
-    expect(formatSchedule(slots)).toBe('Lun 15:30-17:00, Mer 16:00-17:30')
+    expect(formatSchedule(slots)).toBe('Lun 14:00-15:30, Mar 16:00-17:30, Ven 15:30-17:00')
+  })
+
+  it('sorts schedule slots from Monday to Sunday', () => {
+    const slots: ScheduleSlot[] = [
+      { id: '1', day: 'Domenica', startTime: '10:00', endTime: '11:30' },
+      { id: '2', day: 'Mercoledì', startTime: '15:00', endTime: '16:30' },
+      { id: '3', day: 'Lunedì', startTime: '16:00', endTime: '17:30' },
+    ]
+    const sorted = sortScheduleSlots(slots)
+    expect(sorted.map((s) => s.day)).toEqual(['Lunedì', 'Mercoledì', 'Domenica'])
   })
 
   it('parses text schedule into slots', () => {

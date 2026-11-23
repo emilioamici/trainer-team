@@ -5,8 +5,7 @@ import {
   ChevronRight,
   MessageSquare,
   Plus,
-  Settings2,
-  Share2,
+  Settings,
   Users,
 } from 'lucide-react'
 import { t } from '../i18n'
@@ -148,12 +147,9 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                     <p className="truncate text-sm text-muted">{db.athlete.focus || t('Nessun obiettivo indicato')}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Codice invito')}>
-                    <Share2 size={17} />
-                  </button>
-                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Gestisci')}>
-                    <Settings2 size={18} />
+                <div className="flex items-center shrink-0">
+                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Impostazioni')}>
+                    <Settings size={18} />
                   </button>
                 </div>
               </div>
