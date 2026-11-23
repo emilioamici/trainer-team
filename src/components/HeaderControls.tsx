@@ -61,7 +61,7 @@ export function SyncPill() {
       ) : isOffline ? (
         <CloudOff size={13} className="text-muted" />
       ) : (
-        <Cloud size={13} className="text-inc" />
+        <Cloud size={13} className="text-brand" />
       )}
       <span className="text-[11px] font-bold">
         {isSyncing
@@ -114,7 +114,7 @@ export function SettingsButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label={t('Impostazioni')}
-      className="flex h-8 w-8 items-center justify-center rounded-full border border-line/50 bg-brand/15 text-xs font-bold text-brand transition hover:border-brand/50 hover:bg-brand/25 active:scale-95"
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-gradient-to-br from-brand/15 via-surface to-warn/15 text-xs font-bold text-brand shadow-sm transition hover:border-brand hover:scale-105 active:scale-95"
     >
       {initial || <Settings size={15} />}
     </button>
