@@ -151,7 +151,10 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   aria-valuemin={0}
                   aria-valuemax={100}
                 >
-                  <div className="h-full rounded-full bg-inc" style={{ width: `${pct}%` }} />
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-brand via-blue-500 to-warn transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-line pt-2 text-xs">
@@ -255,7 +258,7 @@ const BarChart = ({
               </span>
               <div className="flex h-20 w-full items-end justify-center rounded-lg bg-line/40">
                 <div
-                  className="w-full rounded-lg bg-brand transition-all"
+                  className="w-full rounded-lg bg-gradient-to-t from-brand to-sky-400 transition-all shadow-sm"
                   style={{ height: `${Math.max(h, 4)}%` }}
                   title={`${d.label}: ${d.v}${unit}`}
                 />

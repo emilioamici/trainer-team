@@ -20,10 +20,13 @@ export function Background() {
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="Trainer Team">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-surface shadow-sm">
-        <Dumbbell size={18} strokeWidth={2.4} />
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand via-blue-600 to-indigo-600 text-white shadow-md shadow-brand/25 ring-1 ring-white/20">
+        <Dumbbell size={18} strokeWidth={2.4} className="text-yellow-300" />
       </span>
-      <span className="text-base font-extrabold tracking-tight text-ink">Trainer Team</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-base font-extrabold tracking-tight text-ink">Trainer Team</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />
+      </div>
     </div>
   )
 }

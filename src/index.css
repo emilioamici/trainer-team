@@ -2,36 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Token: chiaro (grigio chiaro) ===== */
+/* ===== Token: chiaro (grigio principale con accenti blu e giallo) ===== */
 :root {
-  --bg: 232 233 235; --surface: 244 245 246; --ink: 33 35 38; --muted: 92 96 104; --line: 208 210 214;
-  --brand: 33 35 38; --onbrand: 255 255 255;
-  --inc: 20 96 58; --exp: 171 31 55; --trf: 28 90 136; --warn: 122 68 6;
-  --glass: 244 245 246 / 0.78; --glass-strong: 244 245 246 / 0.9;
-  --glass-edge: 255 255 255 / 0.75; --glass-edge-soft: 255 255 255 / 0.35; --glass-shade: 33 35 38 / 0.16;
-  --blob-a: 255 255 255 / 0.7; --blob-b: 170 176 188 / 0.5; --blob-c: 140 148 162 / 0.3;
+  --bg: 236 238 242; --surface: 248 249 251; --ink: 24 28 36; --muted: 100 108 122; --line: 216 220 228;
+  --brand: 29 100 236; --onbrand: 255 255 255;
+  --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+  --glass: 248 249 251 / 0.82; --glass-strong: 248 249 251 / 0.94;
+  --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 29 100 236 / 0.08;
+  --blob-a: 29 100 236 / 0.16; --blob-b: 245 180 20 / 0.20; --blob-c: 96 165 250 / 0.14;
   color-scheme: light;
 }
-/* ===== Token: scuro (grigio antracite), automatico ===== */
+/* ===== Token: scuro (grigio antracite con accenti blu e giallo), automatico ===== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: 38 40 43; --surface: 49 52 56; --ink: 238 239 241; --muted: 168 172 179; --line: 70 74 80;
-    --brand: 238 239 241; --onbrand: 38 40 43;
-    --inc: 120 216 168; --exp: 246 150 160; --trf: 130 198 236; --warn: 246 200 90;
-    --glass: 49 52 56 / 0.72; --glass-strong: 49 52 56 / 0.9;
-    --glass-edge: 255 255 255 / 0.22; --glass-edge-soft: 255 255 255 / 0.08; --glass-shade: 0 0 0 / 0.5;
-    --blob-a: 120 128 142 / 0.28; --blob-b: 70 76 90 / 0.4; --blob-c: 150 158 172 / 0.16;
+    --bg: 28 31 38; --surface: 38 42 51; --ink: 242 244 248; --muted: 154 162 176; --line: 54 60 72;
+    --brand: 59 130 246; --onbrand: 255 255 255;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 38 42 51 / 0.80; --glass-strong: 38 42 51 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45;
+    --blob-a: 37 99 235 / 0.24; --blob-b: 234 179 8 / 0.18; --blob-c: 29 78 216 / 0.22;
     color-scheme: dark;
   }
 }
 /* ===== Token: scuro, scelta manuale ===== */
 :root[data-theme='dark'] {
-  --bg: 38 40 43; --surface: 49 52 56; --ink: 238 239 241; --muted: 168 172 179; --line: 70 74 80;
-  --brand: 238 239 241; --onbrand: 38 40 43;
-  --inc: 120 216 168; --exp: 246 150 160; --trf: 130 198 236; --warn: 246 200 90;
-  --glass: 49 52 56 / 0.72; --glass-strong: 49 52 56 / 0.9;
-  --glass-edge: 255 255 255 / 0.22; --glass-edge-soft: 255 255 255 / 0.08; --glass-shade: 0 0 0 / 0.5;
-  --blob-a: 120 128 142 / 0.28; --blob-b: 70 76 90 / 0.4; --blob-c: 150 158 172 / 0.16;
+  --bg: 28 31 38; --surface: 38 42 51; --ink: 242 244 248; --muted: 154 162 176; --line: 54 60 72;
+  --brand: 59 130 246; --onbrand: 255 255 255;
+  --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+  --glass: 38 42 51 / 0.80; --glass-strong: 38 42 51 / 0.94;
+  --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45;
+  --blob-a: 37 99 235 / 0.24; --blob-b: 234 179 8 / 0.18; --blob-c: 29 78 216 / 0.22;
   color-scheme: dark;
 }
 :root[data-theme='light'] { color-scheme: light; }
