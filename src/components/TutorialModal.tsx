@@ -74,10 +74,12 @@ export function TutorialModal({
   open,
   onClose,
   initialRole,
+  onStartTour,
 }: {
   open: boolean
   onClose: () => void
   initialRole?: UserRole
+  onStartTour?: () => void
 }) {
   const e = useEngine()
   const [role, setRole] = useState<UserRole>(() => initialRole ?? e.role ?? 'coach')
@@ -660,14 +662,25 @@ export function TutorialModal({
                 <ArrowRight size={14} />
               </button>
             ) : (
-              <button
-                type="button"
-                className="btn btn-primary !py-1.5 !px-4 !text-xs font-bold"
-                onClick={handleFinish}
-              >
-                {t('Inizia')}
-                <Check size={14} />
-              </button>
+              <>
+                {onStartTour && (
+                  <button
+                    type="button"
+                    className="btn btn-soft !py-1.5 !px-3 !text-xs font-semibold"
+                    onClick={() => { markTutorialCompleted(); onStartTour() }}
+                  >
+                    {t('Tour guidato')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-primary !py-1.5 !px-4 !text-xs font-bold"
+                  onClick={handleFinish}
+                >
+                  {t('Inizia')}
+                  <Check size={14} />
+                </button>
+              </>
             )}
           </div>
         </div>

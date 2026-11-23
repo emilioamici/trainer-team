@@ -25,7 +25,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
     const d = DISCIPLINES[s.discipline]
     const Icon = d.icon
     const body = (
-      <article className="card space-y-4 p-4">
+      <article data-tour="today-card" className="card space-y-4 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <Badge className={d.badge}><Icon size={12} />{t(d.label)}</Badge>
@@ -47,7 +47,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
         <BlockList blocks={s.blocks} />
         <FeedbackSummary fb={s.feedback} status={s.status} />
         <div className="flex gap-2">
-          {canLog && <button className={`btn flex-1 !py-3 ${s.status === 'planned' ? 'btn-primary' : 'btn-soft'}`} onClick={() => sheets.openFeedback(s)}><Check size={18} />{s.status === 'planned' ? t('Completa & inserisci feedback') : t('Modifica feedback')}</button>}
+          {canLog && <button data-tour="today-feedback" className={`btn flex-1 !py-3 ${s.status === 'planned' ? 'btn-primary' : 'btn-soft'}`} onClick={() => sheets.openFeedback(s)}><Check size={18} />{s.status === 'planned' ? t('Completa & inserisci feedback') : t('Modifica feedback')}</button>}
           {canEdit && <button className="btn btn-soft" onClick={() => sheets.openDetail(s)}>{t('Dettagli')}</button>}
         </div>
       </article>
@@ -72,7 +72,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
           </button>
         )}
 
-        <section className="card p-4">
+        <section data-tour="today-week" className="card p-4">
           <h3 className="mb-3 font-bold">{t('Questa settimana')}</h3>
           <div className="grid grid-cols-7 gap-1.5">
             {week.map((d) => {

@@ -41,7 +41,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
       <SourcePicker />
 
       <div className="mb-3 space-y-3">
-        <Segmented id="plan-view" value={view} onChange={setView} options={[{ value: 'week', label: t('Settimana') }, { value: 'month', label: t('Mese') }]} />
+        <div data-tour="plan-view"><Segmented id="plan-view" value={view} onChange={setView} options={[{ value: 'week', label: t('Settimana') }, { value: 'month', label: t('Mese') }]} /></div>
         <div className="flex items-center gap-2">
           <button className="icon-btn" onClick={() => move(-1)} aria-label={t('Precedente')}><ChevronLeft size={18} /></button>
           <button className="btn btn-soft flex-1" onClick={() => setCursor(today)}>{t('Oggi')}</button>
@@ -57,7 +57,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
                 <p className="label !mb-0">{t('Settimana')}</p>
                 <p className="text-2xl font-extrabold">{doneCount}<span className="text-base font-semibold text-muted"> / {weekSessions.length} {t('completati')}</span></p>
               </div>
-              {canEdit && <button className="btn btn-soft" onClick={copyPrev}><Copy size={16} />{t('Copia sett. precedente')}</button>}
+              {canEdit && <button data-tour="plan-copy" className="btn btn-soft" onClick={copyPrev}><Copy size={16} />{t('Copia sett. precedente')}</button>}
             </div>
           </>
           {days.map((d) => {
@@ -97,7 +97,7 @@ export default function Plan({ initialDate }: { initialDate: string | null }) {
       )}
 
       {canEdit && (
-        <Fixed><m.button whileTap={{ scale: 0.9 }} onClick={() => sheets.openNew(cursor.slice(0, 7) === today.slice(0, 7) && view === 'month' ? today : view === 'week' ? (weekDays(start).includes(today) ? today : start) : cursor)}
+        <Fixed><m.button data-tour="plan-add" whileTap={{ scale: 0.9 }} onClick={() => sheets.openNew(cursor.slice(0, 7) === today.slice(0, 7) && view === 'month' ? today : view === 'week' ? (weekDays(start).includes(today) ? today : start) : cursor)}
           className="fixed right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-onbrand md:right-10" style={{ bottom: 'calc(5.75rem + env(safe-area-inset-bottom))', boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.35), 0 8px 20px -8px rgb(var(--brand) / 0.7)' }} aria-label={t('Nuovo allenamento')}>
           <Plus size={26} />
         </m.button></Fixed>

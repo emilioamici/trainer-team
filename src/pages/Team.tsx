@@ -74,13 +74,14 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
         action={
           <div className="flex items-center gap-2">
             <button
+              data-tour="team-import"
               className="icon-btn"
               onClick={() => setIeSourceId(list[0]?.id ?? 'personal')}
               aria-label={t('Importa / Esporta')}
             >
               <ArrowUpDown size={18} />
             </button>
-            <button className="btn btn-primary" onClick={() => setNewOpen(true)}>
+            <button data-tour="team-add" className="btn btn-primary" onClick={() => setNewOpen(true)}>
               <Plus size={16} />
               {t('Aggiungi')}
             </button>
@@ -117,7 +118,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
           const last = lastCompleted(db)
           const pct = ws.length ? Math.round(((st.done + st.partial) / ws.length) * 100) : 0
           const card = (
-            <article className="card space-y-3 p-4">
+            <article data-tour="team-card" className="card space-y-3 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <span
@@ -400,7 +401,7 @@ function Progress() {
       <PageHeader title={t('Progressi')} sub={db.athlete.name} />
       <SourcePicker />
       <div className="space-y-3">
-        <div className="card space-y-3 p-4">
+        <div data-tour="progress-stats" className="card space-y-3 p-4">
           <Segmented
             id="period"
             value={period}

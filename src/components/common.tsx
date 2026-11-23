@@ -29,7 +29,7 @@ export function SourcePicker() {
   const active = e.active()
   if (list.length < 2) return null
   return (
-    <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label={t('Piano attivo')}>
+    <div data-tour="source-picker" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label={t('Piano attivo')}>
       {list.map((s) => {
         const Icon = kindIcon(s)
         return (

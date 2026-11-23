@@ -8,6 +8,8 @@ import { useLangPref } from './i18n'
 import { Gate } from './components/Gate'
 import { captureJoinFromUrl, pendingJoin } from './lib/invite'
 import { isTutorialCompleted, TutorialModal } from './components/TutorialModal'
+import { Walkthrough } from './components/Walkthrough'
+import type { TourTab } from './lib/walkthrough'
 import Plan from './pages/Plan'
 import Team from './pages/Team'
 import Today from './pages/Today'
@@ -21,6 +23,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(() => !!captureJoinFromUrl())
   const [notifOpen, setNotifOpen] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(() => !isTutorialCompleted())
+  const [tourOpen, setTourOpen] = useState(false)
+  const startTour = () => { setSettingsOpen(false); setTutorialOpen(false); setPlanDate(null); setTab('today'); setTourOpen(true) }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -72,12 +76,15 @@ export default function App() {
           setSettingsOpen(false)
           setTutorialOpen(true)
         }}
+        onOpenTour={startTour}
       />
       <TutorialModal
         open={tutorialOpen && !gate}
         onClose={() => setTutorialOpen(false)}
         initialRole={e.role}
+        onStartTour={startTour}
       />
+      <Walkthrough open={tourOpen && !gate} role={e.role} tab={tab as TourTab} onTab={(x) => { setPlanDate(null); setTab(x) }} onClose={() => setTourOpen(false)} />
     </>
   )
 }
