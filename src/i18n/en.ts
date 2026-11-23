@@ -5,7 +5,6 @@
  * stessi segnaposto {nome} e stessi tag <b>.
  */
 export const en: Record<string, string> = {
-  "+ Data": "+ Date",
   "Accedi con Google per salvare i piani di allenamento sul tuo Drive e sincronizzarli tra i dispositivi.": "Sign in with Google to save your training plans on your Drive and sync them across devices.",
   "Accedi con lo stesso account Google a cui il coach ha inviato l’invito: dopo l’accesso ti collego al suo piano.": "Sign in with the same Google account the coach invited: after signing in I'll link you to their plan.",
   "Accedi di nuovo": "Sign in again",
