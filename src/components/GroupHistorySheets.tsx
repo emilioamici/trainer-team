@@ -479,7 +479,7 @@ function BlockRow({ b }: { b: WorkoutBlock }) {
       </div>
 
       {b.notes && (
-        <p className="text-[11px] text-muted italic pt-0.5">«{b.notes}»</p>
+        <p className="text-[11px] text-muted italic pt-0.5 whitespace-pre-wrap">«{b.notes}»</p>
       )}
     </div>
   )

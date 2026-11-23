@@ -121,13 +121,13 @@ export function Sheet({
           aria-label={title}
         >
           <m.div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <m.div className="relative w-full max-w-lg" initial={{ y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 38 }}>
+          <m.div className="relative w-full max-w-lg overflow-x-hidden" initial={{ y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 38 }}>
             <m.div
               style={{
                 y: dragY,
                 maxHeight: vpHeight ? `${Math.min(vpHeight * 0.94, window.innerHeight * 0.92)}px` : undefined,
               }}
-              className="glass-strong flex max-h-[92dvh] w-full flex-col rounded-t-[2rem] md:rounded-[2rem]"
+              className="glass-strong flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] md:rounded-[2rem]"
             >
               <div className="flex touch-none justify-center pb-1 pt-2.5" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
                 <div className="h-1.5 w-10 rounded-full bg-muted/50" />
@@ -137,7 +137,7 @@ export function Sheet({
                 <button className="icon-btn" onClick={onClose} aria-label={t('Chiudi')}><X size={18} /></button>
               </div>
               <div
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4"
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-4"
                 onFocusCapture={(e) => {
                   const target = e.target as HTMLElement
                   if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {

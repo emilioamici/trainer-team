@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, CirclePlus, Copy, Dumbbell, MessageSquare, Pencil, Trash2, Users, X } from 'lucide-react'
-import { t, T } from '../i18n'
+import { t } from '../i18n'
 import { DISCIPLINES, DISCIPLINE_ORDER, FEELS, PHASES, PHASE_ORDER, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
 import { fmtLong } from '../lib/dates'
 import { parseNum } from '../lib/files'
@@ -17,7 +17,7 @@ const detailPills = (b: WorkoutBlock): string[] => {
   else if (b.reps) out.push(t('{n} rip.', { n: b.reps }))
   if (b.load) out.push(b.load)
   if (b.rest) out.push(t('Rec {v}', { v: b.rest }))
-  for (const v of [b.duration, b.distance, b.pace, b.zone]) if (v) out.push(v)
+  if (b.duration) out.push(b.duration)
   return out
 }
 
@@ -50,7 +50,7 @@ export function BlockList({ blocks }: { blocks: WorkoutBlock[] }) {
                       ))}
                     </div>
                   )}
-                  {b.notes && <p className="mt-1.5 text-xs text-muted">{b.notes}</p>}
+                  {b.notes && <p className="mt-1.5 text-xs text-muted whitespace-pre-wrap">{b.notes}</p>}
                 </li>
               ))}
             </ul>
@@ -66,8 +66,6 @@ export function FeedbackSummary({ fb, status }: { fb: WorkoutFeedback | null; st
   const feel = FEELS.find((f) => f.id === fb?.feel)
   const bits = [
     fb?.durationMin ? `${fb.durationMin}'` : '',
-    fb?.distanceKm ? `${fb.distanceKm} km` : '',
-    fb?.avgPace ? `${fb.avgPace} /km` : '',
     fb?.rpe ? `RPE ${fb.rpe}/10` : '',
   ].filter(Boolean)
   return (
@@ -425,17 +423,6 @@ export function ExercisePickerSheet({
 }
 
 // ---------- editor ----------
-const BLOCK_FIELDS: { key: keyof WorkoutBlock; label: string; ph: string }[] = [
-  { key: 'sets', label: T('Serie'), ph: '4' },
-  { key: 'reps', label: T('Ripetizioni'), ph: '6' },
-  { key: 'load', label: T('Carico / Impostazioni'), ph: T('es. Manubri da 12 kg, Bilanciere 40 kg') },
-  { key: 'rest', label: T('Recupero'), ph: "90''" },
-  { key: 'duration', label: T('Durata'), ph: "20'" },
-  { key: 'distance', label: T('Distanza'), ph: '800 m' },
-  { key: 'pace', label: T('Passo target'), ph: '4:50 /km' },
-  { key: 'zone', label: T('Zona cardio'), ph: 'Z2' },
-]
-
 interface EditorProps {
   open: boolean
   initial: WorkoutSession | null
@@ -534,7 +521,7 @@ function EditorForm({
   const valid = s.title.trim().length > 0
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className="space-y-4 pb-2 w-full max-w-full overflow-x-hidden">
       <div className="relative">
         <Field label={t('Titolo')}>
           <input
@@ -586,7 +573,17 @@ function EditorForm({
                 key={k}
                 type="button"
                 className={`chip ${s.discipline === k ? 'chip-on' : ''}`}
-                onClick={() => setS({ ...s, discipline: k })}
+                onClick={() => {
+                  const currentTitle = s.title.trim()
+                  const isGenericTitle =
+                    !currentTitle ||
+                    Object.values(DISCIPLINES).some((d) => currentTitle === t(d.label) || currentTitle === d.label)
+                  setS({
+                    ...s,
+                    discipline: k,
+                    title: isGenericTitle ? t(DISCIPLINES[k].label) : s.title,
+                  })
+                }}
               >
                 <Icon size={14} />
                 {t(DISCIPLINES[k].label)}
@@ -614,11 +611,11 @@ function EditorForm({
               <div
                 key={b.id}
                 id={`block-${b.id}`}
-                className="space-y-2 rounded-2xl border border-line bg-surface p-3 transition-colors focus-within:border-brand/60"
+                className="space-y-2.5 rounded-2xl border border-line bg-surface p-3 transition-colors focus-within:border-brand/60"
               >
                 <div className="flex items-center gap-2">
                   <input
-                    className="input font-medium"
+                    className="input font-medium min-w-0"
                     value={b.title}
                     placeholder={t('Nome esercizio')}
                     aria-label={t('Nome esercizio')}
@@ -626,33 +623,75 @@ function EditorForm({
                   />
                   <button
                     type="button"
-                    className="icon-btn !text-exp"
+                    className="icon-btn !text-exp shrink-0"
                     aria-label={t('Rimuovi blocco')}
                     onClick={() => setS({ ...s, blocks: s.blocks.filter((x) => x.id !== b.id) })}
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
+
                 <div className="grid grid-cols-2 gap-2">
-                  {BLOCK_FIELDS.map((f) => (
-                    <label key={f.key} className="block">
-                      <span className="text-[11px] font-semibold text-muted">{t(f.label)}</span>
-                      <input
-                        className="input !py-2"
-                        value={(b[f.key] as string | undefined) ?? ''}
-                        placeholder={t(f.ph)}
-                        onChange={(e) => patchBlock(b.id, { [f.key]: e.target.value })}
-                      />
-                    </label>
-                  ))}
+                  <label className="block min-w-0">
+                    <span className="text-[11px] font-semibold text-muted block truncate">{t('Serie')}</span>
+                    <input
+                      className="input !py-2 min-w-0"
+                      value={b.sets ?? ''}
+                      placeholder="4"
+                      onChange={(e) => patchBlock(b.id, { sets: e.target.value })}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-[11px] font-semibold text-muted block truncate">{t('Ripetizioni')}</span>
+                    <input
+                      className="input !py-2 min-w-0"
+                      value={b.reps ?? ''}
+                      placeholder="6"
+                      onChange={(e) => patchBlock(b.id, { reps: e.target.value })}
+                    />
+                  </label>
+
+                  <label className="col-span-2 block min-w-0">
+                    <span className="text-[11px] font-semibold text-muted block truncate">{t('Carico / Impostazioni')}</span>
+                    <input
+                      className="input !py-2 min-w-0"
+                      value={b.load ?? ''}
+                      placeholder={t('es. Manubri da 12 kg, Bilanciere 40 kg')}
+                      onChange={(e) => patchBlock(b.id, { load: e.target.value })}
+                    />
+                  </label>
+
+                  <label className="block min-w-0">
+                    <span className="text-[11px] font-semibold text-muted block truncate">{t('Recupero')}</span>
+                    <input
+                      className="input !py-2 min-w-0"
+                      value={b.rest ?? ''}
+                      placeholder="90''"
+                      onChange={(e) => patchBlock(b.id, { rest: e.target.value })}
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="text-[11px] font-semibold text-muted block truncate">{t('Durata')}</span>
+                    <input
+                      className="input !py-2 min-w-0"
+                      value={b.duration ?? ''}
+                      placeholder="20'"
+                      onChange={(e) => patchBlock(b.id, { duration: e.target.value })}
+                    />
+                  </label>
                 </div>
-                <input
-                  className="input !py-2"
-                  value={b.notes ?? ''}
-                  placeholder={t('Note tecniche esercizio')}
-                  aria-label={t('Note tecniche esercizio')}
-                  onChange={(e) => patchBlock(b.id, { notes: e.target.value })}
-                />
+
+                <label className="block min-w-0">
+                  <span className="text-[11px] font-semibold text-muted block truncate">{t('Note tecniche esercizio')}</span>
+                  <textarea
+                    className="input min-h-[58px] resize-none !py-2 !text-xs leading-relaxed min-w-0"
+                    rows={2}
+                    value={b.notes ?? ''}
+                    placeholder={t('Note tecniche esercizio (es. postura, traiettoria, gomiti alti, spinta...)')}
+                    aria-label={t('Note tecniche esercizio')}
+                    onChange={(e) => patchBlock(b.id, { notes: e.target.value })}
+                  />
+                </label>
               </div>
             ))}
           <div className="flex gap-2">
@@ -697,7 +736,7 @@ function EditorForm({
             onSave({
               ...s,
               title: s.title.trim(),
-              blocks: s.blocks.filter((b) => b.title.trim() || b.notes || b.distance || b.duration || b.load),
+              blocks: s.blocks.filter((b) => b.title.trim() || b.notes || b.duration || b.load),
             })
             onClose()
           }}

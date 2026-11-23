@@ -408,7 +408,10 @@ function Progress() {
           <div className="grid grid-cols-2 gap-2">
             <Stat v={`${st.done + st.partial}/${st.planned}`} l={t('Sessioni completate')} />
             <Stat v={`${Math.round((st.minutes / 60) * 10) / 10} h`} l={t('Volume')} />
-            <Stat v={`${Math.round(st.km * 10) / 10} km`} l={t('Distanza registrata')} />
+            <Stat
+              v={`${st.planned > 0 ? Math.round(((st.done + st.partial) / st.planned) * 100) : 0}%`}
+              l={t('Tasso completamento')}
+            />
             <Stat
               v={st.avgRpe ? (Math.round(st.avgRpe * 10) / 10).toString() : '–'}
               l={t('RPE medio')}
