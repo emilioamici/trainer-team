@@ -12,9 +12,10 @@ import {
 } from 'lucide-react'
 import { t } from '../i18n'
 import { ManageAthleteSheet, NewAthleteSheet } from '../components/AthleteSheets'
+import { GroupDetailSheet, MemberHistorySheet } from '../components/GroupHistorySheets'
 import { ImportExportSheet } from '../components/ImportExport'
 import { SourcePicker, SyncBadge, useActive } from '../components/common'
-import { WorkoutRow } from '../components/Workout'
+import { WorkoutDetail, WorkoutRow } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
 import { Badge, EmptyState, PageHeader, Segmented } from '../components/ui'
 import { FEELS } from '../lib/disciplines'
@@ -35,6 +36,9 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
   const [manage, setManage] = useState<string | null>(null)
   const [ieSourceId, setIeSourceId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'groups' | 'pros'>('all')
+  const [selectedGroupDb, setSelectedGroupDb] = useState<TrainingPlanDatabase | null>(null)
+  const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null)
+  const [viewSession, setViewSession] = useState<WorkoutSession | null>(null)
   const today = todayISO()
   const mon = weekStart(today)
   const list = e.sources().filter((s) => s.kind === 'coach-athlete' || s.kind === 'demo')
@@ -122,7 +126,14 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                     </Badge>
                     {db.athlete.schedule && <span className="truncate text-xs text-muted">{db.athlete.schedule}</span>}
                   </div>
-                  <h2 className="mt-1 truncate text-lg font-bold">
+                  <h2
+                    className={`mt-1 truncate text-lg font-bold ${
+                      isGrp ? 'cursor-pointer hover:text-brand transition-colors' : ''
+                    }`}
+                    onClick={() => {
+                      if (isGrp) setSelectedGroupDb(db)
+                    }}
+                  >
                     {db.athlete.name}
                     {s.kind === 'demo' && <span className="ml-2 text-xs font-semibold text-muted">{t('demo')}</span>}
                   </h2>
@@ -137,6 +148,43 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   </button>
                 </div>
               </div>
+
+              {isGrp && (
+                <div className="space-y-2 rounded-2xl border border-line/60 bg-bg/50 p-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-muted">
+                      {t('Allievi del gruppo ({n})', { n: (db.athlete.members ?? []).length })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupDb(db)}
+                      className="font-bold text-brand hover:underline flex items-center gap-0.5"
+                    >
+                      {t('Apri gruppo')} <ChevronRight size={13} />
+                    </button>
+                  </div>
+                  {db.athlete.members && db.athlete.members.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {db.athlete.members.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setSelectedGroupDb(db)
+                            setSelectedMemberName(m)
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink transition hover:border-brand/50 hover:bg-surface/90 hover:text-brand active:scale-95 shadow-sm"
+                          title={t('Tocca per vedere lo storico di {name}', { name: m })}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <div className="mb-1 flex justify-between text-xs">
                   <span className="font-semibold">{t('Questa settimana')}</span>
@@ -228,6 +276,43 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
         open={!!ieSourceId}
         initialAthleteSourceId={ieSourceId ?? undefined}
         onClose={() => setIeSourceId(null)}
+      />
+      <GroupDetailSheet
+        open={!!selectedGroupDb && !selectedMemberName}
+        onClose={() => setSelectedGroupDb(null)}
+        db={selectedGroupDb}
+        onSelectMember={(m) => setSelectedMemberName(m)}
+        onOpenManage={() => {
+          if (!selectedGroupDb) return
+          const src = list.find((s) => e.dbOf(s.id)?.meta.dbId === selectedGroupDb.meta.dbId)
+          if (src) setManage(src.id)
+        }}
+        onOpenPlan={() => {
+          if (!selectedGroupDb) return
+          const src = list.find((s) => e.dbOf(s.id)?.meta.dbId === selectedGroupDb.meta.dbId)
+          if (src) {
+            e.setActive(src.id)
+            onOpenPlan()
+          }
+        }}
+      />
+      <MemberHistorySheet
+        open={!!selectedMemberName}
+        onClose={() => setSelectedMemberName(null)}
+        memberName={selectedMemberName}
+        db={selectedGroupDb}
+        onOpenSession={(sess) => setViewSession(sess)}
+      />
+      <WorkoutDetail
+        s={viewSession}
+        onClose={() => setViewSession(null)}
+        canEdit={false}
+        canLog={false}
+        onEdit={() => {}}
+        onFeedback={() => {}}
+        onDuplicate={() => {}}
+        onDelete={() => {}}
+        groupMembers={selectedGroupDb?.athlete.members ?? []}
       />
     </div>
   )
