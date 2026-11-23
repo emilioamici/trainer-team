@@ -2,6 +2,8 @@ const token = (name) => `rgb(var(--${name}) / <alpha-value>)`
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  // le classi `dark:` seguono i tre blocchi del tema (automatico / scuro manuale), non solo prefers-color-scheme
+  darkMode: ['variant', ['@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) & }', ':root[data-theme="dark"] &']],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {

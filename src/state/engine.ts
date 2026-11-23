@@ -1,11 +1,13 @@
 import { t } from '../i18n'
 import { idbDel, idbGet, idbSet } from '../lib/idb'
 import {
-  emptyRegistry, mergeDb, mergeRegistry, newAthlete, newDb, parseDb, parseRegistry, removeEntry, sameContent, updateAthlete, upsertEntry,
+  emptyRegistry, mergeDb, placeholderDb, mergeRegistry, newAthlete, newDb, parseDb, parseRegistry, removeEntry, sameContent, updateAthlete, upsertEntry,
 } from '../lib/db'
-import { inviteLink, parseInviteCode, setPendingJoin } from '../lib/invite'
+import { clearPendingJoin, inviteLink, parseInviteCode, setPendingJoin } from '../lib/invite'
 import { slug, uid } from '../lib/ids'
 import { nowISO } from '../lib/dates'
+import { addNotification } from '../lib/notifications'
+import { diffNotifications } from '../lib/notifyDiff'
 import { sampleDb } from '../lib/sample'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
@@ -176,13 +178,13 @@ export class Engine {
       try { r.db = parseDb(cached.db); r.rev = cached.rev; r.dirty = !!cached.dirty; r.reconciled = false; r.status = s.fileId ? (r.dirty ? 'pending' : 'synced') : 'local'; return } catch { /* copia danneggiata: si ricrea */ }
     }
     if (s.kind === 'demo') r.db = sampleDb(s.id === 'demo:2' ? 2 : 1)
-    else if (s.kind === 'personal') r.db = newDb(newAthlete(this.profileName || t('Io')), this.by())
+    else if (s.kind === 'personal') r.db = placeholderDb(newAthlete(this.profileName || t('Io')), this.by())
     else if (s.kind === 'coach-athlete') {
       const e = this.registry.athletes.find((x) => 'athlete:' + x.athleteId === s.id)
       if (e) {
-        const a = newAthlete(e.name, e.focus, e.email, this.profileName || null, e.targetKind ?? 'individual', e.members ?? [], e.schedule ?? '')
+        const a = newAthlete(e.name, e.focus, e.email, this.profileName || null, e.targetKind ?? 'individual', e.members ?? [], e.schedule ?? '', e.color, e.icon, e.scheduleSlots)
         a.id = e.athleteId
-        r.db = newDb(a, this.by())
+        r.db = placeholderDb(a, this.by()) // il contenuto vero è su Drive: non deve mai sovrascriverlo
       }
     }
     if (r.db) { r.dirty = s.kind !== 'demo'; await this.persist(s.id) }
@@ -368,7 +370,11 @@ export class Engine {
           const remote = parseDb(await drive.download(s.fileId))
           const local = r.db // letto dopo l'attesa: nessuna modifica va persa
           const merged = mergeDb(local, remote)
-          if (!sameContent(merged, local)) { r.db = merged; r.seq++ }
+          if (!sameContent(merged, local)) {
+            // avvisi in-app per ciò che ha cambiato un altro utente (non alla prima sincronizzazione di questo dispositivo)
+            if (r.rev !== null) for (const n of diffNotifications(local, merged, s.kind, s.id)) addNotification(n)
+            r.db = merged; r.seq++
+          }
           needPush = !sameContent(merged, remote)
           r.reconciled = true; r.rev = meta.version
         }
@@ -530,7 +536,7 @@ export class Engine {
     const fileId = parseInviteCode(input)
     if (!fileId) throw new Error(t('Codice o link non valido'))
     const existing = this.linked.find((l) => l.fileId === fileId)
-    if (existing) { this.role = 'athlete'; LS.set('role', 'athlete'); this.setActive(existing.id); return }
+    if (existing) { this.role = 'athlete'; LS.set('role', 'athlete'); clearPendingJoin(); this.setActive(existing.id); return }
     if (!(await this.ensureToken())) throw new Error(t('Collega prima Google (Profilo → Sincronizzazione).'))
     let meta: drive.FileMeta
     try { meta = await drive.getMeta(fileId) } catch (e) {
@@ -549,6 +555,7 @@ export class Engine {
     r.db = db; r.rev = meta.version; r.reconciled = true; r.dirty = false; r.status = 'synced'; r.lastSync = nowISO(); r.canEdit = meta.canEdit
     await this.persist(id)
     this.role = 'athlete'; LS.set('role', 'athlete')
+    clearPendingJoin() // collegato: il codice non serve più (altrimenti Impostazioni si riaprirebbe a ogni avvio)
     this.setActive(id)
   }
   unlinkCoach(id: string) {

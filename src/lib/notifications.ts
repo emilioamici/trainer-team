@@ -12,38 +12,20 @@ export interface AppNotification {
 
 const STORAGE_KEY = 'tt_notifications_v1'
 
-const initialSeed: AppNotification[] = [
-  {
-    id: 'notif-seed-1',
-    title: 'Lorenzo Sarti (ATP)',
-    body: 'Completato: Potenza Servizio & Core · RPE 8 · Ottime sensazioni sulla spalla',
-    at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    read: false,
-    kind: 'feedback',
-    targetId: 'athlete:lorenzo-sarti',
-  },
-  {
-    id: 'notif-seed-2',
-    title: 'Agonistica U16 - Gruppo A',
-    body: 'Presenze registrate: 4/4 allievi presenti alla sessione di footwork',
-    at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    read: false,
-    kind: 'attendance',
-    targetId: 'athlete:u16-gruppo-a',
-  },
-]
+// Nessun dato d'esempio: gli avvisi arrivano dal confronto con i dati appena ricevuti da Drive (vedi notifyDiff.ts).
+const isSeed = (n: AppNotification) => n.id.startsWith('notif-seed-') // residui di versioni precedenti
 
 function loadStored(): AppNotification[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialSeed))
-      return initialSeed
-    }
+    if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : initialSeed
+    if (!Array.isArray(parsed)) return []
+    const clean = (parsed as AppNotification[]).filter((n) => !isSeed(n))
+    if (clean.length !== parsed.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(clean))
+    return clean
   } catch {
-    return initialSeed
+    return []
   }
 }
 
