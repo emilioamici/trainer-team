@@ -65,6 +65,13 @@ export interface WorkoutSession {
   attendance?: string[]
 }
 
+export interface ScheduleSlot {
+  id: string
+  day: string // es. "Lunedì", "Martedì", oppure data "YYYY-MM-DD"
+  startTime: string // "15:30"
+  endTime: string // "17:00"
+}
+
 export interface AthleteProfile {
   id: string
   name: string
@@ -76,6 +83,9 @@ export interface AthleteProfile {
   targetKind?: TargetKind // 'individual' (professionista) o 'group' (gruppo scuola tennis)
   members?: string[] // componenti del gruppo scuola tennis
   schedule?: string // giorni e orari in palestra (es. "Lun - Mer - Ven 15:30 - 17:00")
+  color?: string // id colore tema (es. 'blue', 'yellow', 'emerald', ecc.)
+  icon?: string // id icona (es. 'users', 'trophy', 'flame', ecc.)
+  scheduleSlots?: ScheduleSlot[] // slot strutturati giorno/orario
 }
 
 export interface DbMeta {
@@ -106,6 +116,9 @@ export interface RegistryEntry {
   targetKind?: TargetKind
   members?: string[]
   schedule?: string
+  color?: string
+  icon?: string
+  scheduleSlots?: ScheduleSlot[]
 }
 
 export interface CoachRegistry {
