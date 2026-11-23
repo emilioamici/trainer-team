@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, Users } from 'lucide-react'
+import { ArrowUpDown, ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, Users } from 'lucide-react'
 import { t } from '../i18n'
 import { ManageAthleteSheet, NewAthleteSheet } from '../components/AthleteSheets'
+import { ImportExportSheet } from '../components/ImportExport'
 import { SourcePicker, SyncBadge, useActive } from '../components/common'
 import { WorkoutRow } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
@@ -22,6 +23,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
   const e = useEngine()
   const [newOpen, setNewOpen] = useState(false)
   const [manage, setManage] = useState<string | null>(null)
+  const [ieSourceId, setIeSourceId] = useState<string | null>(null)
   const today = todayISO()
   const mon = weekStart(today)
   const list = e.sources().filter((s) => s.kind === 'coach-athlete' || s.kind === 'demo')
@@ -33,7 +35,25 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
 
   return (
     <div>
-      <PageHeader title={t('I miei atleti')} sub={t('{n} atleti', { n: list.length })} action={<button className="btn btn-primary" onClick={() => setNewOpen(true)}><Plus size={16} />{t('Nuovo atleta')}</button>} />
+      <PageHeader
+        title={t('I miei atleti')}
+        sub={t('{n} atleti', { n: list.length })}
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              className="icon-btn"
+              onClick={() => setIeSourceId(list[0]?.id ?? 'personal')}
+              aria-label={t('Importa / Esporta')}
+            >
+              <ArrowUpDown size={18} />
+            </button>
+            <button className="btn btn-primary" onClick={() => setNewOpen(true)}>
+              <Plus size={16} />
+              {t('Nuovo atleta')}
+            </button>
+          </div>
+        }
+      />
       <div className="space-y-3">
         {list.length === 0 && <EmptyState icon={Users} title={t('Nessun atleta')} text={t('Crea il primo atleta: avrà un file dedicato sul tuo Drive.')} />}
         {list.map((s) => {
@@ -59,7 +79,19 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
               <p className="text-xs text-muted">{last ? t('Ultimo completato: {title} · {date}', { title: last.title, date: fmtDay(last.date) }) : t('Nessun allenamento completato')}</p>
               <div className="flex items-center justify-between gap-2">
                 {s.kind === 'demo' ? <Badge className="bg-line/60 text-muted">{t('Solo locale')}</Badge> : <SyncBadge status={e.statusOf(s.id).status} />}
-                <button className="btn btn-soft" onClick={() => { e.setActive(s.id); onOpenPlan(today) }}>{t('Apri piano')}<ChevronRight size={16} /></button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="icon-btn !min-h-9 !min-w-9"
+                    onClick={() => setIeSourceId(s.id)}
+                    aria-label={t('Importa / Esporta piano')}
+                    title={t('Importa / Esporta piano')}
+                  >
+                    <ArrowUpDown size={16} />
+                  </button>
+                  <button className="btn btn-soft" onClick={() => { e.setActive(s.id); onOpenPlan(today) }}>
+                    {t('Apri piano')}<ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             </article>
           )
@@ -88,7 +120,19 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
         )}
       </div>
       <NewAthleteSheet open={newOpen} onClose={() => setNewOpen(false)} onCreated={(id) => setManage(id)} />
-      <ManageAthleteSheet sourceId={manage} onClose={() => setManage(null)} />
+      <ManageAthleteSheet
+        sourceId={manage}
+        onClose={() => setManage(null)}
+        onOpenImportExport={(sid) => {
+          setManage(null)
+          setIeSourceId(sid)
+        }}
+      />
+      <ImportExportSheet
+        open={!!ieSourceId}
+        onClose={() => setIeSourceId(null)}
+        initialAthleteSourceId={ieSourceId}
+      />
     </div>
   )
 }

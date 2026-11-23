@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { exportPlan, parsePlanFile, templatePlan } from './planIO'
+import {
+  cloneSessionsWithNewIds,
+  COACH_EXPORT_FORMAT,
+  exportAllAthletes,
+  exportPlan,
+  isMultiAthletePlan,
+  parseMultiAthletePlan,
+  parsePlanFile,
+  templatePlan,
+} from './planIO'
 import { addSessions, blankSession, newAthlete, newDb } from './db'
+import type { Source } from '../types'
 
 describe('import/export piano', () => {
   it('il modello si importa partendo dal lunedì scelto', () => {
@@ -32,5 +42,40 @@ describe('import/export piano', () => {
     db = addSessions(db, [{ ...blankSession('2026-03-02', 'coach'), status: 'done', feedback: { rpe: 5, loggedAt: '' } }], 'x')
     expect(JSON.stringify(exportPlan(db))).not.toContain('feedback')
     expect(JSON.stringify(exportPlan(db, { withLog: true }))).toContain('feedback')
+  })
+  it('esporta e reimporta tutti gli atleti per il coach', () => {
+    let db1 = newDb(newAthlete('Mario Rossi', 'Maratona'), 'coach')
+    db1 = addSessions(db1, [{ ...blankSession('2026-03-02', 'coach'), title: 'Corsa Mario' }], 'coach')
+    const s1: Source = { id: 'athlete:1', kind: 'coach-athlete', fileId: null, name: 'Mario Rossi' }
+
+    let db2 = newDb(newAthlete('Giulia Bianchi', 'Hyrox'), 'coach')
+    db2 = addSessions(db2, [{ ...blankSession('2026-03-03', 'coach'), title: 'WOD Giulia' }], 'coach')
+    const s2: Source = { id: 'athlete:2', kind: 'coach-athlete', fileId: null, name: 'Giulia Bianchi' }
+
+    const exported = exportAllAthletes([{ source: s1, db: db1 }, { source: s2, db: db2 }])
+    expect(exported.format).toBe(COACH_EXPORT_FORMAT)
+    expect(exported.athletes).toHaveLength(2)
+    expect(exported.athletes[0].athleteName).toBe('Mario Rossi')
+    expect(exported.athletes[1].athleteName).toBe('Giulia Bianchi')
+
+    const jsonStr = JSON.stringify(exported)
+    expect(isMultiAthletePlan(jsonStr)).toBe(true)
+    expect(isMultiAthletePlan('{"format":"trainer-team-plan","sessions":[]}')).toBe(false)
+
+    const parsed = parseMultiAthletePlan(jsonStr, '2026-03-02', 'coach')
+    expect(parsed.athletes).toHaveLength(2)
+    expect(parsed.athletes[0].athleteName).toBe('Mario Rossi')
+    expect(parsed.athletes[0].sessions[0].title).toBe('Corsa Mario')
+    expect(parsed.athletes[1].athleteName).toBe('Giulia Bianchi')
+    expect(parsed.athletes[1].sessions[0].title).toBe('WOD Giulia')
+  })
+  it('cloneSessionsWithNewIds rigenera gli id di sessioni e blocchi', () => {
+    let db = newDb(newAthlete('T'), 'x')
+    db = addSessions(db, [{ ...blankSession('2026-03-02', 'coach'), title: 'Corsa', blocks: [{ id: 'b-orig', phase: 'warmup', title: 'Riscaldamento' }] }], 'x')
+    const cloned = cloneSessionsWithNewIds(db.sessions)
+    expect(cloned).toHaveLength(1)
+    expect(cloned[0].id).not.toBe(db.sessions[0].id)
+    expect(cloned[0].blocks[0].id).not.toBe(db.sessions[0].blocks[0].id)
+    expect(cloned[0].title).toBe('Corsa')
   })
 })
