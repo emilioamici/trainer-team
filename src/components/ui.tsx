@@ -5,8 +5,6 @@ import { Check, ChevronDown, Dumbbell, X, type LucideIcon } from 'lucide-react'
 import { t } from '../i18n'
 import { useEngine } from '../state/store'
 
-const asset = (p: string) => `${import.meta.env.BASE_URL}${p}`
-
 // ---------- sfondo vivo ----------
 export function Background() {
   return (
@@ -19,12 +17,14 @@ export function Background() {
 }
 
 // ---------- logo ----------
-/** Il marchio (PNG bianco con trasparenza) usato come maschera: prende il colore del tema (`bg-ink`). Una sola volta per schermata. */
-export function Logo({ className = 'h-7 w-8' }: { className?: string }) {
-  const url = `url(${asset('brand/logo-mark.png')})`
+export function Logo({ className = '' }: { className?: string }) {
   return (
-    <span role="img" aria-label="VHYPE Training Lab" className={`inline-block bg-ink ${className}`}
-      style={{ WebkitMaskImage: url, maskImage: url, WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskPosition: 'left center', maskPosition: 'left center' }} />
+    <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="Trainer Team">
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-surface shadow-sm">
+        <Dumbbell size={18} strokeWidth={2.4} />
+      </span>
+      <span className="text-base font-extrabold tracking-tight text-ink">Trainer Team</span>
+    </div>
   )
 }
 
