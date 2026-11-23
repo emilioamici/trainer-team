@@ -341,10 +341,13 @@ export function ExercisePickerSheet({
   const list = searchExercises(q, cat)
 
   return (
-    <Sheet open={open} onClose={onClose} title={t('Libreria esercizi FIT')} zIndex={60}>
-      <div className="flex flex-col">
-        {/* Barra di ricerca e filtri bloccati in alto */}
-        <div className="sticky top-0 z-20 -mx-5 -mt-2 space-y-2 border-b border-line/50 bg-surface/95 px-5 pb-3 pt-1 backdrop-blur-md">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t('Libreria esercizi FIT')}
+      zIndex={60}
+      headerExtra={
+        <div className="space-y-2">
           <div className="relative">
             <input
               className="input !pr-9"
@@ -383,41 +386,41 @@ export function ExercisePickerSheet({
             ))}
           </div>
         </div>
-
-        {/* Lista degli esercizi con scroll fluido nel corpo del foglio */}
-        <ul className="space-y-2 pt-3 pb-2">
-          {list.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className="card flex w-full flex-col items-start gap-1 p-3 text-left transition-transform active:scale-[0.99] hover:border-brand/50"
-                onClick={() => {
-                  onSelect(item)
-                  onClose()
-                }}
-              >
-                <div className="flex w-full items-start justify-between gap-2">
-                  <span className="text-sm font-semibold">{item.name}</span>
-                  <Badge className="shrink-0 border border-line bg-surface text-[11px] font-medium">
-                    {item.equipment}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-muted">
-                  {item.defaultSets && item.defaultReps && (
-                    <span>
-                      {item.defaultSets} × {item.defaultReps}
-                    </span>
-                  )}
-                  {item.suggestedLoad && <span className="font-medium text-ink">{item.suggestedLoad}</span>}
-                  {item.defaultRest && <span>Rec {item.defaultRest}</span>}
-                </div>
-                {item.notes && <p className="line-clamp-1 text-[11px] italic text-muted">{item.notes}</p>}
-              </button>
-            </li>
-          ))}
-          {!list.length && <p className="p-4 text-center text-sm text-muted">{t('Nessun esercizio trovato.')}</p>}
-        </ul>
-      </div>
+      }
+    >
+      {/* Lista degli esercizi con scroll fluido nel corpo del foglio */}
+      <ul className="space-y-2 pt-2 pb-2">
+        {list.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              className="card flex w-full flex-col items-start gap-1 p-3 text-left transition-transform active:scale-[0.99] hover:border-brand/50"
+              onClick={() => {
+                onSelect(item)
+                onClose()
+              }}
+            >
+              <div className="flex w-full items-start justify-between gap-2">
+                <span className="text-sm font-semibold">{item.name}</span>
+                <Badge className="shrink-0 border border-line bg-surface text-[11px] font-medium">
+                  {item.equipment}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted">
+                {item.defaultSets && item.defaultReps && (
+                  <span>
+                    {item.defaultSets} × {item.defaultReps}
+                  </span>
+                )}
+                {item.suggestedLoad && <span className="font-medium text-ink">{item.suggestedLoad}</span>}
+                {item.defaultRest && <span>Rec {item.defaultRest}</span>}
+              </div>
+              {item.notes && <p className="line-clamp-1 text-[11px] italic text-muted">{item.notes}</p>}
+            </button>
+          </li>
+        ))}
+        {!list.length && <p className="p-4 text-center text-sm text-muted">{t('Nessun esercizio trovato.')}</p>}
+      </ul>
     </Sheet>
   )
 }
@@ -484,7 +487,7 @@ function EditorForm({
     setTimeout(() => {
       const el = document.getElementById(`block-${newId}`)
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         const input = el.querySelector<HTMLInputElement>('input')
         if (input) input.focus()
       }
@@ -513,7 +516,7 @@ function EditorForm({
     setTimeout(() => {
       const el = document.getElementById(`block-${newId}`)
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       }
     }, 200)
   }

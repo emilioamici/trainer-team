@@ -43,11 +43,30 @@ export function EmptyState({ icon: Icon = Dumbbell, title, text, action }: { ico
 }
 
 // ---------- foglio (bottom sheet) ----------
+let activeSheetsCount = 0
+let savedBodyOverflow = ''
+
+function lockBody() {
+  if (activeSheetsCount === 0) {
+    savedBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+  }
+  activeSheetsCount++
+}
+
+function unlockBody() {
+  activeSheetsCount = Math.max(0, activeSheetsCount - 1)
+  if (activeSheetsCount === 0) {
+    document.body.style.overflow = savedBodyOverflow
+  }
+}
+
 export function Sheet({
   open,
   onClose,
   title,
   children,
+  headerExtra,
   footer,
   zIndex = 50,
 }: {
@@ -55,12 +74,21 @@ export function Sheet({
   onClose: () => void
   title: string
   children: ReactNode
+  headerExtra?: ReactNode
   footer?: ReactNode
   zIndex?: number
 }) {
   const dragY = useMotionValue(0)
   const [vpHeight, setVpHeight] = useState<number | null>(null)
   const [vpOffsetTop, setVpOffsetTop] = useState(0)
+
+  useEffect(() => {
+    if (!open) return
+    lockBody()
+    return () => {
+      unlockBody()
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -136,14 +164,15 @@ export function Sheet({
                 <h2 className="text-xl font-bold">{title}</h2>
                 <button className="icon-btn" onClick={onClose} aria-label={t('Chiudi')}><X size={18} /></button>
               </div>
+              {headerExtra && <div className="border-b border-line/50 px-5 pb-3">{headerExtra}</div>}
               <div
                 className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-4"
                 onFocusCapture={(e) => {
                   const target = e.target as HTMLElement
                   if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
                     setTimeout(() => {
-                      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    }, 300)
+                      target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+                    }, 250)
                   }
                 }}
               >
