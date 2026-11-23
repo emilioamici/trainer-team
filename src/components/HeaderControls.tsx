@@ -45,6 +45,7 @@ export function SyncPill() {
     <button
       type="button"
       onClick={handleClick}
+      data-tour="sync"
       aria-label={t('Sincronizza')}
       className={`group flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
         isAuthErr
@@ -88,6 +89,7 @@ export function NotificationBell({ onClick }: { onClick: () => void }) {
       <button
         type="button"
         onClick={onClick}
+        data-tour="notifications"
         aria-label={unread ? t('Notifiche ({n} non lette)', { n: unread }) : t('Notifiche')}
         className="flex h-8 w-8 items-center justify-center rounded-full border border-line/50 bg-bg/80 text-muted transition hover:border-brand/40 hover:bg-bg hover:text-ink active:scale-95"
       >
@@ -113,6 +115,7 @@ export function SettingsButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
+      data-tour="settings"
       aria-label={t('Impostazioni')}
       className="flex h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-gradient-to-br from-brand/15 via-surface to-warn/15 text-xs font-bold text-brand shadow-sm transition hover:border-brand hover:scale-105 active:scale-95"
     >

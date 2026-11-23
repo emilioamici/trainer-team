@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Bell, BookOpen, Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
+import { Bell, BookOpen, Cloud, Compass, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { SyncBadge, useActive } from '../components/common'
 import { Accordion, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
@@ -14,7 +14,7 @@ import { isIos, isStandalone, pushSupported } from '../services/pushService'
 import { saveWorkerCfg, vapidKey, workerUrl } from '../services/workerService'
 import type { UserRole } from '../types'
 
-export function SettingsContent({ onOpenTutorial }: { onOpenTutorial?: () => void }) {
+export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial?: () => void; onOpenTour?: () => void }) {
   const { e, src, db } = useActive()
   useLangPref()
   const [theme, setTheme] = useState<ThemePref>(getTheme)
@@ -94,6 +94,23 @@ export function SettingsContent({ onOpenTutorial }: { onOpenTutorial?: () => voi
             onClick={onOpenTutorial}
           >
             {t('Apri')}
+          </button>
+        </div>
+      )}
+
+      {onOpenTour && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 p-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand/15 text-brand">
+              <Compass size={17} />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-ink">{t('Tour guidato')}</p>
+              <p className="text-xs text-muted">{t('Ti accompagno tra le funzioni dell’app, schermata per schermata')}</p>
+            </div>
+          </div>
+          <button type="button" className="btn btn-soft !py-1.5 !px-3 !text-xs font-bold" onClick={onOpenTour}>
+            {t('Avvia')}
           </button>
         </div>
       )}
@@ -228,14 +245,16 @@ export function SettingsSheet({
   open,
   onClose,
   onOpenTutorial,
+  onOpenTour,
 }: {
   open: boolean
   onClose: () => void
   onOpenTutorial?: () => void
+  onOpenTour?: () => void
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={t('Impostazioni')}>
-      <SettingsContent onOpenTutorial={onOpenTutorial} />
+      <SettingsContent onOpenTutorial={onOpenTutorial} onOpenTour={onOpenTour} />
     </Sheet>
   )
 }

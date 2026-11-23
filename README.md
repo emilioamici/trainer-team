@@ -12,6 +12,7 @@ Stile grafico e architettura: temi grigio chiaro e grigio antracite + automatico
 - **Piano** – vista settimanale e mensile, aggiunta/modifica/duplica/elimina sessioni, copia della settimana precedente, **import/export JSON** (con modello di esempio).
 - **Atleti / Progressi** – *Coach*: elenco atleti, completamento settimanale, feedback recenti, inviti. *Atleta*: sessioni, ore, km, RPE medio, grafici e storico.
 - **Profilo** – ruolo (Atleta/Coach, cambiabile in ogni momento), tema e lingua (italiano/inglese), Client ID, stato di sincronizzazione, collegamento a un coach, backup.
+- **Tutorial e tour guidato**: il tutorial iniziale spiega i concetti; il *tour guidato* (Impostazioni → «Tour guidato», o dall'ultimo passo del tutorial) evidenzia i pulsanti reali dell'app, cambiando scheda da solo, con passi diversi per coach e atleta.
 - **Modalità demo**: senza login l'app funziona subito con dati di esempio (Profilo → Backup e dati per nasconderli).
 - **Offline-first**: copia locale in IndexedDB; sincronizzazione ogni 2 minuti, dopo ogni modifica (debounce 2 s), alla riconnessione e col pulsante "Sincronizza ora".
 

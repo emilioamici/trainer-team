@@ -13,6 +13,7 @@ export function BottomNav({ tab, onChange, role }: { tab: Tab; onChange: (t: Tab
   ]
   return (
     <nav
+      data-tour="nav"
       aria-label={t('Navigazione')}
       className="glass fixed inset-x-4 bottom-4 z-40 grid grid-cols-3 !rounded-full p-1.5 md:inset-x-auto md:bottom-auto md:left-6 md:top-6 md:w-56 md:grid-cols-1 md:!rounded-[28px] md:p-2"
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
