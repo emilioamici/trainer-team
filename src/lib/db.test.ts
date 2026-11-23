@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blankSession, mergeDb, mergeRegistry, newAthlete, newDb, parseDb, periodStats, removeEntry, removeSession, setLog, upsertEntry, upsertSession, emptyRegistry } from './db'
+import { blankSession, mergeDb, mergeRegistry, newAthlete, newDb, parseDb, periodStats, placeholderDb, removeEntry, removeSession, setLog, updateAthlete, upsertEntry, upsertSession, emptyRegistry } from './db'
 import { sampleDb } from './sample'
 
 const mk = () => newDb(newAthlete('Test'), 'x')
@@ -100,5 +100,23 @@ describe('statistiche e demo', () => {
       { ...blankSession('2026-03-03', 'coach'), status: 'skipped', feedback: { durationMin: 99, loggedAt: '' } },
     ])
     expect(st).toMatchObject({ minutes: 60, km: 10, done: 1, skipped: 1, avgRpe: 6 })
+  })
+})
+
+describe('segnaposto di un piano che esiste già su Drive', () => {
+  it('nel merge vince sempre il profilo remoto (colore, icona, orari non si perdono)', () => {
+    const remote = mk()
+    remote.athlete = { ...remote.athlete, name: 'Gruppo A', color: 'blue', icon: 'trophy', targetKind: 'group', scheduleSlots: [{ id: 's', day: 'Lunedì', startTime: '15:00', endTime: '16:00' }] }
+    const placeholder = placeholderDb({ ...newAthlete('Gruppo A'), id: remote.athlete.id }, 'x') // profilo vuoto, creato "adesso"
+    for (const m of [mergeDb(placeholder, remote), mergeDb(remote, placeholder)]) {
+      expect(m.athlete).toMatchObject({ color: 'blue', icon: 'trophy', targetKind: 'group' })
+      expect(m.athlete.scheduleSlots).toHaveLength(1)
+    }
+  })
+  it('una modifica locale successiva batte invece il segnaposto', async () => {
+    const placeholder = placeholderDb(newAthlete('Io'), 'x')
+    await wait()
+    const edited = updateAthlete(placeholder, { name: 'Luca' }, 'x')
+    expect(mergeDb(edited, mk()).athlete.name).toBe('Luca')
   })
 })

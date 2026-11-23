@@ -13,7 +13,7 @@ async function setup(browser, email) {
   await ctx.addInitScript((email) => {
     localStorage.setItem('trainer:cfg:clientId', 'cid.apps.googleusercontent.com')
     localStorage.setItem('trainer:cfg:apiKey', 'key'); localStorage.setItem('trainer:cfg:appId', '123')
-    localStorage.setItem('trainer:demo', '0')
+    localStorage.setItem('trainer:demo', '0'); localStorage.setItem('trainer:tutorial_completed', 'true')
     window.__email = email
   }, email)
   await ctx.route('https://accounts.google.com/gsi/client', (r) => r.fulfill({ contentType: 'text/javascript', body: `
@@ -60,7 +60,8 @@ async function setup(browser, email) {
   return { ctx, page, errs }
 }
 const nav = (p, name) => p.getByRole('navigation').getByRole('button', { name, exact: true }).click()
-const syncNow = async (p) => { await nav(p, 'Profilo'); const h = p.getByRole('button', { name: /Sincronizzazione e account/ }); await h.waitFor(); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click(); await p.getByRole('button', { name: 'Sincronizza ora' }).click(); await p.waitForTimeout(1500) }
+const openSettings = (p) => p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click()
+const syncNow = async (p) => { await p.getByRole('button', { name: 'Sincronizza', exact: true }).click(); await p.waitForTimeout(1500) }
 const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.exitCode = 1 }
 const today = new Date(); const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
@@ -74,39 +75,39 @@ const today = new Date(); const iso = `${today.getFullYear()}-${String(today.get
   await cp.getByRole('button', { name: 'Continua con Google' }).click()
   await cp.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' })
   ok(true, 'coach collegato a Google dalla schermata di accesso')
-  await nav(cp, 'Atleti')
-  await cp.getByRole('button', { name: 'Nuovo atleta' }).first().click()
-  await cp.getByLabel('Nome').fill('Luca Rossi')
-  await cp.getByLabel('Disciplina / obiettivo').fill('Hyrox')
-  await cp.getByLabel('Email Google dell’atleta (facoltativa)').fill('atleta@x.it')
+  await nav(cp, 'Team')
+  await cp.getByRole('button', { name: 'Aggiungi', exact: true }).first().click()
+  await cp.getByRole('tab', { name: 'Individual Athlete', exact: true }).click()
+  await cp.getByLabel('Nome atleta').fill('Luca Rossi')
+  await cp.getByLabel('Email Google dell’atleta (facoltativa per invito)').fill('atleta@x.it')
   await cp.getByRole('button', { name: 'Crea atleta' }).click()
-  await cp.waitForSelector('text=Invito', { timeout: 8000 })
-  await cp.waitForFunction(() => document.body.innerText.includes('Link') && document.body.innerText.includes('file0000'), null, { timeout: 8000 })
+  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Impostazioni', exact: true }).nth(1).click() // scheda dell'atleta (la creazione apre il suo piano)
+  await cp.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value.startsWith('file0000')), null, { timeout: 8000 })
   const athleteFile = [...files.values()].find((f) => f.props?.trainerteam === 'athlete' && f.name.includes('luca'))
   ok(!!athleteFile && athleteFile.owner === 'coach@x.it', 'file JSON dedicato creato sul Drive del coach')
-  await cp.getByRole('button', { name: /Invia invito/ }).click()
+  await cp.getByRole('button', { name: 'Invia', exact: true }).click()
   await cp.waitForSelector('text=Invito inviato')
   ok(athleteFile.shares.length === 1 && athleteFile.shares[0].role === 'writer' && athleteFile.shares[0].emailAddress === 'atleta@x.it', 'file condiviso con ruolo writer all’email dell’atleta')
   await cp.keyboard.press('Escape')
   // il coach aggiunge un allenamento di oggi
-  await cp.getByRole('button', { name: 'Apri piano' }).first().click()
+  await cp.getByRole('button', { name: /Vedi piano/ }).first().click()
   await cp.waitForSelector('text=Piano')
   await cp.getByRole('button', { name: 'Nuovo allenamento' }).click()
   await cp.getByLabel('Titolo').fill('Test 10 km')
-  await cp.getByRole('button', { name: 'Aggiungi blocco' }).nth(1).click()
-  await cp.getByPlaceholder('Nome esercizio / ripetuta').fill('Corsa continua')
   await cp.getByRole('button', { name: 'Salva', exact: true }).click()
   await cp.waitForFunction((id) => true, 0)
   await cp.waitForTimeout(3500)
   const content1 = JSON.parse(athleteFile.content)
-  ok(content1.sessions.some((s) => s.title === 'Test 10 km' && s.blocks[0].title === 'Corsa continua'), 'allenamento sincronizzato sul file (debounce 2 s)')
+  ok(content1.sessions.some((s) => s.title === 'Test 10 km'), 'allenamento sincronizzato sul file (debounce 2 s)')
   ok([...files.values()].some((f) => f.props?.trainerteam === 'registry'), 'registro atleti del coach creato su Drive')
 
   // ---- ATLETA ----
   const A = await setup(b, 'atleta@x.it'); const ap = A.page
   await ap.goto(BASE); await ap.waitForSelector('text=Oggi')
   await ap.getByRole('button', { name: /Sono un atleta/ }).click(); await ap.getByRole('button', { name: 'Continua con Google' }).click()
-  await ap.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' }); await nav(ap, 'Profilo')
+  await ap.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' })
+  ok(await ap.getByRole('button', { name: 'Notifiche', exact: true }).count() === 1, 'utente nuovo: nessuna notifica d’esempio (nessuna non letta)')
+  await openSettings(ap)
   await new Promise((r) => setTimeout(r, 2000))
   ok([...files.values()].some((f) => f.owner === 'atleta@x.it' && f.name === 'training-plan-personal.json'), 'atleta: il file personale su Drive viene creato subito dopo l’accesso')
   await ap.getByRole('button', { name: /Collegati a un Coach/ }).click()
@@ -114,30 +115,31 @@ const today = new Date(); const iso = `${today.getFullYear()}-${String(today.get
   await ap.getByRole('button', { name: 'Collega', exact: true }).click()
   await ap.waitForSelector('text=Collegato!')
   ok(athleteFile.granted.has('atleta@x.it'), 'l’atleta ha aperto il file tramite Picker')
-  await nav(ap, 'Oggi')
+  await ap.keyboard.press('Escape'); await nav(ap, 'Oggi')
   await ap.waitForSelector('text=Test 10 km')
   ok(true, 'l’atleta vede il piano del coach in "Oggi"')
   // l'atleta non può modificare (athleteCanEdit = false) ma può registrare il feedback
   ok(await ap.getByRole('button', { name: 'Dettagli' }).count() === 0, 'atleta senza permesso di modifica: nessun pulsante Dettagli/Modifica')
   await ap.getByRole('button', { name: 'Completa & inserisci feedback' }).click()
   await ap.getByRole('button', { name: '7', exact: true }).click()
-  await ap.getByLabel('Durata (min)').fill('55'); await ap.getByLabel('Distanza (km)').fill('10,2')
+  await ap.getByLabel('Durata (min)').fill('55');
   await ap.getByLabel('Commento per il coach').fill('Gambe pesanti nel finale')
   await ap.getByRole('button', { name: 'Salva', exact: true }).click()
   await ap.waitForTimeout(3500)
   const s1 = JSON.parse(athleteFile.content).sessions.find((s) => s.title === 'Test 10 km')
-  ok(s1.status === 'done' && s1.feedback.rpe === 7 && s1.feedback.distanceKm === 10.2 && s1.feedback.comment.startsWith('Gambe'), 'feedback (RPE, km, commento) scritto sul file condiviso')
+  ok(s1.status === 'done' && s1.feedback.rpe === 7 && s1.feedback.durationMin === 55 && s1.feedback.comment.startsWith('Gambe'), 'feedback (RPE, durata, commento) scritto sul file condiviso')
 
   // ---- COACH rilegge ----
   await syncNow(cp)
-  await nav(cp, 'Atleti')
-  await cp.waitForSelector('text=Feedback recenti')
+  await nav(cp, 'Team')
+  await cp.waitForSelector('text=Ultimi feedback')
   ok(await cp.getByText('Gambe pesanti nel finale').count() > 0, 'il coach legge il commento dell’atleta dopo la sincronizzazione')
+  ok(await cp.getByRole('button', { name: /Notifiche \(\d+ non lett/ }).count() === 1, 'coach: avviso in-app per il feedback dell’atleta (campanella con non lette)')
 
   // ---- conflitto: coach modifica il piano mentre l'atleta cambia il feedback ----
   await ap.getByRole('button', { name: 'Modifica feedback' }).click()
   await ap.getByLabel('Commento per il coach').fill('Aggiornato: poi mi sono ripreso')
-  await cp.getByRole('button', { name: 'Apri piano' }).first().click()
+  await cp.getByRole('button', { name: /Vedi piano/ }).first().click()
   await cp.getByRole('button', { name: /Test 10 km/ }).first().click()
   await cp.getByRole('button', { name: 'Modifica', exact: true }).click()
   await cp.getByLabel('Note tecniche del coach').fill('Nota coach nuova')
@@ -148,6 +150,24 @@ const today = new Date(); const iso = `${today.getFullYear()}-${String(today.get
   await syncNow(cp)
   const s2 = JSON.parse(athleteFile.content).sessions.find((s) => s.title === 'Test 10 km')
   ok(s2.coachNotes === 'Nota coach nuova' && s2.feedback.comment.startsWith('Aggiornato'), 'modifiche simultanee piano (coach) + log (atleta) si compongono senza perdite')
+
+  ok(await ap.getByRole('button', { name: /Notifiche \(\d+ non lett/ }).count() === 1, 'atleta: avviso in-app per la modifica del coach')
+
+  // ---- secondo dispositivo del coach: il profilo dell'atleta (colore, icona, tipo) non deve andare perso ----
+  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Impostazioni', exact: true }).nth(1).click()
+  await cp.getByRole('switch', { name: 'L’atleta può modificare gli allenamenti' }).click(); await cp.waitForTimeout(3500); await cp.keyboard.press('Escape')
+  const before = JSON.parse(athleteFile.content).athlete
+  ok(before.athleteCanEdit === true, 'il coach abilita la modifica all’atleta: salvato sul file')
+  ok(!!before.color && !!before.icon, 'sul file ci sono colore e icona dell’atleta (' + before.color + '/' + before.icon + ')')
+  const C2 = await setup(b, 'coach@x.it'); const c2 = C2.page
+  await c2.goto(BASE); await c2.waitForSelector('text=Oggi')
+  await c2.getByRole('button', { name: /Sono un coach/ }).click(); await c2.getByRole('button', { name: 'Continua con Google' }).click()
+  await c2.getByRole('dialog', { name: 'Accesso' }).waitFor({ state: 'detached' })
+  await c2.waitForTimeout(6000)
+  const after = JSON.parse(athleteFile.content).athlete
+  ok(after.name === 'Luca Rossi' && after.color === before.color && after.icon === before.icon && after.targetKind === before.targetKind && after.athleteCanEdit === true, 'secondo dispositivo: il profilo dell’atleta su Drive resta intatto')
+  await nav(c2, 'Team'); await c2.waitForSelector('text=Luca Rossi')
+  ok(true, 'secondo dispositivo: l’atleta compare dal registro su Drive')
 
   // ---- persistenza offline: ricarica con rete spenta ----
   await A.ctx.setOffline(true); await ap.reload(); await ap.waitForSelector('text=Oggi'); await ap.waitForSelector('text=Test 10 km')

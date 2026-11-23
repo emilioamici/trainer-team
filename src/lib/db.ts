@@ -61,6 +61,16 @@ export const newDb = (athlete: AthleteProfile, by = ''): TrainingPlanDatabase =>
   }
 }
 
+/**
+ * Copia vuota di un piano che esiste già altrove (altro dispositivo, file su Drive): datata al 2000, così nel merge
+ * vince sempre il contenuto remoto e non lo si sovrascrive con un profilo vuoto (colore, icona, orari, allievi…).
+ */
+export const EPOCH = '2000-01-01T00:00:00.000Z'
+export const placeholderDb = (athlete: AthleteProfile, by = ''): TrainingPlanDatabase => {
+  const db = newDb({ ...athlete, updatedAt: EPOCH }, by)
+  return { ...db, meta: { ...db.meta, createdAt: EPOCH, updatedAt: EPOCH } }
+}
+
 // ---------- normalizzazione ----------
 export const parseBlock = (raw: unknown): WorkoutBlock | null => {
   if (!isObj(raw)) return null

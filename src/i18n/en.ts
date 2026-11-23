@@ -600,4 +600,6 @@ export const en: Record<string, string> = {
   "Tutorial iniziale": "Initial tutorial",
   "Rivedi la guida introduttiva per coach o atleti": "Review the introductory guide for coaches or athletes",
   "Apri": "Open",
+  "Il coach ha aggiornato {n} allenamenti": "The coach updated {n} workouts",
+  "{n} allenamenti aggiornati": "{n} workouts updated",
 }

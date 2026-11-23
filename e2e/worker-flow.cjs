@@ -16,7 +16,7 @@ async function setup(browser, email, who) {
   await ctx.addInitScript((email) => {
     localStorage.setItem('trainer:cfg:clientId', 'cid.apps.googleusercontent.com')
     localStorage.setItem('trainer:cfg:apiKey', 'key'); localStorage.setItem('trainer:cfg:appId', '123')
-    localStorage.setItem('trainer:demo', '0'); localStorage.setItem('trainer:cfg:pushUrl', 'https://worker.test')
+    localStorage.setItem('trainer:demo', '0'); localStorage.setItem('trainer:tutorial_completed', 'true'); localStorage.setItem('trainer:cfg:pushUrl', 'https://worker.test')
     window.__email = email
   }, email)
   await ctx.route('https://accounts.google.com/gsi/client', (r) => { gisHits++; return r.fulfill({ contentType: 'text/javascript', body: `
@@ -75,7 +75,8 @@ async function setup(browser, email, who) {
   return { ctx, page, errs }
 }
 const nav = (p, name) => p.getByRole('navigation').getByRole('button', { name, exact: true }).click()
-const syncNow = async (p) => { await nav(p, 'Profilo'); const h = p.getByRole('button', { name: /Sincronizzazione e account/ }); await h.waitFor(); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click(); await p.getByRole('button', { name: 'Sincronizza ora' }).click(); await p.waitForTimeout(1500) }
+const openSettings = (p) => p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click()
+const syncNow = async (p) => { await p.getByRole('button', { name: 'Sincronizza', exact: true }).click(); await p.waitForTimeout(1500) }
 const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.exitCode = 1 }
 const today = new Date(); const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
@@ -95,18 +96,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
   // rinnovo senza popup dopo la scadenza del token
   await cp.evaluate(() => sessionStorage.clear()); await cp.reload(); await cp.waitForSelector('text=Oggi'); await sleep(1500)
-  await nav(cp, 'Profilo')
+  await openSettings(cp)
   ok(await cp.getByText('Accesso persistente attivo').count() > 0 || (await cp.getByRole('button', { name: /Sincronizzazione e account/ }).click(), await cp.getByText('Accesso persistente attivo').count() > 0), 'dopo scadenza token: riaccesso silenzioso, "Accesso persistente attivo"')
   ok(gisHits === 0, 'ancora nessun popup')
+  await cp.keyboard.press('Escape')
 
   // coach crea atleta, invita, aggiunge un allenamento
-  await nav(cp, 'Atleti'); await cp.getByRole('button', { name: 'Nuovo atleta' }).first().click()
-  await cp.getByLabel('Nome').fill('Luca Rossi'); await cp.getByLabel('Email Google dell’atleta (facoltativa)').fill('atleta@x.it')
+  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Aggiungi', exact: true }).first().click()
+  await cp.getByRole('tab', { name: 'Individual Athlete', exact: true }).click()
+  await cp.getByLabel('Nome atleta').fill('Luca Rossi'); await cp.getByLabel('Email Google dell’atleta (facoltativa per invito)').fill('atleta@x.it')
   await cp.getByRole('button', { name: 'Crea atleta' }).click()
-  await cp.waitForFunction(() => document.body.innerText.includes('file0000'), null, { timeout: 8000 })
+  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Impostazioni', exact: true }).nth(1).click() // scheda dell'atleta (la creazione apre il suo piano)
+  await cp.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value.startsWith('file0000')), null, { timeout: 8000 })
   const f = [...files.values()].find((x) => x.props?.trainerteam === 'athlete' && x.name.includes('luca'))
   await cp.keyboard.press('Escape')
-  await cp.getByRole('button', { name: 'Apri piano' }).first().click(); await cp.waitForSelector('text=Piano')
+  await cp.getByRole('button', { name: /Vedi piano/ }).first().click(); await cp.waitForSelector('text=Piano')
   await cp.getByRole('button', { name: 'Nuovo allenamento' }).click()
   await cp.getByLabel('Titolo').fill('Test 10 km'); await cp.getByRole('button', { name: 'Salva', exact: true }).click()
   await sleep(4500)
@@ -119,9 +123,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   await ap.goto(BASE); await ap.waitForSelector('text=Oggi')
   await ap.getByRole('button', { name: /Sono un atleta/ }).click(); await ap.getByRole('button', { name: 'Continua con Google' }).click()
   await ap.waitForSelector('text=Collegato a Google come atleta@x.it', { timeout: 10000 })
-  await nav(ap, 'Profilo'); await ap.getByRole('button', { name: /Collegati a un Coach/ }).click()
+  await openSettings(ap); await ap.getByRole('button', { name: /Collegati a un Coach/ }).click()
   await ap.getByLabel('Link d’invito o codice').fill(f.id); await ap.getByRole('button', { name: 'Collega', exact: true }).click(); await ap.waitForSelector('text=Collegato!')
-  await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
+  await ap.keyboard.press('Escape'); await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
   await ap.getByRole('button', { name: 'Completa & inserisci feedback' }).click()
   await ap.getByRole('button', { name: '8', exact: true }).click(); await ap.getByRole('button', { name: 'Salva', exact: true }).click()
   await sleep(4500)
@@ -137,7 +141,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   ok(log.filter((x) => x.includes('Parziale: Test 10 km')).length === 1, 'alla riconnessione: dati su Drive, poi avviso (una volta sola)')
 
   // scollega: logout sul Worker e sessione cancellata
-  await nav(cp, 'Profilo'); const h = cp.getByRole('button', { name: /Sincronizzazione e account/ }); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click()
+  await openSettings(cp); const h = cp.getByRole('button', { name: /Sincronizzazione e account/ }); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click()
   await cp.getByRole('button', { name: 'Scollega account' }).click(); await sleep(800)
   ok(workerCalls.some((c) => c.path === '/auth/logout' && c.who === 'coach') && !(await cp.evaluate(() => localStorage.getItem('trainer:session'))), 'scollega: logout sul Worker e sessione rimossa')
   console.log('errori console coach:', C.errs, ' atleta:', A.errs)
