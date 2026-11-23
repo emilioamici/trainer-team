@@ -1,11 +1,34 @@
 import { useState } from 'react'
-import { ArrowUpDown, Copy, Mail, Plus, Share2, Trash2, User, Users, X } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Check,
+  Copy,
+  Mail,
+  Plus,
+  Share2,
+  Trash2,
+  User,
+  Users,
+  X,
+} from 'lucide-react'
 import { t } from '../i18n'
 import { copyText } from '../lib/files'
+import { slug } from '../lib/ids'
 import { updateAthlete } from '../lib/db'
 import { useEngine } from '../state/store'
 import type { TargetKind } from '../types'
 import { Badge, Confirm, Field, Notice, Segmented, Sheet, Toggle } from './ui'
+
+const DEFAULT_POOL = [
+  'Matteo B.',
+  'Sofia V.',
+  'Leonardo T.',
+  'Edoardo F.',
+  'Giulia R.',
+  'Federico M.',
+  'Alice B.',
+  'Marco P.',
+]
 
 export function NewAthleteSheet({
   open,
@@ -21,7 +44,8 @@ export function NewAthleteSheet({
   const [name, setName] = useState('')
   const [schedule, setSchedule] = useState('')
   const [focus, setFocus] = useState('')
-  const [membersText, setMembersText] = useState('')
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([])
+  const [customMemberInput, setCustomMemberInput] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -30,18 +54,37 @@ export function NewAthleteSheet({
     name.trim().length > 0 &&
     (isGroup || !email.trim() || /^\S+@\S+\.\S+$/.test(email.trim()))
 
+  // Pool of known athletes from defaults, registry, and existing groups
+  const knownAthletes = Array.from(
+    new Set([
+      ...DEFAULT_POOL,
+      ...e.registry.athletes.map((a) => a.name),
+      ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
+    ])
+  ).filter(Boolean)
+
+  const toggleMember = (m: string) => {
+    setSelectedMembers((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
+    )
+  }
+
+  const addCustomMember = () => {
+    const v = customMemberInput.trim()
+    if (!v) return
+    if (!selectedMembers.includes(v)) {
+      setSelectedMembers((prev) => [...prev, v])
+    }
+    setCustomMemberInput('')
+  }
+
   const go = async () => {
     setBusy(true)
-    const members = isGroup
-      ? membersText
-          .split(/[\n,]+/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : []
+    const members = isGroup ? selectedMembers : []
 
     const s = await e.addAthlete({
       name,
-      focus: focus.trim() || (isGroup ? t('Scuola Tennis') : t('Atleta Pro')),
+      focus: focus.trim() || (isGroup ? t('Scuola Tennis') : t('Individual Athlete')),
       email: isGroup ? '' : email,
       targetKind: kind,
       members,
@@ -51,7 +94,8 @@ export function NewAthleteSheet({
     setName('')
     setSchedule('')
     setFocus('')
-    setMembersText('')
+    setSelectedMembers([])
+    setCustomMemberInput('')
     setEmail('')
     onClose()
     onCreated(s.id)
@@ -61,7 +105,7 @@ export function NewAthleteSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={isGroup ? t('Nuovo gruppo scuola tennis') : t('Nuovo atleta individuale / pro')}
+      title={isGroup ? t('Nuovo gruppo scuola tennis') : t('Nuovo Individual Athlete')}
       footer={
         <button className="btn btn-primary w-full !py-3" disabled={!valid || busy} onClick={go}>
           {isGroup ? t('Crea gruppo') : t('Crea atleta')}
@@ -75,7 +119,7 @@ export function NewAthleteSheet({
           onChange={setKind}
           options={[
             { value: 'group', label: t('Gruppo Scuola Tennis') },
-            { value: 'individual', label: t('Atleta Individuale / Pro') },
+            { value: 'individual', label: t('Individual Athlete') },
           ]}
         />
 
@@ -106,14 +150,60 @@ export function NewAthleteSheet({
                 onChange={(ev) => setFocus(ev.target.value)}
               />
             </Field>
-            <Field label={t('Componenti del gruppo (separati da virgola o a capo)')}>
-              <textarea
-                className="input min-h-20 text-sm"
-                placeholder={t('es. Matteo B., Sofia V., Leonardo T., Edoardo F.')}
-                value={membersText}
-                onChange={(ev) => setMembersText(ev.target.value)}
-              />
-            </Field>
+
+            <div className="space-y-2 rounded-2xl border border-line bg-surface p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  {t('Componenti del gruppo ({n} selezionati)', { n: selectedMembers.length })}
+                </span>
+              </div>
+              <p className="text-xs text-muted">
+                {t('Seleziona gli atleti dalla lista per aggiungerli a questo gruppo:')}
+              </p>
+              <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pt-1">
+                {knownAthletes.map((athleteName) => {
+                  const active = selectedMembers.includes(athleteName)
+                  return (
+                    <button
+                      key={athleteName}
+                      type="button"
+                      onClick={() => toggleMember(athleteName)}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                        active
+                          ? 'bg-brand text-onbrand shadow-sm'
+                          : 'border border-line bg-bg text-ink hover:border-brand/40'
+                      }`}
+                    >
+                      {active ? <Check size={13} strokeWidth={2.4} /> : <Plus size={13} />}
+                      {athleteName}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 border-t border-line/60 pt-2">
+                <input
+                  className="input flex-1 !py-1.5 text-xs"
+                  placeholder={t('Nuovo atleta...')}
+                  value={customMemberInput}
+                  onChange={(e) => setCustomMemberInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addCustomMember()
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-soft !px-3 !py-1.5 !text-xs"
+                  onClick={addCustomMember}
+                >
+                  <Plus size={14} />
+                  {t('Aggiungi')}
+                </button>
+              </div>
+            </div>
+
             <p className="text-xs text-muted">
               {t(
                 'Per questo gruppo potrai registrare le presenze sessione per sessione direttamente sul campo o in palestra.'
@@ -134,19 +224,19 @@ export function NewAthleteSheet({
             <Field label={t('Categoria / Obiettivo')}>
               <input
                 className="input"
-                placeholder={t('es. Professionista ATP · Potenza & Prevenzione')}
+                placeholder={t('es. Individual Athlete ATP · Potenza & Prevenzione')}
                 value={focus}
                 onChange={(ev) => setFocus(ev.target.value)}
               />
             </Field>
-            <Field label={t('Email Google dell’atleta (facoltativa)')}>
+            <Field label={t('Email Google dell’atleta (facoltativa per invito)')}>
               <input
                 className="input"
                 type="email"
-                inputMode="email"
                 placeholder="atleta@gmail.com"
                 value={email}
                 onChange={(ev) => setEmail(ev.target.value)}
+                autoCapitalize="none"
               />
             </Field>
             <p className="text-xs text-muted">
@@ -172,21 +262,38 @@ export function ManageAthleteSheet({
   onOpenImportExport?: (sourceId: string) => void
 }) {
   const e = useEngine()
-  const src = sourceId ? e.allSources().find((s) => s.id === sourceId) ?? null : null
-  const db = src ? e.dbOf(src.id) : null
+  const [ask, setAsk] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [ask, setAsk] = useState(false)
   const [newMember, setNewMember] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
+
+  const src = sourceId ? e.sources().find((s) => s.id === sourceId) : null
+  const db = sourceId ? e.dbOf(sourceId) : null
   const real = src?.kind === 'coach-athlete'
   const athleteId = src?.id.replace('athlete:', '') ?? ''
   const info = real ? e.inviteInfo(athleteId) : null
   const entry = real ? e.registry.athletes.find((x) => x.athleteId === athleteId) : null
 
-  const isGroup = db?.athlete.targetKind === 'group' || (db?.athlete.members && db.athlete.members.length > 0)
+  const isGroup =
+    db?.athlete.targetKind === 'group' || (db?.athlete.members && db.athlete.members.length > 0)
   const members = db?.athlete.members ?? []
 
-  const patch = (p: Parameters<typeof updateAthlete>[1]) => src && e.mutate(src.id, (d) => updateAthlete(d, p, e.by()))
+  // Known athletes from defaults, registry, and existing groups
+  const knownAthletes = Array.from(
+    new Set([
+      ...DEFAULT_POOL,
+      ...e.registry.athletes.map((a) => a.name),
+      ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
+    ])
+  ).filter(Boolean)
+
+  const availableToAdd = knownAthletes.filter((a) => !members.includes(a))
+
+  const patch = (p: Parameters<typeof updateAthlete>[1]) =>
+    src && e.mutate(src.id, (d) => updateAthlete(d, p, e.by()))
 
   const addMember = () => {
     const val = newMember.trim()
@@ -199,10 +306,19 @@ export function ManageAthleteSheet({
     patch({ members: members.filter((x) => x !== m) })
   }
 
-  const invite = async () => {
+  const inviteCode =
+    info?.code || (real ? athleteId : `DEMO-${slug(db?.athlete.name ?? 'atleta')}`)
+  const inviteUrl = info?.link || `${location.origin}${location.pathname}#join=${inviteCode}`
+
+  const inviteByEmail = async () => {
+    const targetEmail = emailInput.trim() || db?.athlete.email || ''
+    if (!targetEmail) return
     setBusy(true)
     setErr('')
     try {
+      if (targetEmail !== db?.athlete.email) {
+        patch({ email: targetEmail.toLowerCase() })
+      }
       const r = await e.inviteAthlete(athleteId)
       e.notify(
         r.emailed
@@ -236,7 +352,7 @@ export function ManageAthleteSheet({
             <div className="flex items-center gap-2">
               <Badge className={isGroup ? 'bg-brand/10 text-brand font-bold' : 'bg-warn/15 text-warn font-bold'}>
                 {isGroup ? <Users size={12} /> : <User size={12} />}
-                {isGroup ? t('Gruppo Scuola Tennis') : t('Atleta Individuale / Pro')}
+                {isGroup ? t('Gruppo Scuola Tennis') : t('Individual Athlete')}
               </Badge>
               {db.athlete.schedule && <span className="text-xs text-muted">{db.athlete.schedule}</span>}
             </div>
@@ -269,7 +385,7 @@ export function ManageAthleteSheet({
             </Field>
 
             {isGroup && (
-              <div className="space-y-2 rounded-2xl border border-line bg-surface p-3">
+              <div className="space-y-3 rounded-2xl border border-line bg-surface p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">
                     {t('Componenti del gruppo ({n})', { n: members.length })}
@@ -279,13 +395,13 @@ export function ManageAthleteSheet({
                   {members.map((m) => (
                     <span
                       key={m}
-                      className="inline-flex items-center gap-1 rounded-full border border-line bg-bg px-2.5 py-1 text-xs font-medium"
+                      className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-bold text-brand"
                     >
                       {m}
                       <button
                         type="button"
                         onClick={() => removeMember(m)}
-                        className="text-muted hover:text-exp"
+                        className="ml-0.5 text-muted hover:text-exp"
                         aria-label={t('Rimuovi {name}', { name: m })}
                       >
                         <X size={12} />
@@ -296,10 +412,32 @@ export function ManageAthleteSheet({
                     <p className="text-xs text-muted">{t('Nessun componente aggiunto al gruppo.')}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2 pt-2">
+
+                {availableToAdd.length > 0 && (
+                  <div className="space-y-1.5 border-t border-line/60 pt-2">
+                    <p className="text-xs font-semibold text-muted">
+                      {t('Aggiungi dalla lista della scuola tennis:')}
+                    </p>
+                    <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                      {availableToAdd.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => patch({ members: [...members, name] })}
+                          className="inline-flex items-center gap-1 rounded-full border border-line bg-bg px-2.5 py-1 text-xs font-medium text-ink transition hover:border-brand/40 active:scale-95"
+                        >
+                          <Plus size={12} />
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 border-t border-line/60 pt-2">
                   <input
-                    className="input !py-1.5 text-xs"
-                    placeholder={t('Aggiungi componente...')}
+                    className="input flex-1 !py-1.5 text-xs"
+                    placeholder={t('Nuovo atleta...')}
                     value={newMember}
                     onChange={(e) => setNewMember(e.target.value)}
                     onKeyDown={(e) => {
@@ -309,7 +447,7 @@ export function ManageAthleteSheet({
                       }
                     }}
                   />
-                  <button type="button" className="btn btn-soft !py-1.5 !px-3 !text-xs" onClick={addMember}>
+                  <button type="button" className="btn btn-soft !px-3 !py-1.5 !text-xs" onClick={addMember}>
                     <Plus size={14} />
                     {t('Aggiungi')}
                   </button>
@@ -317,16 +455,116 @@ export function ManageAthleteSheet({
               </div>
             )}
 
-            {!isGroup && real && (
-              <Field label={t('Email Google dell’atleta')}>
-                <input
-                  className="input"
-                  type="email"
-                  value={db.athlete.email ?? ''}
-                  onChange={(ev) => patch({ email: ev.target.value.trim().toLowerCase() || null })}
-                />
-              </Field>
-            )}
+            {/* Condivisione codice invito (come in clean-duo, meal-duo e money-duo) */}
+            <div className="space-y-3 rounded-2xl border border-line bg-surface p-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Share2 size={16} className="text-brand" />
+                  <span className="text-sm font-bold">
+                    {isGroup ? t('Codice invito gruppo') : t('Codice invito per l’atleta')}
+                  </span>
+                </div>
+                {entry?.invitedAt && (
+                  <Badge className="bg-inc/15 text-[10px] font-bold text-inc">
+                    <Check size={10} />
+                    {t('Invitato')}
+                  </Badge>
+                )}
+              </div>
+
+              <div>
+                <label className="label !mt-0 !text-[11px]">{t('Codice invito')}</label>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    className="input flex-1 select-all font-mono !py-1.5 !text-xs"
+                    value={inviteCode}
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-soft !px-3 !py-1.5"
+                    aria-label={t('Copia codice')}
+                    onClick={async () => {
+                      const ok = await copyText(inviteCode)
+                      if (ok) {
+                        setCopiedCode(true)
+                        setTimeout(() => setCopiedCode(false), 1500)
+                        e.notify(t('Codice copiato negli appunti'))
+                      }
+                    }}
+                  >
+                    {copiedCode ? <Check size={15} className="text-inc" /> : <Copy size={15} />}
+                  </button>
+                </div>
+                <p className="mt-1 px-1 text-xs text-muted">
+                  {t(
+                    'Il codice da dare all’atleta: dopo l’accesso lo incolla in «Collegati a un Coach».'
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-soft flex-1 !py-2 !text-xs"
+                  onClick={async () => {
+                    const ok = await copyText(inviteUrl)
+                    if (ok) {
+                      setCopiedLink(true)
+                      setTimeout(() => setCopiedLink(false), 1500)
+                      e.notify(t('Link invito copiato'))
+                    }
+                  }}
+                >
+                  {copiedLink ? <Check size={14} className="text-inc" /> : <Copy size={14} />}
+                  {t('Copia link')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary flex-1 !py-2 !text-xs"
+                  onClick={() => share(inviteUrl)}
+                >
+                  <Share2 size={14} />
+                  {t('Condividi')}
+                </button>
+              </div>
+
+              {real && (
+                <div className="space-y-2 border-t border-line/60 pt-2.5">
+                  <label className="label !mt-0 !text-[11px]">
+                    {t('Invia invito via email (Google Drive)')}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1 !py-1.5 !text-xs"
+                      type="email"
+                      placeholder={t('Email Google dell’atleta')}
+                      defaultValue={db.athlete.email ?? ''}
+                      onChange={(ev) => setEmailInput(ev.target.value.trim().toLowerCase())}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-soft whitespace-nowrap !px-3 !py-1.5 !text-xs"
+                      disabled={busy || !e.isAuthed()}
+                      onClick={inviteByEmail}
+                    >
+                      <Mail size={14} />
+                      {t('Invia')}
+                    </button>
+                  </div>
+                  {!e.isAuthed() ? (
+                    <p className="text-xs text-warn">
+                      {t('Collega prima Google nelle Impostazioni per inviare inviti automatici via Drive.')}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted">
+                      {t('L’invito via email condivide direttamente il file su Google Drive dell’atleta.')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {!isGroup && (
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">
@@ -358,58 +596,16 @@ export function ManageAthleteSheet({
               </button>
             </div>
 
-            {real ? (
-              <div className="space-y-2">
-                <p className="label">{isGroup ? t('Condivisione Drive gruppo') : t('Invito atleta')}</p>
-                {info ? (
-                  <>
-                    <div className="space-y-1 rounded-2xl bg-bg p-3 text-xs">
-                      <p className="font-semibold">{t('Link')}</p>
-                      <p className="break-all text-muted">{info.link}</p>
-                      <p className="pt-1 font-semibold">{t('Codice')}</p>
-                      <p className="break-all text-muted">{info.code}</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button className="btn btn-soft" onClick={() => copy(info.link)}>
-                        <Copy size={15} />
-                        {t('Link')}
-                      </button>
-                      <button className="btn btn-soft" onClick={() => copy(info.code)}>
-                        <Copy size={15} />
-                        {t('Codice')}
-                      </button>
-                      <button className="btn btn-soft" onClick={() => share(info.link)}>
-                        <Share2 size={15} />
-                        {t('Invia')}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <Notice kind="warn">
-                    {e.isAuthed()
-                      ? t('Il file su Drive non è ancora stato creato.')
-                      : t(
-                          'Collega Google (Profilo → Sincronizzazione) per creare il file su Drive e generare l’invito.'
-                        )}
-                  </Notice>
-                )}
-                {!isGroup && (
-                  <button className="btn btn-primary w-full" disabled={busy || !e.isAuthed()} onClick={invite}>
-                    <Mail size={16} />
-                    {db.athlete.email
-                      ? entry?.invitedAt
-                        ? t('Reinvia invito (condivisione Drive)')
-                        : t('Invia invito (condivisione Drive)')
-                      : t('Genera link e codice')}
-                  </button>
-                )}
+            {real && (
+              <div className="space-y-2 pt-2">
                 {err && <Notice kind="exp">{err}</Notice>}
                 <button className="btn btn-danger w-full" onClick={() => setAsk(true)}>
                   <Trash2 size={16} />
                   {isGroup ? t('Rimuovi gruppo') : t('Rimuovi atleta')}
                 </button>
               </div>
-            ) : (
+            )}
+            {!real && (
               <Notice kind="trf">{t('Esempio dimostrativo: serve solo per provare l’app.')}</Notice>
             )}
           </div>

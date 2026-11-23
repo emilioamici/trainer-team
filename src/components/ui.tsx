@@ -189,13 +189,30 @@ export function ToastHost() {
 /** Elemento fisso rispetto alla finestra (es. il FAB), fuori dalla pagina animata. */
 export const Fixed = ({ children }: { children: ReactNode }) => createPortal(children, document.body)
 
-export const PageHeader = ({ title, sub, action }: { title: string; sub?: string; action?: ReactNode }) => (
-  <header className="pb-4 pt-safe">
-    <div className="flex items-center justify-between gap-3 pt-4">
-      <Logo />
+export const PageHeader = ({
+  title,
+  sub,
+  action,
+  showLogo = false,
+}: {
+  title: string
+  sub?: string
+  action?: ReactNode
+  showLogo?: boolean
+}) => (
+  <header className="pb-3 pt-2">
+    {showLogo && (
+      <div className="flex items-center justify-between gap-3 pb-2 pt-1">
+        <Logo />
+      </div>
+    )}
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
+        {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
+      </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
-    <h1 className="mt-3 text-3xl font-extrabold tracking-tight">{title}</h1>
-    {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
   </header>
 )
+

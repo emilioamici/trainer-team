@@ -45,3 +45,15 @@ export const fmtMonth = (iso: string) => fmtDay(iso, { month: 'long', year: 'num
 export const fmtWeekRange = (start: string) => `${fmtDay(start, { day: 'numeric', month: 'short' })} – ${fmtDay(addDays(start, 6), { day: 'numeric', month: 'short' })}`
 export const fmtWeekdayShort = (iso: string) => fmtDay(iso, { weekday: 'short' })
 export const nowISO = () => new Date().toISOString()
+
+export const timeAgo = (iso: string): string => {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  if (diffMs < 0 || diffMs < 60_000) return 'adesso'
+  const min = Math.floor(diffMs / 60_000)
+  if (min < 60) return `${min}m fa`
+  const hours = Math.floor(min / 60)
+  if (hours < 24) return `${hours}h fa`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'ieri'
+  return fmtDay(iso.slice(0, 10))
+}

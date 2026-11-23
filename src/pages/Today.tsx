@@ -1,6 +1,6 @@
 import { CalendarOff, Check, Plus } from 'lucide-react'
 import { t } from '../i18n'
-import { SourcePicker, SyncBadge, useActive } from '../components/common'
+import { SourcePicker, useActive } from '../components/common'
 import { AttendanceBox, BlockList, FeedbackSummary } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
 import { Badge, EmptyState, PageHeader } from '../components/ui'
@@ -18,7 +18,6 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
   const list = db.sessions.filter((s) => s.date === today)
   const upcoming = db.sessions.filter((s) => s.date > today && s.status === 'planned').sort((a, b) => a.date.localeCompare(b.date))[0]
   const week = weekDays(weekStart(today))
-  const st = e.statusOf(src.id)
   const isCoachView = role === 'coach' && src.kind !== 'personal'
   const groupMembers = db.athlete.members ?? []
 
@@ -58,7 +57,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
 
   return (
     <div>
-      <PageHeader title={t('Oggi')} sub={isCoachView ? `${db.athlete.name} · ${fmtLong(today)}` : fmtLong(today)} action={<SyncBadge status={st.status} />} />
+      <PageHeader title={t('Oggi')} sub={isCoachView ? `${db.athlete.name} · ${fmtLong(today)}` : fmtLong(today)} />
       <SourcePicker />
 
       <div className="space-y-3">
