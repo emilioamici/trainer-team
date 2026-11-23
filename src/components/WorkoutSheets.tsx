@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { t } from '../i18n'
-import { blankSession, duplicateSession, removeSession, setLog, upsertSession } from '../lib/db'
+import { blankSession, duplicateSession, removeSession, setAttendance, setLog, upsertSession } from '../lib/db'
 import { addDays } from '../lib/dates'
 import type { Source, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 import { useEngine } from '../state/store'
@@ -20,6 +20,7 @@ export function useWorkoutSheets(src: Source | null, db: TrainingPlanDatabase | 
   const detail = live(detailId)
   const fb = live(fbId)
   const suggestions = [...new Set((db?.sessions ?? []).map((s) => s.title).filter(Boolean))]
+  const groupMembers = db?.athlete.members ?? []
 
   const openNew = useCallback((date: string) => setEditing(blankSession(date, by)), [by])
 
@@ -29,13 +30,30 @@ export function useWorkoutSheets(src: Source | null, db: TrainingPlanDatabase | 
     openFeedback: (s) => setFbId(s.id),
     node: (
       <>
-        <WorkoutDetail s={detail} onClose={() => setDetailId(null)} canEdit={canEdit} canLog={canLog}
+        <WorkoutDetail
+          s={detail}
+          onClose={() => setDetailId(null)}
+          canEdit={canEdit}
+          canLog={canLog}
+          groupMembers={groupMembers}
+          onAttendanceChange={(attendance) => {
+            if (src && detail) {
+              e.mutate(src.id, (d) => setAttendance(d, detail.id, attendance, e.by()))
+            }
+          }}
           onEdit={(s) => { setDetailId(null); setEditing(s) }}
           onFeedback={(s) => { setDetailId(null); setFbId(s.id) }}
           onDuplicate={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, duplicateSession(s, addDays(s.date, 7)), e.by())); e.announce(src.id, { type: 'plan', title: s.title }); e.notify(t('Duplicato alla settimana successiva')) } setDetailId(null) }}
-          onDelete={(s) => { if (src) { e.mutate(src.id, (d) => removeSession(d, s.id, e.by())); e.announce(src.id, { type: 'plan' }) } setDetailId(null) }} />
-        <WorkoutEditor open={!!editing} initial={editing} onClose={() => setEditing(null)} suggestions={suggestions}
-          onSave={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, s, e.by())); e.announce(src.id, { type: 'plan', title: s.title }); e.notify(t('Allenamento salvato')) } }} />
+          onDelete={(s) => { if (src) { e.mutate(src.id, (d) => removeSession(d, s.id, e.by())); e.announce(src.id, { type: 'plan' }) } setDetailId(null) }}
+        />
+        <WorkoutEditor
+          open={!!editing}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          suggestions={suggestions}
+          groupMembers={groupMembers}
+          onSave={(s) => { if (src) { e.mutate(src.id, (d) => upsertSession(d, s, e.by())); e.announce(src.id, { type: 'plan', title: s.title }); e.notify(t('Allenamento salvato')) } }}
+        />
         <FeedbackSheet s={fb} onClose={() => setFbId(null)}
           onSave={(status, f) => { if (src && fb) { e.mutate(src.id, (d) => setLog(d, fb.id, status, f, e.by())); e.announce(src.id, { type: 'log', session: { ...fb, feedback: f }, status }); e.notify(t('Feedback salvato: il coach lo vedrà alla prossima sincronizzazione')) } }} />
       </>

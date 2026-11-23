@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDown, ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, Users } from 'lucide-react'
+import { ArrowUpDown, ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, User, Users } from 'lucide-react'
 import { t } from '../i18n'
 import { ManageAthleteSheet, NewAthleteSheet } from '../components/AthleteSheets'
 import { ImportExportSheet } from '../components/ImportExport'
@@ -24,20 +24,40 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
   const [newOpen, setNewOpen] = useState(false)
   const [manage, setManage] = useState<string | null>(null)
   const [ieSourceId, setIeSourceId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | 'groups' | 'pros'>('all')
   const today = todayISO()
   const mon = weekStart(today)
   const list = e.sources().filter((s) => s.kind === 'coach-athlete' || s.kind === 'demo')
 
-  const feedbacks = list.flatMap((s) => {
+  const isGroup = (db: TrainingPlanDatabase) =>
+    db.athlete.targetKind === 'group' || (db.athlete.members && db.athlete.members.length > 0)
+
+  const groups = list.filter((s) => {
     const db = e.dbOf(s.id)
-    return (db?.sessions ?? []).filter((x) => x.feedback && (x.feedback.comment || x.feedback.rpe)).map((x) => ({ s, x }))
-  }).sort((a, b) => (b.x.feedback!.loggedAt).localeCompare(a.x.feedback!.loggedAt)).slice(0, 6)
+    return db ? isGroup(db) : false
+  })
+  const pros = list.filter((s) => {
+    const db = e.dbOf(s.id)
+    return db ? !isGroup(db) : false
+  })
+
+  const filteredList = filter === 'groups' ? groups : filter === 'pros' ? pros : list
+
+  const feedbacks = list
+    .flatMap((s) => {
+      const db = e.dbOf(s.id)
+      return (db?.sessions ?? [])
+        .filter((x) => x.feedback && (x.feedback.comment || x.feedback.rpe))
+        .map((x) => ({ s, x }))
+    })
+    .sort((a, b) => b.x.feedback!.loggedAt.localeCompare(a.x.feedback!.loggedAt))
+    .slice(0, 6)
 
   return (
     <div>
       <PageHeader
-        title={t('I miei atleti')}
-        sub={t('{n} atleti', { n: list.length })}
+        title={t('Scuola Tennis & Pro')}
+        sub={t('{g} gruppi · {a} professionisti', { g: groups.length, a: pros.length })}
         action={
           <div className="flex items-center gap-2">
             <button
@@ -49,16 +69,34 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
             </button>
             <button className="btn btn-primary" onClick={() => setNewOpen(true)}>
               <Plus size={16} />
-              {t('Nuovo atleta')}
+              {t('Aggiungi')}
             </button>
           </div>
         }
       />
       <div className="space-y-3">
-        {list.length === 0 && <EmptyState icon={Users} title={t('Nessun atleta')} text={t('Crea il primo atleta: avrà un file dedicato sul tuo Drive.')} />}
-        {list.map((s) => {
+        <Segmented
+          id="team-filter"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: t('Tutti ({n})', { n: list.length }) },
+            { value: 'groups', label: t('Gruppi ({n})', { n: groups.length }) },
+            { value: 'pros', label: t('Pro ({n})', { n: pros.length }) },
+          ]}
+        />
+
+        {filteredList.length === 0 && (
+          <EmptyState
+            icon={Users}
+            title={t('Nessun gruppo o atleta')}
+            text={t('Aggiungi un gruppo della scuola tennis o un atleta professionista.')}
+          />
+        )}
+        {filteredList.map((s) => {
           const db = e.dbOf(s.id)
           if (!db) return null
+          const isGrp = isGroup(db)
           const ws = db.sessions.filter((x) => x.date >= mon && x.date <= addDays(mon, 6))
           const st = periodStats(ws)
           const last = lastCompleted(db)
@@ -67,18 +105,51 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
             <article className="card space-y-3 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h2 className="truncate text-lg font-bold">{db.athlete.name}{s.kind === 'demo' && <span className="ml-2 text-xs font-semibold text-muted">{t('demo')}</span>}</h2>
+                  <div className="flex items-center gap-2">
+                    <Badge className={isGrp ? 'bg-brand/10 text-brand font-bold' : 'bg-warn/15 text-warn font-bold'}>
+                      {isGrp ? <Users size={12} /> : <User size={12} />}
+                      {isGrp ? t('Gruppo ({n})', { n: db.athlete.members?.length ?? 0 }) : t('Pro')}
+                    </Badge>
+                    {db.athlete.schedule && <span className="truncate text-xs text-muted">{db.athlete.schedule}</span>}
+                  </div>
+                  <h2 className="mt-1 truncate text-lg font-bold">
+                    {db.athlete.name}
+                    {s.kind === 'demo' && <span className="ml-2 text-xs font-semibold text-muted">{t('demo')}</span>}
+                  </h2>
                   <p className="truncate text-sm text-muted">{db.athlete.focus || t('Nessun obiettivo indicato')}</p>
                 </div>
-                <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Gestisci atleta')}><Settings2 size={18} /></button>
+                <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Gestisci atleta')}>
+                  <Settings2 size={18} />
+                </button>
               </div>
               <div>
-                <div className="mb-1 flex justify-between text-xs"><span className="font-semibold">{t('Questa settimana')}</span><span className="text-muted">{st.done + st.partial}/{ws.length}</span></div>
-                <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-inc" style={{ width: `${pct}%` }} /></div>
+                <div className="mb-1 flex justify-between text-xs">
+                  <span className="font-semibold">{t('Questa settimana')}</span>
+                  <span className="text-muted">
+                    {st.done + st.partial}/{ws.length}
+                  </span>
+                </div>
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-line"
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="h-full rounded-full bg-inc" style={{ width: `${pct}%` }} />
+                </div>
               </div>
-              <p className="text-xs text-muted">{last ? t('Ultimo completato: {title} · {date}', { title: last.title, date: fmtDay(last.date) }) : t('Nessun allenamento completato')}</p>
+              <p className="text-xs text-muted">
+                {last
+                  ? t('Ultimo completato: {title} · {date}', { title: last.title, date: fmtDay(last.date) })
+                  : t('Nessun allenamento completato')}
+              </p>
               <div className="flex items-center justify-between gap-2">
-                {s.kind === 'demo' ? <Badge className="bg-line/60 text-muted">{t('Solo locale')}</Badge> : <SyncBadge status={e.statusOf(s.id).status} />}
+                {s.kind === 'demo' ? (
+                  <Badge className="bg-line/60 text-muted">{t('Solo locale')}</Badge>
+                ) : (
+                  <SyncBadge status={e.statusOf(s.id).status} />
+                )}
                 <div className="flex items-center gap-2">
                   <button
                     className="icon-btn !min-h-9 !min-w-9"
@@ -88,8 +159,15 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   >
                     <ArrowUpDown size={16} />
                   </button>
-                  <button className="btn btn-soft" onClick={() => { e.setActive(s.id); onOpenPlan(today) }}>
-                    {t('Apri piano')}<ChevronRight size={16} />
+                  <button
+                    className="btn btn-soft"
+                    onClick={() => {
+                      e.setActive(s.id)
+                      onOpenPlan(today)
+                    }}
+                  >
+                    {t('Apri piano')}
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -203,7 +281,7 @@ function Progress() {
         </section>
         <section>
           <h3 className="mb-2 px-1 font-bold">{t('Storico allenamenti')}</h3>
-          {history.length ? <div className="space-y-2">{history.map((s: WorkoutSession) => <div key={s.id}><p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p><WorkoutRow s={s} onClick={() => sheets.openDetail(s)} /></div>)}</div>
+          {history.length ? <div className="space-y-2">{history.map((s: WorkoutSession) => <div key={s.id}><p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p><WorkoutRow s={s} groupMembers={db.athlete.members ?? []} onClick={() => sheets.openDetail(s)} /></div>)}</div>
             : <EmptyState icon={ChartNoAxesColumn} title={t('Ancora nessun allenamento completato')} text={t('Quando segni una sessione come completata la trovi qui.')} />}
         </section>
       </div>
