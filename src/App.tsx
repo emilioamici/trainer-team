@@ -7,6 +7,7 @@ import { SettingsSheet } from './pages/Profile'
 import { useLangPref } from './i18n'
 import { Gate } from './components/Gate'
 import { captureJoinFromUrl, pendingJoin } from './lib/invite'
+import { isTutorialCompleted, TutorialModal } from './components/TutorialModal'
 import Plan from './pages/Plan'
 import Team from './pages/Team'
 import Today from './pages/Today'
@@ -19,6 +20,7 @@ export default function App() {
   const [planDate, setPlanDate] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(() => !!captureJoinFromUrl())
   const [notifOpen, setNotifOpen] = useState(false)
+  const [tutorialOpen, setTutorialOpen] = useState(() => !isTutorialCompleted())
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -63,7 +65,19 @@ export default function App() {
       )}
       <BottomNav tab={tab} onChange={(t) => { setPlanDate(null); setTab(t) }} role={e.role} />
       <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onOpenTutorial={() => {
+          setSettingsOpen(false)
+          setTutorialOpen(true)
+        }}
+      />
+      <TutorialModal
+        open={tutorialOpen && !gate}
+        onClose={() => setTutorialOpen(false)}
+        initialRole={e.role}
+      />
     </>
   )
 }

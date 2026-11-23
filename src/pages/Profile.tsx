@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Bell, Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
+import { Bell, BookOpen, Cloud, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { SyncBadge, useActive } from '../components/common'
 import { Accordion, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
@@ -14,7 +14,7 @@ import { isIos, isStandalone, pushSupported } from '../services/pushService'
 import { saveWorkerCfg, vapidKey, workerUrl } from '../services/workerService'
 import type { UserRole } from '../types'
 
-export function SettingsContent() {
+export function SettingsContent({ onOpenTutorial }: { onOpenTutorial?: () => void }) {
   const { e, src, db } = useActive()
   useLangPref()
   const [theme, setTheme] = useState<ThemePref>(getTheme)
@@ -76,6 +76,27 @@ export function SettingsContent() {
         <p className="font-bold text-ink">{e.profileName || (e.role === 'coach' ? t('Coach') : t('Atleta'))}</p>
         <p className="text-xs text-muted">{e.account?.email ?? t('Non collegato a Google')}</p>
       </div>
+
+      {onOpenTutorial && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/90 p-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand/15 text-brand">
+              <BookOpen size={17} />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-ink">{t('Tutorial iniziale')}</p>
+              <p className="text-xs text-muted">{t('Rivedi la guida introduttiva per coach o atleti')}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-soft !py-1.5 !px-3 !text-xs font-bold"
+            onClick={onOpenTutorial}
+          >
+            {t('Apri')}
+          </button>
+        </div>
+      )}
 
       <Accordion id="role" icon={<Users size={22} />} title={t('Ruolo')} summary={e.role === 'coach' ? t('Coach') : t('Atleta')} defaultOpen>
         <Segmented id="role" value={e.role} onChange={(r: UserRole) => e.setRole(r)} options={[{ value: 'athlete', label: t('Atleta') }, { value: 'coach', label: t('Coach') }]} />
@@ -203,21 +224,29 @@ export function SettingsContent() {
   )
 }
 
-export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SettingsSheet({
+  open,
+  onClose,
+  onOpenTutorial,
+}: {
+  open: boolean
+  onClose: () => void
+  onOpenTutorial?: () => void
+}) {
   return (
     <Sheet open={open} onClose={onClose} title={t('Impostazioni')}>
-      <SettingsContent />
+      <SettingsContent onOpenTutorial={onOpenTutorial} />
     </Sheet>
   )
 }
 
-export default function Profile() {
+export default function Profile({ onOpenTutorial }: { onOpenTutorial?: () => void }) {
   const { e } = useActive()
   useLangPref()
   return (
     <div>
       <PageHeader title={t('Impostazioni')} sub={e.account?.email ?? t('Non collegato a Google')} />
-      <SettingsContent />
+      <SettingsContent onOpenTutorial={onOpenTutorial} />
     </div>
   )
 }
