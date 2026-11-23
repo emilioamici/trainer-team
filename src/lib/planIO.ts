@@ -1,10 +1,11 @@
-import type { Discipline, TrainingPlanDatabase, WorkoutSession } from '../types'
+import type { Discipline, Source, TrainingPlanDatabase, WorkoutSession } from '../types'
 import { addDays, nowISO } from './dates'
 import { DISCIPLINES_LIST, parseBlock, parseFeedback } from './db'
 import { T } from '../i18n'
 import { uid } from './ids'
 
 export const PLAN_FORMAT = 'trainer-team-plan'
+export const COACH_EXPORT_FORMAT = 'trainer-team-coach-export'
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
@@ -23,7 +24,82 @@ export const exportPlan = (db: TrainingPlanDatabase, opts: { from?: string; to?:
   }
 }
 
+/** Esporta i piani di tutti gli atleti del coach in un unico file JSON. */
+export const exportAllAthletes = (
+  athletes: { source: Source; db: TrainingPlanDatabase }[],
+  opts: { from?: string; to?: string; withLog?: boolean } = {}
+) => ({
+  format: COACH_EXPORT_FORMAT,
+  version: 1,
+  exportedAt: nowISO(),
+  athletes: athletes.map(({ source, db }) => ({
+    athleteId: db.athlete.id || source.id.replace('athlete:', ''),
+    athleteName: db.athlete.name,
+    focus: db.athlete.focus,
+    plan: exportPlan(db, opts),
+  })),
+})
+
 export interface ImportResult { sessions: WorkoutSession[]; skipped: number }
+
+export interface MultiAthleteImportItem {
+  athleteId?: string
+  athleteName: string
+  sessions: WorkoutSession[]
+  skipped: number
+}
+
+/** Verifica se il testo JSON rappresenta un'esportazione multi-atleta del coach. */
+export const isMultiAthletePlan = (text: string): boolean => {
+  try {
+    const raw = JSON.parse(text)
+    return isObj(raw) && (raw.format === COACH_EXPORT_FORMAT || (Array.isArray(raw.athletes) && raw.athletes.length > 0))
+  } catch {
+    return false
+  }
+}
+
+/** Legge un file multi-atleta restituendo le sessioni per ogni atleta. */
+export const parseMultiAthletePlan = (
+  text: string,
+  startMonday: string,
+  by: 'coach' | 'athlete'
+): { athletes: MultiAthleteImportItem[] } => {
+  let raw: unknown
+  try { raw = JSON.parse(text) } catch { throw new Error(T('Il file non è un JSON valido.')) }
+  if (!isObj(raw) || !Array.isArray(raw.athletes)) throw new Error(T('Non trovo l’elenco "athletes" nel file.'))
+  const out: MultiAthleteImportItem[] = []
+  for (const item of raw.athletes) {
+    if (!isObj(item)) continue
+    const athleteName = typeof item.athleteName === 'string' && item.athleteName.trim()
+      ? item.athleteName.trim()
+      : (typeof item.athlete === 'string' && item.athlete.trim() ? item.athlete.trim() : 'Atleta')
+    const athleteId = typeof item.athleteId === 'string' ? item.athleteId : undefined
+    const planObj = isObj(item.plan) ? item.plan : (Array.isArray(item.sessions) ? { sessions: item.sessions } : null)
+    if (planObj) {
+      try {
+        const res = parsePlanFile(JSON.stringify(planObj), startMonday, by)
+        out.push({ athleteId, athleteName, sessions: res.sessions, skipped: res.skipped })
+      } catch {
+        // ignora se un singolo piano non è valido
+      }
+    }
+  }
+  return { athletes: out }
+}
+
+/** Clona un elenco di sessioni generando nuovi ID univoci per sessioni e blocchi. */
+export const cloneSessionsWithNewIds = (sessions: WorkoutSession[]): WorkoutSession[] => {
+  const now = nowISO()
+  return sessions.map((s) => ({
+    ...s,
+    id: uid('s-'),
+    blocks: s.blocks.map((b) => ({ ...b, id: uid('b-') })),
+    planUpdatedAt: now,
+    logUpdatedAt: now,
+    updatedAt: now,
+  }))
+}
 
 /**
  * Legge un piano JSON. Ogni sessione può avere `date` (YYYY-MM-DD) oppure `day` (1 = lunedì … 7 = domenica)

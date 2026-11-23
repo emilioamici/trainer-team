@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Mail, Share2, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Copy, Mail, Share2, Trash2 } from 'lucide-react'
 import { t } from '../i18n'
 import { copyText } from '../lib/files'
 import { updateAthlete } from '../lib/db'
@@ -32,7 +32,15 @@ export function NewAthleteSheet({ open, onClose, onCreated }: { open: boolean; o
 }
 
 /** Gestione di un atleta del coach: profilo, permessi, invito Drive, eliminazione. */
-export function ManageAthleteSheet({ sourceId, onClose }: { sourceId: string | null; onClose: () => void }) {
+export function ManageAthleteSheet({
+  sourceId,
+  onClose,
+  onOpenImportExport,
+}: {
+  sourceId: string | null
+  onClose: () => void
+  onOpenImportExport?: (sourceId: string) => void
+}) {
   const e = useEngine()
   const src = sourceId ? e.allSources().find((s) => s.id === sourceId) ?? null : null
   const db = src ? e.dbOf(src.id) : null
@@ -67,6 +75,20 @@ export function ManageAthleteSheet({ sourceId, onClose }: { sourceId: string | n
             <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">
               <div><p className="font-semibold">{t('L’atleta può modificare gli allenamenti')}</p><p className="text-xs text-muted">{t('Se spento, l’atleta vede il piano e registra i completamenti e i feedback.')}</p></div>
               <Toggle checked={db.athlete.athleteCanEdit} onChange={(v) => patch({ athleteCanEdit: v })} label={t('L’atleta può modificare gli allenamenti')} />
+            </div>
+
+            <div className="space-y-2">
+              <p className="label">{t('Piano di allenamento (JSON)')}</p>
+              <button
+                className="btn btn-soft w-full"
+                onClick={() => {
+                  onOpenImportExport?.(src.id)
+                  onClose()
+                }}
+              >
+                <ArrowUpDown size={16} />
+                {t('Importa / Esporta piano')}
+              </button>
             </div>
 
             {real ? (

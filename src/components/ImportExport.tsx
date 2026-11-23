@@ -1,59 +1,326 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Download, FileUp } from 'lucide-react'
 import { t } from '../i18n'
 import { downloadJSON, readFileText } from '../lib/files'
-import { addDays, weekStart } from '../lib/dates'
+import { addDays, todayISO, weekStart } from '../lib/dates'
 import { addSessions } from '../lib/db'
-import { exportPlan, parsePlanFile, templatePlan } from '../lib/planIO'
+import {
+  cloneSessionsWithNewIds,
+  exportAllAthletes,
+  exportPlan,
+  isMultiAthletePlan,
+  parseMultiAthletePlan,
+  parsePlanFile,
+  templatePlan,
+} from '../lib/planIO'
 import { slug } from '../lib/ids'
 import { useEngine } from '../state/store'
 import type { Source, TrainingPlanDatabase } from '../types'
 import { Field, Notice, Segmented, Sheet } from './ui'
 
-export function ImportExportSheet({ open, onClose, src, db, week, canEdit }: { open: boolean; onClose: () => void; src: Source; db: TrainingPlanDatabase; week: string; canEdit: boolean }) {
+export function ImportExportSheet({
+  open,
+  onClose,
+  src: initialSrc,
+  db: initialDb,
+  week,
+  canEdit: initialCanEdit,
+  initialAthleteSourceId,
+}: {
+  open: boolean
+  onClose: () => void
+  src?: Source | null
+  db?: TrainingPlanDatabase | null
+  week?: string
+  canEdit?: boolean
+  initialAthleteSourceId?: string | null
+}) {
   const e = useEngine()
+  const today = todayISO()
+  const defaultWeek = week ?? weekStart(today)
+  const allSources = e.sources()
+  const coachAthleteSources = allSources.filter((s) => s.kind === 'coach-athlete' || s.kind === 'demo')
+
   const [tab, setTab] = useState<'export' | 'import'>('export')
+  const [selectedSourceId, setSelectedSourceId] = useState<string>(
+    initialAthleteSourceId ?? initialSrc?.id ?? e.active()?.id ?? allSources[0]?.id ?? 'personal',
+  )
+  const [importScope, setImportScope] = useState<'selected' | 'all'>('selected')
   const [text, setText] = useState('')
-  const [start, setStart] = useState(week)
+  const [start, setStart] = useState(defaultWeek)
   const [err, setErr] = useState('')
   const file = useRef<HTMLInputElement>(null)
-  const base = `trainer-${slug(db.athlete.name)}`
+
+  useEffect(() => {
+    if (open) {
+      setErr('')
+      setText('')
+      setStart(week ?? weekStart(todayISO()))
+      if (initialAthleteSourceId) {
+        setSelectedSourceId(initialAthleteSourceId)
+      } else if (initialSrc?.id) {
+        setSelectedSourceId(initialSrc.id)
+      } else if (e.active()?.id) {
+        setSelectedSourceId(e.active()!.id)
+      }
+    }
+  }, [open, initialAthleteSourceId, initialSrc?.id, week, e])
+
+  const currentSrc = allSources.find((s) => s.id === selectedSourceId) ?? e.active() ?? initialSrc ?? null
+  const currentDb = currentSrc ? e.dbOf(currentSrc.id) : (initialDb ?? null)
+  const canEdit = currentSrc ? e.canEditPlan(currentSrc) : (initialCanEdit ?? true)
+  const base = `trainer-${slug(currentDb?.athlete.name ?? 'piano')}`
+  const exportWeek = week ?? weekStart(today)
+
+  const isMulti = isMultiAthletePlan(text)
+  const multiInfo = isMulti
+    ? (() => {
+        try {
+          return parseMultiAthletePlan(text, weekStart(start), 'coach')
+        } catch {
+          return null
+        }
+      })()
+    : null
+
+  const doExportAll = () => {
+    const athletesData = coachAthleteSources
+      .map((s) => ({ source: s, db: e.dbOf(s.id)! }))
+      .filter((x) => !!x.db)
+    downloadJSON('trainer-team-tutti-gli-atleti.json', exportAllAthletes(athletesData))
+  }
 
   const doImport = () => {
     setErr('')
     try {
-      const r = parsePlanFile(text, weekStart(start), e.role === 'coach' && src.kind !== 'linked' ? 'coach' : 'athlete')
-      if (!r.sessions.length) { setErr(t('Nessuna sessione valida trovata nel file.')); return }
-      e.mutate(src.id, (d) => addSessions(d, r.sessions, e.by()))
-      e.announce(src.id, { type: 'plan' })
-      e.notify(r.skipped ? t('Importate {n} sessioni ({k} ignorate)', { n: r.sessions.length, k: r.skipped }) : t('Importate {n} sessioni', { n: r.sessions.length }))
-      setText(''); onClose()
-    } catch (x) { setErr(x instanceof Error ? x.message : String(x)) }
+      const monday = weekStart(start)
+      const byRole = e.role === 'coach' && currentSrc?.kind !== 'linked' ? 'coach' : 'athlete'
+
+      if (isMulti) {
+        const parsedMulti = parseMultiAthletePlan(text, monday, byRole)
+        if (!parsedMulti.athletes.length) {
+          setErr(t('Nessuna sessione valida trovata nel file.'))
+          return
+        }
+
+        let totalSessions = 0
+        let matchedCount = 0
+
+        for (const item of parsedMulti.athletes) {
+          if (!item.sessions.length) continue
+          const match = coachAthleteSources.find((s) => {
+            const db = e.dbOf(s.id)
+            if (!db) return false
+            if (item.athleteId && (db.athlete.id === item.athleteId || s.id === 'athlete:' + item.athleteId)) return true
+            return db.athlete.name.trim().toLowerCase() === item.athleteName.trim().toLowerCase()
+          })
+
+          if (match) {
+            e.mutate(match.id, (d) => addSessions(d, item.sessions, e.by()))
+            e.announce(match.id, { type: 'plan' })
+            totalSessions += item.sessions.length
+            matchedCount++
+          }
+        }
+
+        if (matchedCount > 0) {
+          e.notify(t('Importate {n} sessioni per {k} atleti', { n: totalSessions, k: matchedCount }))
+          setText('')
+          onClose()
+          return
+        }
+
+        if (currentSrc && parsedMulti.athletes[0]?.sessions.length) {
+          const first = parsedMulti.athletes[0]
+          e.mutate(currentSrc.id, (d) => addSessions(d, first.sessions, e.by()))
+          e.announce(currentSrc.id, { type: 'plan' })
+          e.notify(
+            t('Nessun atleta corrispondente trovato: importate {n} sessioni in {name}', {
+              n: first.sessions.length,
+              name: currentSrc.name,
+            }),
+          )
+          setText('')
+          onClose()
+          return
+        }
+
+        setErr(t('Nessuna sessione valida trovata nel file.'))
+        return
+      }
+
+      const r = parsePlanFile(text, monday, byRole)
+      if (!r.sessions.length) {
+        setErr(t('Nessuna sessione valida trovata nel file.'))
+        return
+      }
+
+      if (e.role === 'coach' && importScope === 'all' && coachAthleteSources.length > 0) {
+        for (const s of coachAthleteSources) {
+          const sessions = cloneSessionsWithNewIds(r.sessions)
+          e.mutate(s.id, (d) => addSessions(d, sessions, e.by()))
+          e.announce(s.id, { type: 'plan' })
+        }
+        e.notify(t('Importate {n} sessioni per {k} atleti', { n: r.sessions.length, k: coachAthleteSources.length }))
+        setText('')
+        onClose()
+        return
+      }
+
+      if (!currentSrc) {
+        setErr(t('Nessun piano selezionato.'))
+        return
+      }
+
+      e.mutate(currentSrc.id, (d) => addSessions(d, r.sessions, e.by()))
+      e.announce(currentSrc.id, { type: 'plan' })
+      e.notify(
+        r.skipped
+          ? t('Importate {n} sessioni ({k} ignorate)', { n: r.sessions.length, k: r.skipped })
+          : t('Importate {n} sessioni', { n: r.sessions.length }),
+      )
+      setText('')
+      onClose()
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : String(x))
+    }
   }
 
   return (
     <Sheet open={open} onClose={onClose} title={t('Importa / Esporta')}>
       <div className="space-y-4 pb-2">
-        <Segmented id="ie" value={tab} onChange={setTab} options={[{ value: 'export', label: t('Esporta') }, { value: 'import', label: t('Importa') }]} />
+        {e.role === 'coach' && allSources.length > 1 && (
+          <Field label={t('Atleta')}>
+            <select
+              className="input font-semibold"
+              value={selectedSourceId}
+              onChange={(ev) => setSelectedSourceId(ev.target.value)}
+            >
+              {allSources.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.kind === 'demo' ? `(${t('demo')})` : s.kind === 'personal' ? `(${t('Il mio piano')})` : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        <Segmented
+          id="ie"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'export', label: t('Esporta') },
+            { value: 'import', label: t('Importa') },
+          ]}
+        />
+
         {tab === 'export' ? (
           <div className="space-y-2">
-            <button className="btn btn-soft w-full" onClick={() => downloadJSON(`${base}-settimana-${week}.json`, exportPlan(db, { from: week, to: addDays(week, 6) }))}><Download size={16} />{t('Questa settimana')}</button>
-            <button className="btn btn-soft w-full" onClick={() => downloadJSON(`${base}-piano.json`, exportPlan(db))}><Download size={16} />{t('Tutto il piano')}</button>
-            <button className="btn btn-soft w-full" onClick={() => downloadJSON(`${base}-piano-con-feedback.json`, exportPlan(db, { withLog: true }))}><Download size={16} />{t('Tutto il piano, con feedback')}</button>
-            <button className="btn btn-soft w-full" onClick={() => downloadJSON('trainer-modello-piano.json', templatePlan())}><Download size={16} />{t('Scarica il modello (settimana tipo)')}</button>
-            <p className="text-xs text-muted">{t('Il file contiene gli allenamenti: condividilo solo con chi vuoi e non metterlo in un repository pubblico.')}</p>
+            {currentDb && (
+              <>
+                <button
+                  className="btn btn-soft w-full"
+                  onClick={() =>
+                    downloadJSON(
+                      `${base}-settimana-${exportWeek}.json`,
+                      exportPlan(currentDb, { from: exportWeek, to: addDays(exportWeek, 6) }),
+                    )
+                  }
+                >
+                  <Download size={16} />
+                  {t('Questa settimana')}
+                </button>
+                <button className="btn btn-soft w-full" onClick={() => downloadJSON(`${base}-piano.json`, exportPlan(currentDb))}>
+                  <Download size={16} />
+                  {t('Tutto il piano')}
+                </button>
+                <button
+                  className="btn btn-soft w-full"
+                  onClick={() => downloadJSON(`${base}-piano-con-feedback.json`, exportPlan(currentDb, { withLog: true }))}
+                >
+                  <Download size={16} />
+                  {t('Tutto il piano, con feedback')}
+                </button>
+              </>
+            )}
+
+            {e.role === 'coach' && coachAthleteSources.length > 0 && (
+              <div className="space-y-2 border-t border-line/60 pt-2">
+                <p className="label">{t('Tutti gli atleti')}</p>
+                <button className="btn btn-soft w-full" onClick={doExportAll}>
+                  <Download size={16} />
+                  {t('Esporta tutti gli atleti ({n} atleti)', { n: coachAthleteSources.length })}
+                </button>
+              </div>
+            )}
+
+            <button className="btn btn-soft w-full" onClick={() => downloadJSON('trainer-modello-piano.json', templatePlan())}>
+              <Download size={16} />
+              {t('Scarica il modello (settimana tipo)')}
+            </button>
+            <p className="text-xs text-muted">
+              {t('Il file contiene gli allenamenti: condividilo solo con chi vuoi e non metterlo in un repository pubblico.')}
+            </p>
           </div>
         ) : !canEdit ? (
           <Notice kind="warn">{t('Il tuo coach non ti ha abilitato a modificare il piano.')}</Notice>
         ) : (
           <div className="space-y-3">
-            <input ref={file} type="file" accept="application/json,.json" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; if (f) setText(await readFileText(f)); ev.target.value = '' }} />
-            <button className="btn btn-soft w-full" onClick={() => file.current?.click()}><FileUp size={16} />{t('Scegli un file JSON')}</button>
-            <Field label={t('…oppure incolla il JSON')}><textarea className="input min-h-28 font-mono text-xs" value={text} onChange={(ev) => setText(ev.target.value)} /></Field>
-            <Field label={t('Lunedì della settimana di partenza')}><input type="date" className="input" value={start} onChange={(ev) => ev.target.value && setStart(ev.target.value)} /></Field>
-            <p className="text-xs text-muted">{t('Le sessioni con "day" (1-7) partono da questa settimana; quelle con "date" restano alla loro data. Le sessioni vengono aggiunte al piano esistente.')}</p>
+            {e.role === 'coach' && coachAthleteSources.length > 0 && !isMulti && (
+              <Field label={t('Destinazione')}>
+                <Segmented
+                  id="import-scope"
+                  value={importScope}
+                  onChange={(v) => setImportScope(v as 'selected' | 'all')}
+                  options={[
+                    { value: 'selected', label: t('Solo {name}', { name: currentDb?.athlete.name ?? t('Atleta') }) },
+                    { value: 'all', label: t('Tutti gli atleti ({n})', { n: coachAthleteSources.length }) },
+                  ]}
+                />
+              </Field>
+            )}
+
+            <input
+              ref={file}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={async (ev) => {
+                const f = ev.target.files?.[0]
+                if (f) setText(await readFileText(f))
+                ev.target.value = ''
+              }}
+            />
+            <button className="btn btn-soft w-full" onClick={() => file.current?.click()}>
+              <FileUp size={16} />
+              {t('Scegli un file JSON')}
+            </button>
+            <Field label={t('…oppure incolla il JSON')}>
+              <textarea className="input min-h-28 font-mono text-xs" value={text} onChange={(ev) => setText(ev.target.value)} />
+            </Field>
+
+            {multiInfo && multiInfo.athletes.length > 0 && (
+              <Notice kind="trf">
+                {t('File multi-atleta rilevato: {n} atleti ({names})', {
+                  n: multiInfo.athletes.length,
+                  names: multiInfo.athletes.map((a) => a.athleteName).join(', '),
+                })}
+              </Notice>
+            )}
+
+            <Field label={t('Lunedì della settimana di partenza')}>
+              <input type="date" className="input" value={start} onChange={(ev) => ev.target.value && setStart(ev.target.value)} />
+            </Field>
+            <p className="text-xs text-muted">
+              {t(
+                'Le sessioni con "day" (1-7) partono da questa settimana; quelle con "date" restano alla loro data. Le sessioni vengono aggiunte al piano esistente.',
+              )}
+            </p>
             {err && <Notice kind="exp">{err}</Notice>}
-            <button className="btn btn-primary w-full" disabled={!text.trim()} onClick={doImport}>{t('Importa nel piano')}</button>
+            <button className="btn btn-primary w-full" disabled={!text.trim()} onClick={doImport}>
+              {t('Importa nel piano')}
+            </button>
           </div>
         )}
       </div>
