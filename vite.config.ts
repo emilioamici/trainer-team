@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['cats/*.png', 'icons/*.png', 'privacy.html', 'esempio-piano.json', 'push-sw.js'],
+      includeAssets: ['brand/*.png', 'icons/*.png', 'icons/*.svg', 'privacy.html', 'esempio-piano.json', 'push-sw.js'],
       manifest: {
         name: 'Trainer Team',
         short_name: 'Trainer',

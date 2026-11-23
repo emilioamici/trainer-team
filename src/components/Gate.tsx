@@ -17,7 +17,6 @@ export function Gate({ mode, onLoggedIn }: { mode: 'login' | 'relogin'; onLogged
   const [busy, setBusy] = useState(false)
   const [cid, setCid] = useState('')
   const configured = !!config.clientId()
-  const logo = `url(${asset('brand/logo-full.png')})`
 
   const go = async () => {
     setBusy(true)
@@ -28,11 +27,15 @@ export function Gate({ mode, onLoggedIn }: { mode: 'login' | 'relogin'; onLogged
   }
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-bg" role="dialog" aria-modal="true" aria-label={t('Accesso')}>
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-bg" role="dialog" aria-label={t('Accesso')}>
       <Background />
       <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
-        <span role="img" aria-label="VHYPE Training Lab" className="mx-auto mb-6 block h-24 w-44 bg-ink"
-          style={{ WebkitMaskImage: logo, maskImage: logo, WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
+        <div className="mx-auto mb-6 flex flex-col items-center gap-2.5 text-center" role="img" aria-label="Trainer Team">
+          <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-ink text-surface shadow-lg shadow-ink/10">
+            <Dumbbell size={42} strokeWidth={2.2} />
+          </span>
+          <span className="text-2xl font-black tracking-tight text-ink">Trainer Team</span>
+        </div>
 
         <div className="glass-strong space-y-4 rounded-[2rem] p-5">
           {mode === 'relogin' ? (
