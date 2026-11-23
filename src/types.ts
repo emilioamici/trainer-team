@@ -1,6 +1,20 @@
 export type UserRole = 'athlete' | 'coach'
 
-export type Discipline = 'run_quality' | 'run_long' | 'hyrox' | 'strength' | 'ergo' | 'other' | 'recovery'
+export type TargetKind = 'individual' | 'group'
+
+export type Discipline =
+  | 'strength'
+  | 'power_plyo'
+  | 'agility_footwork'
+  | 'tennis_conditioning'
+  | 'mobility_prehab'
+  | 'ergo'
+  | 'recovery'
+  | 'other'
+  | 'run_quality'
+  | 'run_long'
+  | 'hyrox'
+
 export type Phase = 'warmup' | 'main' | 'cooldown'
 export type SessionStatus = 'planned' | 'done' | 'partial' | 'skipped'
 export type Feel = 'great' | 'good' | 'ok' | 'tired' | 'bad'
@@ -16,9 +30,10 @@ export interface WorkoutBlock {
   duration?: string // es. "20'"
   pace?: string // es. "4:50 /km"
   zone?: string // es. "Z2"
-  load?: string // es. "24 kg", "180 W"
+  load?: string // es. "Manubri 12 kg", "Bilanciere 40 kg", "Trap Bar 65 kg"
   rest?: string // es. "90''"
   notes?: string
+  equipment?: string // attrezzo principale consigliato
 }
 
 export interface WorkoutFeedback {
@@ -46,16 +61,21 @@ export interface WorkoutSession {
   feedback: WorkoutFeedback | null
   logUpdatedAt: string
   updatedAt: string
+  // Registro presenze per gruppi scuola tennis:
+  attendance?: string[]
 }
 
 export interface AthleteProfile {
   id: string
   name: string
-  focus: string // disciplina/obiettivo, es. "Hyrox · Mezza maratona"
+  focus: string // disciplina/obiettivo, es. "Agonistica U16" o "Pro ATP"
   email: string | null
   athleteCanEdit: boolean // l'atleta può creare/modificare allenamenti nel file del coach
   coachName: string | null
   updatedAt: string
+  targetKind?: TargetKind // 'individual' (professionista) o 'group' (gruppo scuola tennis)
+  members?: string[] // componenti del gruppo scuola tennis
+  schedule?: string // giorni e orari in palestra (es. "Lun - Mer - Ven 15:30 - 17:00")
 }
 
 export interface DbMeta {
@@ -83,6 +103,9 @@ export interface RegistryEntry {
   addedAt: string
   invitedAt: string | null
   updatedAt: string
+  targetKind?: TargetKind
+  members?: string[]
+  schedule?: string
 }
 
 export interface CoachRegistry {

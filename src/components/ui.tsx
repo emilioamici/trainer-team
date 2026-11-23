@@ -5,8 +5,6 @@ import { Check, ChevronDown, Dumbbell, X, type LucideIcon } from 'lucide-react'
 import { t } from '../i18n'
 import { useEngine } from '../state/store'
 
-const asset = (p: string) => `${import.meta.env.BASE_URL}${p}`
-
 // ---------- sfondo vivo ----------
 export function Background() {
   return (
@@ -19,12 +17,14 @@ export function Background() {
 }
 
 // ---------- logo ----------
-/** Il marchio (PNG bianco con trasparenza) usato come maschera: prende il colore del tema (`bg-ink`). Una sola volta per schermata. */
-export function Logo({ className = 'h-7 w-8' }: { className?: string }) {
-  const url = `url(${asset('brand/logo-mark.png')})`
+export function Logo({ className = '' }: { className?: string }) {
   return (
-    <span role="img" aria-label="VHYPE Training Lab" className={`inline-block bg-ink ${className}`}
-      style={{ WebkitMaskImage: url, maskImage: url, WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskPosition: 'left center', maskPosition: 'left center' }} />
+    <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="Trainer Team">
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-surface shadow-sm">
+        <Dumbbell size={18} strokeWidth={2.4} />
+      </span>
+      <span className="text-base font-extrabold tracking-tight text-ink">Trainer Team</span>
+    </div>
   )
 }
 
@@ -189,13 +189,30 @@ export function ToastHost() {
 /** Elemento fisso rispetto alla finestra (es. il FAB), fuori dalla pagina animata. */
 export const Fixed = ({ children }: { children: ReactNode }) => createPortal(children, document.body)
 
-export const PageHeader = ({ title, sub, action }: { title: string; sub?: string; action?: ReactNode }) => (
-  <header className="pb-4 pt-safe">
-    <div className="flex items-center justify-between gap-3 pt-4">
-      <Logo />
+export const PageHeader = ({
+  title,
+  sub,
+  action,
+  showLogo = false,
+}: {
+  title: string
+  sub?: string
+  action?: ReactNode
+  showLogo?: boolean
+}) => (
+  <header className="pb-3 pt-2">
+    {showLogo && (
+      <div className="flex items-center justify-between gap-3 pb-2 pt-1">
+        <Logo />
+      </div>
+    )}
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
+        {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
+      </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
-    <h1 className="mt-3 text-3xl font-extrabold tracking-tight">{title}</h1>
-    {sub && <p className="mt-0.5 truncate text-sm text-muted">{sub}</p>}
   </header>
 )
+

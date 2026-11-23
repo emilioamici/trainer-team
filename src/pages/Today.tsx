@@ -1,11 +1,12 @@
 import { CalendarOff, Check, Plus } from 'lucide-react'
 import { t } from '../i18n'
-import { SourcePicker, SyncBadge, useActive } from '../components/common'
-import { BlockList, FeedbackSummary } from '../components/Workout'
+import { SourcePicker, useActive } from '../components/common'
+import { AttendanceBox, BlockList, FeedbackSummary } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
 import { Badge, EmptyState, PageHeader } from '../components/ui'
 import { DISCIPLINES, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
 import { addDays, fmtDay, fmtLong, todayISO, weekDays, weekStart } from '../lib/dates'
+import { setAttendance } from '../lib/db'
 import type { WorkoutSession } from '../types'
 
 export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void }) {
@@ -17,8 +18,8 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
   const list = db.sessions.filter((s) => s.date === today)
   const upcoming = db.sessions.filter((s) => s.date > today && s.status === 'planned').sort((a, b) => a.date.localeCompare(b.date))[0]
   const week = weekDays(weekStart(today))
-  const st = e.statusOf(src.id)
   const isCoachView = role === 'coach' && src.kind !== 'personal'
+  const groupMembers = db.athlete.members ?? []
 
   const Card = ({ s }: { s: WorkoutSession }) => {
     const d = DISCIPLINES[s.discipline]
@@ -32,6 +33,16 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
           </div>
           {s.status !== 'planned' && <Badge className={STATUS_BADGE[s.status]}>{t(STATUS_LABEL[s.status])}</Badge>}
         </div>
+        {groupMembers.length > 0 && (
+          <AttendanceBox
+            members={groupMembers}
+            attendance={s.attendance ?? []}
+            canEdit={canEdit}
+            onChange={(attendance) => {
+              e.mutate(src.id, (d) => setAttendance(d, s.id, attendance, e.by()))
+            }}
+          />
+        )}
         {s.coachNotes && <p className="rounded-2xl bg-brand/10 p-3 text-sm"><span className="font-semibold text-brand">{t('Note del coach')}: </span>{s.coachNotes}</p>}
         <BlockList blocks={s.blocks} />
         <FeedbackSummary fb={s.feedback} status={s.status} />
@@ -46,7 +57,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
 
   return (
     <div>
-      <PageHeader title={t('Oggi')} sub={isCoachView ? `${db.athlete.name} · ${fmtLong(today)}` : fmtLong(today)} action={<SyncBadge status={st.status} />} />
+      <PageHeader title={t('Oggi')} sub={isCoachView ? `${db.athlete.name} · ${fmtLong(today)}` : fmtLong(today)} />
       <SourcePicker />
 
       <div className="space-y-3">
