@@ -107,7 +107,7 @@ const weekTemplateGroup = (): Tpl[] => [
 const weekTemplatePro = (): Tpl[] => [
   {
     day: 1,
-    title: 'Forza Massima & Trap Bar (Individuale Pro)',
+    title: 'Forza Massima & Trap Bar (Individual Athlete)',
     discipline: 'strength',
     notes: 'Focus su spinta massimale e stabilità ginocchio/anca.',
     blocks: [
@@ -205,7 +205,7 @@ export const sampleDb = (variant: 1 | 2): TrainingPlanDatabase => {
           'Lun - Mer - Ven 16:30 - 18:00'
         )
       : newAthlete(
-          'Marco Rossi (Pro ATP)',
+          'Marco Rossi (Individual Athlete ATP)',
           'ATP Tour · Potenza & Prevenzione',
           null,
           'Coach FIT',

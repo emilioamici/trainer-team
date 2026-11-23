@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { ArrowUpDown, ChartNoAxesColumn, ChevronRight, MessageSquare, Plus, Settings2, User, Users } from 'lucide-react'
+import {
+  ArrowUpDown,
+  ChartNoAxesColumn,
+  ChevronRight,
+  MessageSquare,
+  Plus,
+  Settings2,
+  Share2,
+  User,
+  Users,
+} from 'lucide-react'
 import { t } from '../i18n'
 import { ManageAthleteSheet, NewAthleteSheet } from '../components/AthleteSheets'
 import { ImportExportSheet } from '../components/ImportExport'
@@ -56,8 +66,8 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
   return (
     <div>
       <PageHeader
-        title={t('Scuola Tennis & Pro')}
-        sub={t('{g} gruppi · {a} professionisti', { g: groups.length, a: pros.length })}
+        title={t('Team')}
+        sub={t('{g} gruppi · {a} atleti individuali', { g: groups.length, a: pros.length })}
         action={
           <div className="flex items-center gap-2">
             <button
@@ -82,7 +92,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
           options={[
             { value: 'all', label: t('Tutti ({n})', { n: list.length }) },
             { value: 'groups', label: t('Gruppi ({n})', { n: groups.length }) },
-            { value: 'pros', label: t('Pro ({n})', { n: pros.length }) },
+            { value: 'pros', label: t('Individual Athlete ({n})', { n: pros.length }) },
           ]}
         />
 
@@ -90,7 +100,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
           <EmptyState
             icon={Users}
             title={t('Nessun gruppo o atleta')}
-            text={t('Aggiungi un gruppo della scuola tennis o un atleta professionista.')}
+            text={t('Aggiungi un gruppo della scuola tennis o un atleta individuale.')}
           />
         )}
         {filteredList.map((s) => {
@@ -108,7 +118,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   <div className="flex items-center gap-2">
                     <Badge className={isGrp ? 'bg-brand/10 text-brand font-bold' : 'bg-warn/15 text-warn font-bold'}>
                       {isGrp ? <Users size={12} /> : <User size={12} />}
-                      {isGrp ? t('Gruppo ({n})', { n: db.athlete.members?.length ?? 0 }) : t('Pro')}
+                      {isGrp ? t('Gruppo ({n})', { n: db.athlete.members?.length ?? 0 }) : t('Individual Athlete')}
                     </Badge>
                     {db.athlete.schedule && <span className="truncate text-xs text-muted">{db.athlete.schedule}</span>}
                   </div>
@@ -118,9 +128,14 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   </h2>
                   <p className="truncate text-sm text-muted">{db.athlete.focus || t('Nessun obiettivo indicato')}</p>
                 </div>
-                <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Gestisci atleta')}>
-                  <Settings2 size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Codice invito')}>
+                    <Share2 size={17} />
+                  </button>
+                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Gestisci')}>
+                    <Settings2 size={18} />
+                  </button>
+                </div>
               </div>
               <div>
                 <div className="mb-1 flex justify-between text-xs">
@@ -139,37 +154,20 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
                   <div className="h-full rounded-full bg-inc" style={{ width: `${pct}%` }} />
                 </div>
               </div>
-              <p className="text-xs text-muted">
-                {last
-                  ? t('Ultimo completato: {title} · {date}', { title: last.title, date: fmtDay(last.date) })
-                  : t('Nessun allenamento completato')}
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                {s.kind === 'demo' ? (
-                  <Badge className="bg-line/60 text-muted">{t('Solo locale')}</Badge>
-                ) : (
+              <div className="flex items-center justify-between border-t border-line pt-2 text-xs">
+                <div className="flex items-center gap-1.5 text-muted">
                   <SyncBadge status={e.statusOf(s.id).status} />
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    className="icon-btn !min-h-9 !min-w-9"
-                    onClick={() => setIeSourceId(s.id)}
-                    aria-label={t('Importa / Esporta piano')}
-                    title={t('Importa / Esporta piano')}
-                  >
-                    <ArrowUpDown size={16} />
-                  </button>
-                  <button
-                    className="btn btn-soft"
-                    onClick={() => {
-                      e.setActive(s.id)
-                      onOpenPlan(today)
-                    }}
-                  >
-                    {t('Apri piano')}
-                    <ChevronRight size={16} />
-                  </button>
+                  {last && <span>· {t('Ultimo: {date}', { date: fmtDay(last.date) })}</span>}
                 </div>
+                <button
+                  className="inline-flex items-center gap-1 font-semibold text-brand"
+                  onClick={() => {
+                    e.setActive(s.id)
+                    onOpenPlan()
+                  }}
+                >
+                  {t('Vedi piano')} <ChevronRight size={14} />
+                </button>
               </div>
             </article>
           )
@@ -177,68 +175,103 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
         })}
 
         {feedbacks.length > 0 && (
-          <section className="card p-4">
-            <h3 className="mb-3 font-bold">{t('Feedback recenti')}</h3>
-            <ul className="space-y-3">
+          <section className="mt-6 space-y-2">
+            <h3 className="px-1 text-xs font-bold uppercase tracking-wider text-muted">
+              {t('Ultimi feedback')}
+            </h3>
+            <div className="space-y-2">
               {feedbacks.map(({ s, x }) => {
-                const db = e.dbOf(s.id)!
-                const feel = FEELS.find((f) => f.id === x.feedback?.feel)
+                const f = x.feedback!
+                const feel = FEELS.find((item) => item.id === f.feel)
                 return (
-                  <li key={x.id}>
-                    <button className="w-full text-left" onClick={() => { e.setActive(s.id); onOpenPlan(x.date) }}>
-                      <p className="flex items-center justify-between text-sm"><span className="font-semibold">{db.athlete.name} · {x.title}</span><span className="text-xs text-muted">{fmtDay(x.date)}</span></p>
-                      <p className="text-xs text-muted">{[x.feedback?.rpe ? `RPE ${x.feedback.rpe}` : '', feel ? feel.emoji : '', x.feedback?.durationMin ? `${x.feedback.durationMin}'` : ''].filter(Boolean).join(' · ')}</p>
-                      {x.feedback?.comment && <p className="mt-0.5 flex gap-1.5 text-sm"><MessageSquare size={14} className="mt-0.5 shrink-0 text-muted" />{x.feedback.comment}</p>}
-                    </button>
-                  </li>
+                  <div key={x.id} className="card flex items-start gap-3 p-3 text-sm">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+                      <MessageSquare size={14} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="truncate font-bold">{s.name}</p>
+                        <span className="text-[11px] text-muted">{fmtDay(x.date)}</span>
+                      </div>
+                      <p className="text-xs text-muted">{x.title}</p>
+                      {f.comment && <p className="mt-1 text-xs italic">«{f.comment}»</p>}
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs font-semibold">
+                        {f.rpe && <span className="text-brand">RPE {f.rpe}/10</span>}
+                        {feel && <span>{feel.emoji} {t(feel.label)}</span>}
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
-            </ul>
+            </div>
           </section>
         )}
       </div>
-      <NewAthleteSheet open={newOpen} onClose={() => setNewOpen(false)} onCreated={(id) => setManage(id)} />
+
+      <NewAthleteSheet
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        onCreated={(id) => {
+          e.setActive(id)
+          onOpenPlan()
+        }}
+      />
       <ManageAthleteSheet
         sourceId={manage}
         onClose={() => setManage(null)}
-        onOpenImportExport={(sid) => {
-          setManage(null)
-          setIeSourceId(sid)
-        }}
+        onOpenImportExport={(id) => setIeSourceId(id)}
       />
       <ImportExportSheet
         open={!!ieSourceId}
+        initialAthleteSourceId={ieSourceId ?? undefined}
         onClose={() => setIeSourceId(null)}
-        initialAthleteSourceId={ieSourceId}
       />
     </div>
   )
 }
 
-// ================= Atleta: progressi =================
-function BarChart({ data, label, unit, max: fixedMax }: { data: { v: number; label: string }[]; label: string; unit: string; max?: number }) {
-  const max = fixedMax ?? Math.max(1, ...data.map((d) => d.v))
-  const W = 300, H = 90, gap = 6
-  const bw = data.length ? (W - gap * (data.length - 1)) / data.length : W
+// ================= Athlete (Progressi) =================
+const BarChart = ({
+  data,
+  label,
+  unit = '',
+  max: userMax,
+}: {
+  data: { v: number; label: string }[]
+  label: string
+  unit?: string
+  max?: number
+}) => {
+  const max = userMax ?? Math.max(...data.map((d) => d.v), 1)
   return (
-    <figure>
-      <svg viewBox={`0 -14 ${W} ${H + 30}`} className="w-full" role="img" aria-label={`${label}: ${data.map((d) => `${d.label} ${Math.round(d.v * 10) / 10}${unit}`).join(', ')}`}>
+    <div className="space-y-2">
+      <div className="flex h-32 items-end gap-2 pt-2">
         {data.map((d, i) => {
-          const h = Math.max(2, (d.v / max) * H)
+          const h = Math.round((d.v / max) * 100)
           return (
-            <g key={i}>
-              <rect x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={Math.min(6, bw / 2)} className="fill-brand" />
-              {d.v > 0 && <text x={i * (bw + gap) + bw / 2} y={H - h - 3} textAnchor="middle" className="fill-ink" fontSize="9" fontWeight="600">{Math.round(d.v * 10) / 10}</text>}
-              <text x={i * (bw + gap) + bw / 2} y={H + 12} textAnchor="middle" className="fill-muted" fontSize="9">{d.label}</text>
-            </g>
+            <div key={i} className="flex flex-1 flex-col items-center gap-1">
+              <span className="text-[10px] text-muted">
+                {d.v ? `${d.v}${unit}` : ''}
+              </span>
+              <div className="flex h-20 w-full items-end justify-center rounded-lg bg-line/40">
+                <div
+                  className="w-full rounded-lg bg-brand transition-all"
+                  style={{ height: `${Math.max(h, 4)}%` }}
+                  title={`${d.label}: ${d.v}${unit}`}
+                />
+              </div>
+              <span className="truncate text-[10px] text-muted">{d.label}</span>
+            </div>
           )
         })}
-      </svg>
-    </figure>
+      </div>
+      <p className="text-right text-[10px] text-muted">{label}</p>
+    </div>
   )
 }
 
-const sessionsLogged = (db: TrainingPlanDatabase) => db.sessions.filter((s) => s.status === 'done' || s.status === 'partial')
+const sessionsLogged = (db: TrainingPlanDatabase) =>
+  db.sessions.filter((s) => s.status === 'done' || s.status === 'partial')
 
 function Progress() {
   const { src, db, canEdit, canLog } = useActive()
@@ -250,39 +283,86 @@ function Progress() {
   const to = period === 'week' ? addDays(from, 6) : today.slice(0, 7) + '-31'
   const st = periodStats(db.sessions.filter((s) => s.date >= from && s.date <= to))
   const logged = sessionsLogged(db).sort((a, b) => a.date.localeCompare(b.date))
-  const rpe = logged.filter((s) => s.feedback?.rpe).slice(-12).map((s) => ({ v: s.feedback!.rpe!, label: String(Number(s.date.slice(8))) }))
+  const rpe = logged
+    .filter((s) => s.feedback?.rpe)
+    .slice(-12)
+    .map((s) => ({ v: s.feedback!.rpe!, label: String(Number(s.date.slice(8))) }))
   const mon = weekStart(today)
   const weeks = Array.from({ length: 6 }, (_, i) => addDays(mon, (i - 5) * 7)).map((w) => ({
-    v: periodStats(db.sessions.filter((s) => s.date >= w && s.date <= addDays(w, 6))).minutes / 60, label: fmtDay(w, { day: 'numeric', month: 'numeric' }),
+    v:
+      periodStats(db.sessions.filter((s) => s.date >= w && s.date <= addDays(w, 6))).minutes /
+      60,
+    label: fmtDay(w, { day: 'numeric', month: 'numeric' }),
   }))
   const history = [...logged].reverse().slice(0, 15)
-  const Stat = ({ v, l }: { v: string; l: string }) => <div className="rounded-2xl bg-bg p-3"><p className="text-2xl font-extrabold">{v}</p><p className="text-xs text-muted">{l}</p></div>
+  const Stat = ({ v, l }: { v: string; l: string }) => (
+    <div className="rounded-2xl bg-bg p-3">
+      <p className="text-2xl font-extrabold">{v}</p>
+      <p className="text-xs text-muted">{l}</p>
+    </div>
+  )
 
   return (
     <div>
       <PageHeader title={t('Progressi')} sub={db.athlete.name} />
       <SourcePicker />
       <div className="space-y-3">
-        <>
-          <div className="card space-y-3 p-4">
-            <Segmented id="period" value={period} onChange={setPeriod} options={[{ value: 'week', label: t('Settimana') }, { value: 'month', label: t('Mese') }]} />
-            <div className="grid grid-cols-2 gap-2">
-              <Stat v={`${st.done + st.partial}/${st.planned}`} l={t('Sessioni completate')} />
-              <Stat v={`${Math.round((st.minutes / 60) * 10) / 10} h`} l={t('Volume')} />
-              <Stat v={`${Math.round(st.km * 10) / 10} km`} l={t('Distanza registrata')} />
-              <Stat v={st.avgRpe ? (Math.round(st.avgRpe * 10) / 10).toString() : '–'} l={t('RPE medio')} />
-            </div>
+        <div className="card space-y-3 p-4">
+          <Segmented
+            id="period"
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { value: 'week', label: t('Settimana') },
+              { value: 'month', label: t('Mese') },
+            ]}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Stat v={`${st.done + st.partial}/${st.planned}`} l={t('Sessioni completate')} />
+            <Stat v={`${Math.round((st.minutes / 60) * 10) / 10} h`} l={t('Volume')} />
+            <Stat v={`${Math.round(st.km * 10) / 10} km`} l={t('Distanza registrata')} />
+            <Stat
+              v={st.avgRpe ? (Math.round(st.avgRpe * 10) / 10).toString() : '–'}
+              l={t('RPE medio')}
+            />
           </div>
-        </>
-        <section className="card p-4"><h3 className="mb-2 font-bold">{t('Ore a settimana (ultime 6)')}</h3><BarChart data={weeks} label={t('Ore a settimana')} unit=" h" /></section>
+        </div>
+        <section className="card p-4">
+          <h3 className="mb-2 font-bold">{t('Ore a settimana (ultime 6)')}</h3>
+          <BarChart data={weeks} label={t('Ore a settimana')} unit=" h" />
+        </section>
         <section className="card p-4">
           <h3 className="mb-2 font-bold">{t('Trend RPE')}</h3>
-          {rpe.length ? <BarChart data={rpe} label={t('Trend RPE')} unit="" max={10} /> : <p className="text-sm text-muted">{t('Completa qualche allenamento con il feedback per vedere il trend.')}</p>}
+          {rpe.length ? (
+            <BarChart data={rpe} label={t('Trend RPE')} unit="" max={10} />
+          ) : (
+            <p className="text-sm text-muted">
+              {t('Completa qualche allenamento con il feedback per vedere il trend.')}
+            </p>
+          )}
         </section>
         <section>
           <h3 className="mb-2 px-1 font-bold">{t('Storico allenamenti')}</h3>
-          {history.length ? <div className="space-y-2">{history.map((s: WorkoutSession) => <div key={s.id}><p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p><WorkoutRow s={s} groupMembers={db.athlete.members ?? []} onClick={() => sheets.openDetail(s)} /></div>)}</div>
-            : <EmptyState icon={ChartNoAxesColumn} title={t('Ancora nessun allenamento completato')} text={t('Quando segni una sessione come completata la trovi qui.')} />}
+          {history.length ? (
+            <div className="space-y-2">
+              {history.map((s: WorkoutSession) => (
+                <div key={s.id}>
+                  <p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p>
+                  <WorkoutRow
+                    s={s}
+                    groupMembers={db.athlete.members ?? []}
+                    onClick={() => sheets.openDetail(s)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={ChartNoAxesColumn}
+              title={t('Ancora nessun allenamento completato')}
+              text={t('Quando segni una sessione come completata la trovi qui.')}
+            />
+          )}
         </section>
       </div>
       {sheets.node}
