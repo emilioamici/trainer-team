@@ -1,5 +1,5 @@
 import type {
-  AthleteProfile, CoachRegistry, DbMeta, RegistryEntry, SessionStatus, TargetKind, TrainingPlanDatabase,
+  AthleteProfile, CoachRegistry, DbMeta, RegistryEntry, ScheduleSlot, SessionStatus, TargetKind, TrainingPlanDatabase,
   UserRole, WorkoutBlock, WorkoutFeedback, WorkoutSession,
 } from '../types'
 import { T } from '../i18n'
@@ -30,7 +30,10 @@ export const newAthlete = (
   coachName: string | null = null,
   targetKind: TargetKind = 'individual',
   members: string[] = [],
-  schedule = ''
+  schedule = '',
+  color?: string,
+  icon?: string,
+  scheduleSlots?: ScheduleSlot[]
 ): AthleteProfile => ({
   id: uid('a-'),
   name,
@@ -42,6 +45,9 @@ export const newAthlete = (
   targetKind,
   members: members.length ? members : undefined,
   schedule: schedule.trim() || undefined,
+  color: color?.trim() || undefined,
+  icon: icon?.trim() || undefined,
+  scheduleSlots: scheduleSlots && scheduleSlots.length ? scheduleSlots : undefined,
 })
 
 export const newDb = (athlete: AthleteProfile, by = ''): TrainingPlanDatabase => {
@@ -109,9 +115,24 @@ const parseDeleted = (raw: unknown): Record<string, string> => {
   return out
 }
 
+export const parseScheduleSlot = (raw: unknown): ScheduleSlot | null => {
+  if (!isObj(raw)) return null
+  const day = str(raw.day)
+  if (!day) return null
+  return {
+    id: str(raw.id) || uid('slot-'),
+    day,
+    startTime: str(raw.startTime),
+    endTime: str(raw.endTime),
+  }
+}
+
 export const parseAthlete = (raw: unknown): AthleteProfile => {
   const r = isObj(raw) ? raw : {}
   const members = Array.isArray(r.members) ? r.members.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : undefined
+  const rawSlots = Array.isArray(r.scheduleSlots)
+    ? r.scheduleSlots.map(parseScheduleSlot).filter((s): s is ScheduleSlot => !!s)
+    : undefined
   return {
     id: str(r.id) || uid('a-'),
     name: str(r.name, 'Atleta'),
@@ -123,6 +144,9 @@ export const parseAthlete = (raw: unknown): AthleteProfile => {
     targetKind: r.targetKind === 'group' ? 'group' : 'individual',
     ...(members && members.length > 0 ? { members } : {}),
     schedule: opt(r.schedule),
+    color: opt(r.color),
+    icon: opt(r.icon),
+    ...(rawSlots && rawSlots.length > 0 ? { scheduleSlots: rawSlots } : {}),
   }
 }
 
@@ -146,6 +170,9 @@ export const parseRegistry = (raw: unknown): CoachRegistry => {
   const athletes: RegistryEntry[] = (Array.isArray(r.athletes) ? r.athletes : []).flatMap((a): RegistryEntry[] => {
     if (!isObj(a) || !str(a.athleteId)) return []
     const members = Array.isArray(a.members) ? a.members.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : undefined
+    const rawSlots = Array.isArray(a.scheduleSlots)
+      ? a.scheduleSlots.map(parseScheduleSlot).filter((s): s is ScheduleSlot => !!s)
+      : undefined
     return [{
       athleteId: str(a.athleteId), name: str(a.name, 'Atleta'), focus: str(a.focus),
       email: typeof a.email === 'string' && a.email ? a.email.toLowerCase() : null,
@@ -155,6 +182,9 @@ export const parseRegistry = (raw: unknown): CoachRegistry => {
       targetKind: a.targetKind === 'group' ? 'group' : 'individual',
       ...(members && members.length > 0 ? { members } : {}),
       schedule: opt(a.schedule),
+      color: opt(a.color),
+      icon: opt(a.icon),
+      ...(rawSlots && rawSlots.length > 0 ? { scheduleSlots: rawSlots } : {}),
     }]
   })
   return { schemaVersion: REGISTRY_VERSION, coachName: str(r.coachName), athletes, deleted: parseDeleted(r.deleted), updatedAt: str(r.updatedAt) || nowISO() }

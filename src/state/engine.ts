@@ -10,7 +10,7 @@ import { sampleDb } from '../lib/sample'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
 import { captureSession, getSession, health, logoutSession, workerUrl, type Health } from '../services/workerService'
-import type { CoachRegistry, RegistryEntry, SessionStatus, Source, SyncStatus, TargetKind, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
+import type { CoachRegistry, RegistryEntry, ScheduleSlot, SessionStatus, Source, SyncStatus, TargetKind, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 
 export const SYNC_EVERY_MS = 120_000
 export const DEBOUNCE_MS = 2_000
@@ -216,6 +216,9 @@ export class Engine {
           e.focus !== r.db.athlete.focus ||
           e.targetKind !== r.db.athlete.targetKind ||
           e.schedule !== r.db.athlete.schedule ||
+          e.color !== r.db.athlete.color ||
+          e.icon !== r.db.athlete.icon ||
+          JSON.stringify(e.scheduleSlots) !== JSON.stringify(r.db.athlete.scheduleSlots) ||
           JSON.stringify(e.members) !== JSON.stringify(r.db.athlete.members))
       ) {
         this.registry = upsertEntry(this.registry, {
@@ -224,6 +227,9 @@ export class Engine {
           focus: r.db.athlete.focus,
           targetKind: r.db.athlete.targetKind,
           schedule: r.db.athlete.schedule,
+          color: r.db.athlete.color,
+          icon: r.db.athlete.icon,
+          scheduleSlots: r.db.athlete.scheduleSlots,
           members: r.db.athlete.members,
         })
         this.touchRegistry(false)
@@ -439,6 +445,9 @@ export class Engine {
     targetKind?: TargetKind
     members?: string[]
     schedule?: string
+    color?: string
+    icon?: string
+    scheduleSlots?: ScheduleSlot[]
   }): Promise<Source> {
     const kind = input.targetKind ?? 'individual'
     const a = newAthlete(
@@ -448,7 +457,10 @@ export class Engine {
       this.profileName || null,
       kind,
       input.members ?? [],
-      input.schedule?.trim() ?? ''
+      input.schedule?.trim() ?? '',
+      input.color,
+      input.icon,
+      input.scheduleSlots
     )
     const entry: RegistryEntry = {
       athleteId: a.id,
@@ -462,6 +474,9 @@ export class Engine {
       targetKind: kind,
       members: a.members,
       schedule: a.schedule,
+      color: a.color,
+      icon: a.icon,
+      scheduleSlots: a.scheduleSlots,
     }
     this.registry = upsertEntry(this.registry, entry)
     const src: Source = { id: 'athlete:' + a.id, kind: 'coach-athlete', fileId: null, name: a.name }

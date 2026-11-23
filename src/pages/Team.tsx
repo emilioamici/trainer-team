@@ -7,7 +7,6 @@ import {
   Plus,
   Settings2,
   Share2,
-  User,
   Users,
 } from 'lucide-react'
 import { t } from '../i18n'
@@ -18,6 +17,7 @@ import { SourcePicker, SyncBadge, useActive } from '../components/common'
 import { WorkoutDetail, WorkoutRow } from '../components/Workout'
 import { useWorkoutSheets } from '../components/WorkoutSheets'
 import { Badge, EmptyState, PageHeader, Segmented } from '../components/ui'
+import { getGroupColor, getGroupIcon } from '../lib/branding'
 import { FEELS } from '../lib/disciplines'
 import { addDays, fmtDay, todayISO, weekStart } from '../lib/dates'
 import { lastCompleted, periodStats } from '../lib/db'
@@ -111,35 +111,44 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
           const db = e.dbOf(s.id)
           if (!db) return null
           const isGrp = isGroup(db)
+          const groupColor = getGroupColor(db.athlete.color, isGrp)
+          const GroupIconComp = getGroupIcon(db.athlete.icon, isGrp)
           const ws = db.sessions.filter((x) => x.date >= mon && x.date <= addDays(mon, 6))
           const st = periodStats(ws)
           const last = lastCompleted(db)
           const pct = ws.length ? Math.round(((st.done + st.partial) / ws.length) * 100) : 0
           const card = (
             <article className="card space-y-3 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Badge className={isGrp ? 'bg-brand/10 text-brand font-bold' : 'bg-warn/15 text-warn font-bold'}>
-                      {isGrp ? <Users size={12} /> : <User size={12} />}
-                      {isGrp ? t('Gruppo ({n})', { n: db.athlete.members?.length ?? 0 }) : t('Individual Athlete')}
-                    </Badge>
-                    {db.athlete.schedule && <span className="truncate text-xs text-muted">{db.athlete.schedule}</span>}
-                  </div>
-                  <h2
-                    className={`mt-1 truncate text-lg font-bold ${
-                      isGrp ? 'cursor-pointer hover:text-brand transition-colors' : ''
-                    }`}
-                    onClick={() => {
-                      if (isGrp) setSelectedGroupDb(db)
-                    }}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${groupColor.bg} ${groupColor.border}`}
                   >
-                    {db.athlete.name}
-                    {s.kind === 'demo' && <span className="ml-2 text-xs font-semibold text-muted">{t('demo')}</span>}
-                  </h2>
-                  <p className="truncate text-sm text-muted">{db.athlete.focus || t('Nessun obiettivo indicato')}</p>
+                    <GroupIconComp size={22} className={groupColor.text} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`font-bold ${groupColor.bg} ${groupColor.text}`}>
+                        <GroupIconComp size={12} />
+                        {isGrp ? t('Gruppo ({n})', { n: db.athlete.members?.length ?? 0 }) : t('Individual Athlete')}
+                      </Badge>
+                      {db.athlete.schedule && <span className="truncate text-xs text-muted">{db.athlete.schedule}</span>}
+                    </div>
+                    <h2
+                      className={`mt-1 truncate text-lg font-bold ${
+                        isGrp ? 'cursor-pointer hover:text-brand transition-colors' : ''
+                      }`}
+                      onClick={() => {
+                        if (isGrp) setSelectedGroupDb(db)
+                      }}
+                    >
+                      {db.athlete.name}
+                      {s.kind === 'demo' && <span className="ml-2 text-xs font-semibold text-muted">{t('demo')}</span>}
+                    </h2>
+                    <p className="truncate text-sm text-muted">{db.athlete.focus || t('Nessun obiettivo indicato')}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Codice invito')}>
                     <Share2 size={17} />
                   </button>
@@ -408,7 +417,10 @@ function Progress() {
           <div className="grid grid-cols-2 gap-2">
             <Stat v={`${st.done + st.partial}/${st.planned}`} l={t('Sessioni completate')} />
             <Stat v={`${Math.round((st.minutes / 60) * 10) / 10} h`} l={t('Volume')} />
-            <Stat v={`${Math.round(st.km * 10) / 10} km`} l={t('Distanza registrata')} />
+            <Stat
+              v={`${st.planned > 0 ? Math.round(((st.done + st.partial) / st.planned) * 100) : 0}%`}
+              l={t('Tasso completamento')}
+            />
             <Stat
               v={st.avgRpe ? (Math.round(st.avgRpe * 10) / 10).toString() : '–'}
               l={t('RPE medio')}

@@ -15,6 +15,7 @@ import { fmtDay } from '../lib/dates'
 import { DISCIPLINES, PHASES } from '../lib/disciplines'
 import type { TrainingPlanDatabase, WorkoutBlock, WorkoutSession } from '../types'
 import { Badge, Sheet } from './ui'
+import { getGroupColor, getGroupIcon } from '../lib/branding'
 
 export interface MemberAttendanceStats {
   name: string
@@ -78,6 +79,8 @@ export function GroupDetailSheet({
   const members = db.athlete.members ?? []
   const sessions = db.sessions ?? []
   const { memberStats, totalGroupSessions, avgRate } = computeGroupStats(members, sessions)
+  const groupColor = getGroupColor(db.athlete.color, true)
+  const GroupIconComp = getGroupIcon(db.athlete.icon, true)
 
   return (
     <Sheet open={open} onClose={onClose} title={db.athlete.name}>
@@ -85,8 +88,8 @@ export function GroupDetailSheet({
         {/* Intestazione gruppo */}
         <div className="rounded-2xl border border-line bg-surface p-3.5 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Badge className="bg-brand/10 text-brand font-bold">
-              <Users size={12} />
+            <Badge className={`font-bold ${groupColor.bg} ${groupColor.text}`}>
+              <GroupIconComp size={12} />
               {t('Gruppo Scuola Tennis')}
             </Badge>
             {db.athlete.schedule && (
@@ -479,7 +482,7 @@ function BlockRow({ b }: { b: WorkoutBlock }) {
       </div>
 
       {b.notes && (
-        <p className="text-[11px] text-muted italic pt-0.5">«{b.notes}»</p>
+        <p className="text-[11px] text-muted italic pt-0.5 whitespace-pre-wrap">«{b.notes}»</p>
       )}
     </div>
   )

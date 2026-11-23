@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
+  AlertTriangle,
   ArrowUpDown,
+  Calendar,
   Check,
   Copy,
   Mail,
@@ -13,11 +15,22 @@ import {
 } from 'lucide-react'
 import { t } from '../i18n'
 import { copyText } from '../lib/files'
-import { slug } from '../lib/ids'
+import { slug, uid } from '../lib/ids'
 import { updateAthlete } from '../lib/db'
 import { useEngine } from '../state/store'
-import type { TargetKind } from '../types'
+import type { ScheduleSlot, TargetKind } from '../types'
 import { Badge, Confirm, Field, Notice, Segmented, Sheet, Toggle } from './ui'
+import {
+  GROUP_COLORS,
+  GROUP_ICONS,
+  WEEK_DAYS,
+  WEEK_DAYS_SHORT,
+  findScheduleConflicts,
+  formatSchedule,
+  getGroupColor,
+  getGroupIcon,
+  parseScheduleToSlots,
+} from '../lib/branding'
 
 const DEFAULT_POOL = [
   'Matteo B.',
@@ -30,6 +43,376 @@ const DEFAULT_POOL = [
   'Marco P.',
 ]
 
+// ---------- Selettore colore e icona ----------
+export function ColorIconPicker({
+  color,
+  icon,
+  onColorChange,
+  onIconChange,
+  isGroup = true,
+}: {
+  color: string
+  icon: string
+  onColorChange: (c: string) => void
+  onIconChange: (i: string) => void
+  isGroup?: boolean
+}) {
+  const currentColor = getGroupColor(color, isGroup)
+  const CurrentIcon = getGroupIcon(icon, isGroup)
+
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted">
+          {isGroup ? t('Icona e Colore del gruppo') : t('Icona e Colore dell’atleta')}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`flex h-7 w-7 items-center justify-center rounded-xl border ${currentColor.bg} ${currentColor.border}`}>
+            <CurrentIcon size={16} className={currentColor.text} />
+          </span>
+          <span className="text-xs font-semibold text-ink">{currentColor.name}</span>
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1 block text-[11px] font-semibold text-muted">{t('Colore tema:')}</span>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {GROUP_COLORS.map((c) => {
+            const active = color === c.id
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onColorChange(c.id)}
+                title={c.name}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90 ${
+                  active ? 'ring-2 ring-brand ring-offset-2 ring-offset-bg scale-105' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: c.hex }}
+              >
+                {active && <Check size={14} className="text-white drop-shadow" strokeWidth={3} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1 block text-[11px] font-semibold text-muted">{t('Icona:')}</span>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {GROUP_ICONS.map((i) => {
+            const IconComp = i.icon
+            const active = icon === i.id
+            return (
+              <button
+                key={i.id}
+                type="button"
+                onClick={() => onIconChange(i.id)}
+                title={i.label}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition-all active:scale-90 ${
+                  active
+                    ? 'border-brand bg-brand text-onbrand shadow-sm'
+                    : 'border-line bg-bg text-muted hover:border-brand/40 hover:text-ink'
+                }`}
+              >
+                <IconComp size={16} />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Selettore giorni e orari con alert conflitti ----------
+export function ScheduleSlotEditor({
+  slots,
+  onChange,
+  otherGroups,
+  currentId,
+}: {
+  slots: ScheduleSlot[]
+  onChange: (slots: ScheduleSlot[]) => void
+  otherGroups: Array<{ id: string; name: string; scheduleSlots?: ScheduleSlot[]; schedule?: string }>
+  currentId?: string
+}) {
+  const conflicts = useMemo(
+    () => findScheduleConflicts(slots, otherGroups, currentId),
+    [slots, otherGroups, currentId]
+  )
+
+  const toggleDay = (day: string) => {
+    const exists = slots.some((s) => s.day === day)
+    if (exists) {
+      onChange(slots.filter((s) => s.day !== day))
+    } else {
+      onChange([
+        ...slots,
+        {
+          id: uid('slot-'),
+          day,
+          startTime: '15:30',
+          endTime: '17:00',
+        },
+      ])
+    }
+  }
+
+  const addDateSlot = (dateStr: string) => {
+    if (!dateStr) return
+    onChange([
+      ...slots,
+      {
+        id: uid('slot-'),
+        day: dateStr,
+        startTime: '15:30',
+        endTime: '17:00',
+      },
+    ])
+  }
+
+  const updateSlot = (id: string, patch: Partial<ScheduleSlot>) => {
+    onChange(slots.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+  }
+
+  const removeSlot = (id: string) => {
+    onChange(slots.filter((s) => s.id !== id))
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-line bg-surface p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted">
+          {t('Giorni e orari in palestra')}
+        </span>
+        <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-brand hover:underline">
+          <Calendar size={13} />
+          <span>{t('+ Data')}</span>
+          <input
+            type="date"
+            className="sr-only"
+            onChange={(e) => {
+              if (e.target.value) {
+                addDateSlot(e.target.value)
+                e.target.value = ''
+              }
+            }}
+          />
+        </label>
+      </div>
+
+      {/* Selezione rapida giorni della settimana */}
+      <div className="flex flex-wrap gap-1.5">
+        {WEEK_DAYS.map((day) => {
+          const active = slots.some((s) => s.day === day)
+          const short = WEEK_DAYS_SHORT[day] || day
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => toggleDay(day)}
+              className={`chip whitespace-nowrap !py-1.5 !px-3 !text-xs ${
+                active ? 'chip-on' : ''
+              }`}
+            >
+              {short}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Righe con selettore orario (time picker) per ciascun giorno */}
+      {slots.length > 0 ? (
+        <div className="space-y-2 pt-1">
+          {slots.map((slot) => (
+            <div
+              key={slot.id}
+              className="flex items-center gap-2 rounded-xl border border-line bg-bg p-2 text-xs"
+            >
+              <span className="w-24 shrink-0 font-bold text-ink truncate">{slot.day}</span>
+              <div className="flex flex-1 items-center gap-1 min-w-0">
+                <input
+                  type="time"
+                  className="input !py-1 !px-2 text-xs font-semibold min-w-0 flex-1 text-center"
+                  value={slot.startTime}
+                  onChange={(e) => updateSlot(slot.id, { startTime: e.target.value })}
+                  aria-label={t('Ora inizio')}
+                />
+                <span className="text-muted font-bold">–</span>
+                <input
+                  type="time"
+                  className="input !py-1 !px-2 text-xs font-semibold min-w-0 flex-1 text-center"
+                  value={slot.endTime}
+                  onChange={(e) => updateSlot(slot.id, { endTime: e.target.value })}
+                  aria-label={t('Ora fine')}
+                />
+              </div>
+              <button
+                type="button"
+                className="icon-btn !text-exp shrink-0 !min-h-7 !min-w-7 !p-1"
+                onClick={() => removeSlot(slot.id)}
+                aria-label={t('Rimuovi fascia oraria')}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          {t('Seleziona uno o più giorni per definire gli orari della sessione in palestra.')}
+        </p>
+      )}
+
+      {/* Banner giallo di allerta conflitti se il giorno/orario è già occupato per un'altra sezione */}
+      {conflicts.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          {conflicts.map((c, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 p-2.5 text-xs font-semibold text-amber-800 dark:text-amber-300"
+            >
+              <AlertTriangle size={16} className="shrink-0 text-amber-500" />
+              <span>
+                {t('Attenzione: {day} ({time}) è già occupato per il gruppo "{group}"', {
+                  day: c.slot.day,
+                  time: `${c.slot.startTime} - ${c.slot.endTime}`,
+                  group: c.conflictingGroupName,
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------- Gestore componenti del gruppo con filtro e aggiunta in alto ----------
+export function GroupMembersSelector({
+  selectedMembers,
+  onChange,
+  allAthletesPool,
+}: {
+  selectedMembers: string[]
+  onChange: (members: string[]) => void
+  allAthletesPool: string[]
+}) {
+  const [filter, setFilter] = useState('')
+  const [customAthletes, setCustomAthletes] = useState<string[]>([])
+
+  const fullPool = useMemo(() => {
+    return Array.from(
+      new Set([...allAthletesPool, ...customAthletes, ...selectedMembers])
+    ).filter(Boolean)
+  }, [allAthletesPool, customAthletes, selectedMembers])
+
+  const q = filter.trim().toLowerCase()
+  const filtered = fullPool.filter((name) => !q || name.toLowerCase().includes(q))
+
+  const toggle = (name: string) => {
+    onChange(
+      selectedMembers.includes(name)
+        ? selectedMembers.filter((x) => x !== name)
+        : [...selectedMembers, name]
+    )
+  }
+
+  const handleAdd = () => {
+    const v = filter.trim()
+    if (!v) return
+    if (!customAthletes.includes(v)) {
+      setCustomAthletes((prev) => [...prev, v])
+    }
+    if (!selectedMembers.includes(v)) {
+      onChange([...selectedMembers, v])
+    }
+    setFilter('')
+  }
+
+  return (
+    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">
+          {t('Componenti del gruppo ({n} selezionati)', { n: selectedMembers.length })}
+        </span>
+      </div>
+
+      {/* Box di ricerca / aggiunta atleta posizionato in alto sopra alla lista */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <input
+            className="input !py-2 !pr-8 text-xs"
+            placeholder={t('Cerca allievo o scrivi un nuovo nome...')}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAdd()
+              }
+            }}
+          />
+          {filter && (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-ink"
+              onClick={() => setFilter('')}
+              aria-label={t('Cancella')}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary !px-3.5 !py-2 !text-xs shrink-0"
+          disabled={!filter.trim()}
+          onClick={handleAdd}
+        >
+          <Plus size={14} />
+          {t('Aggiungi')}
+        </button>
+      </div>
+
+      {/* Elenco atleti con spunta/selezione rapida */}
+      <div className="flex max-h-44 flex-wrap gap-1.5 overflow-y-auto pt-1">
+        {filtered.map((athleteName) => {
+          const active = selectedMembers.includes(athleteName)
+          return (
+            <button
+              key={athleteName}
+              type="button"
+              onClick={() => toggle(athleteName)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                active
+                  ? 'bg-brand text-onbrand shadow-sm'
+                  : 'border border-line bg-bg text-ink hover:border-brand/40'
+              }`}
+            >
+              {active ? <Check size={13} strokeWidth={2.4} /> : <Plus size={13} />}
+              {athleteName}
+            </button>
+          )
+        })}
+        {!filtered.length && (
+          <div className="w-full py-2 text-center text-xs text-muted">
+            {t('Nessun allievo trovato.')}{' '}
+            <span
+              className="font-semibold text-brand cursor-pointer underline"
+              onClick={handleAdd}
+            >
+              {t('Aggiungi "{name}" alla lista', { name: filter.trim() })}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------- Creazione nuovo atleta / gruppo ----------
 export function NewAthleteSheet({
   open,
   onClose,
@@ -42,10 +425,11 @@ export function NewAthleteSheet({
   const e = useEngine()
   const [kind, setKind] = useState<TargetKind>('group')
   const [name, setName] = useState('')
-  const [schedule, setSchedule] = useState('')
   const [focus, setFocus] = useState('')
+  const [slots, setSlots] = useState<ScheduleSlot[]>([])
+  const [color, setColor] = useState('blue')
+  const [icon, setIcon] = useState('users')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
-  const [customMemberInput, setCustomMemberInput] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -54,33 +438,52 @@ export function NewAthleteSheet({
     name.trim().length > 0 &&
     (isGroup || !email.trim() || /^\S+@\S+\.\S+$/.test(email.trim()))
 
-  // Pool of known athletes from defaults, registry, and existing groups
-  const knownAthletes = Array.from(
-    new Set([
-      ...DEFAULT_POOL,
-      ...e.registry.athletes.map((a) => a.name),
-      ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
-    ])
-  ).filter(Boolean)
+  // Pool di atleti conosciuti dalla scuola tennis
+  const allAthletesPool = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...DEFAULT_POOL,
+          ...e.registry.athletes.map((a) => a.name),
+          ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
+        ])
+      ).filter(Boolean),
+    [e]
+  )
 
-  const toggleMember = (m: string) => {
-    setSelectedMembers((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
-    )
-  }
+  // Altri gruppi per il rilevamento conflitti orari
+  const otherGroups = useMemo(() => {
+    return e
+      .sources()
+      .map((s) => {
+        const d = e.dbOf(s.id)
+        if (!d) return null
+        return {
+          id: s.id,
+          name: d.athlete.name,
+          scheduleSlots: d.athlete.scheduleSlots,
+          schedule: d.athlete.schedule,
+          targetKind: d.athlete.targetKind,
+        }
+      })
+      .filter((g): g is NonNullable<typeof g> => !!g && g.targetKind === 'group')
+  }, [e])
 
-  const addCustomMember = () => {
-    const v = customMemberInput.trim()
-    if (!v) return
-    if (!selectedMembers.includes(v)) {
-      setSelectedMembers((prev) => [...prev, v])
+  const handleKindChange = (k: TargetKind) => {
+    setKind(k)
+    if (k === 'group') {
+      setColor('blue')
+      setIcon('users')
+    } else {
+      setColor('yellow')
+      setIcon('trophy')
     }
-    setCustomMemberInput('')
   }
 
   const go = async () => {
     setBusy(true)
     const members = isGroup ? selectedMembers : []
+    const scheduleStr = formatSchedule(slots)
 
     const s = await e.addAthlete({
       name,
@@ -88,14 +491,18 @@ export function NewAthleteSheet({
       email: isGroup ? '' : email,
       targetKind: kind,
       members,
-      schedule,
+      schedule: scheduleStr,
+      color,
+      icon,
+      scheduleSlots: slots,
     })
     setBusy(false)
     setName('')
-    setSchedule('')
     setFocus('')
+    setSlots([])
+    setColor('blue')
+    setIcon('users')
     setSelectedMembers([])
-    setCustomMemberInput('')
     setEmail('')
     onClose()
     onCreated(s.id)
@@ -116,7 +523,7 @@ export function NewAthleteSheet({
         <Segmented
           id="target-kind"
           value={kind}
-          onChange={setKind}
+          onChange={handleKindChange}
           options={[
             { value: 'group', label: t('Gruppo Scuola Tennis') },
             { value: 'individual', label: t('Individual Athlete') },
@@ -134,75 +541,39 @@ export function NewAthleteSheet({
                 autoFocus
               />
             </Field>
-            <Field label={t('Giorni e orari in palestra')}>
-              <input
-                className="input"
-                placeholder={t('es. Lun - Mer - Ven 16:30 - 18:00')}
-                value={schedule}
-                onChange={(ev) => setSchedule(ev.target.value)}
-              />
-            </Field>
+
+            {/* Goal spostato direttamente sotto al Nome del gruppo */}
             <Field label={t('Obiettivo / Programma atletico')}>
               <input
                 className="input"
-                placeholder={t('es. Forza, footwork e prevenzione spalla')}
+                placeholder={t('es. Forza funzionale, footwork e prevenzione')}
                 value={focus}
                 onChange={(ev) => setFocus(ev.target.value)}
               />
             </Field>
 
-            <div className="space-y-2 rounded-2xl border border-line bg-surface p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">
-                  {t('Componenti del gruppo ({n} selezionati)', { n: selectedMembers.length })}
-                </span>
-              </div>
-              <p className="text-xs text-muted">
-                {t('Seleziona gli atleti dalla lista per aggiungerli a questo gruppo:')}
-              </p>
-              <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pt-1">
-                {knownAthletes.map((athleteName) => {
-                  const active = selectedMembers.includes(athleteName)
-                  return (
-                    <button
-                      key={athleteName}
-                      type="button"
-                      onClick={() => toggleMember(athleteName)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
-                        active
-                          ? 'bg-brand text-onbrand shadow-sm'
-                          : 'border border-line bg-bg text-ink hover:border-brand/40'
-                      }`}
-                    >
-                      {active ? <Check size={13} strokeWidth={2.4} /> : <Plus size={13} />}
-                      {athleteName}
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex items-center gap-2 border-t border-line/60 pt-2">
-                <input
-                  className="input flex-1 !py-1.5 text-xs"
-                  placeholder={t('Nuovo atleta...')}
-                  value={customMemberInput}
-                  onChange={(e) => setCustomMemberInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      addCustomMember()
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-soft !px-3 !py-1.5 !text-xs"
-                  onClick={addCustomMember}
-                >
-                  <Plus size={14} />
-                  {t('Aggiungi')}
-                </button>
-              </div>
-            </div>
+            {/* Selezione giorni e orari con time picker e alert conflitti */}
+            <ScheduleSlotEditor
+              slots={slots}
+              onChange={setSlots}
+              otherGroups={otherGroups}
+            />
+
+            {/* Icona e colore del gruppo */}
+            <ColorIconPicker
+              color={color}
+              icon={icon}
+              onColorChange={setColor}
+              onIconChange={setIcon}
+              isGroup={true}
+            />
+
+            {/* Componenti del gruppo con filtro e inserimento in alto */}
+            <GroupMembersSelector
+              selectedMembers={selectedMembers}
+              onChange={setSelectedMembers}
+              allAthletesPool={allAthletesPool}
+            />
 
             <p className="text-xs text-muted">
               {t(
@@ -221,6 +592,7 @@ export function NewAthleteSheet({
                 autoFocus
               />
             </Field>
+
             <Field label={t('Categoria / Obiettivo')}>
               <input
                 className="input"
@@ -229,6 +601,15 @@ export function NewAthleteSheet({
                 onChange={(ev) => setFocus(ev.target.value)}
               />
             </Field>
+
+            <ColorIconPicker
+              color={color}
+              icon={icon}
+              onColorChange={setColor}
+              onIconChange={setIcon}
+              isGroup={false}
+            />
+
             <Field label={t('Email Google dell’atleta (facoltativa per invito)')}>
               <input
                 className="input"
@@ -251,7 +632,7 @@ export function NewAthleteSheet({
   )
 }
 
-/** Gestione di un atleta o gruppo del coach: profilo, componenti, orari, invito Drive, eliminazione. */
+// ---------- Gestione / Modifica atleta o gruppo esistente ----------
 export function ManageAthleteSheet({
   sourceId,
   onClose,
@@ -265,7 +646,6 @@ export function ManageAthleteSheet({
   const [ask, setAsk] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [newMember, setNewMember] = useState('')
   const [emailInput, setEmailInput] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
@@ -281,29 +661,53 @@ export function ManageAthleteSheet({
     db?.athlete.targetKind === 'group' || (db?.athlete.members && db.athlete.members.length > 0)
   const members = db?.athlete.members ?? []
 
-  // Known athletes from defaults, registry, and existing groups
-  const knownAthletes = Array.from(
-    new Set([
-      ...DEFAULT_POOL,
-      ...e.registry.athletes.map((a) => a.name),
-      ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
-    ])
-  ).filter(Boolean)
+  const currentSlots: ScheduleSlot[] = useMemo(() => {
+    if (!db) return []
+    if (db.athlete.scheduleSlots && db.athlete.scheduleSlots.length > 0) {
+      return db.athlete.scheduleSlots
+    }
+    return parseScheduleToSlots(db.athlete.schedule)
+  }, [db])
 
-  const availableToAdd = knownAthletes.filter((a) => !members.includes(a))
+  // Pool di atleti della scuola tennis
+  const allAthletesPool = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...DEFAULT_POOL,
+          ...e.registry.athletes.map((a) => a.name),
+          ...e.sources().flatMap((s) => e.dbOf(s.id)?.athlete.members ?? []),
+        ])
+      ).filter(Boolean),
+    [e]
+  )
+
+  // Altri gruppi per rilevare conflitti orari
+  const otherGroups = useMemo(() => {
+    return e
+      .sources()
+      .map((s) => {
+        const d = e.dbOf(s.id)
+        if (!d) return null
+        return {
+          id: s.id,
+          name: d.athlete.name,
+          scheduleSlots: d.athlete.scheduleSlots,
+          schedule: d.athlete.schedule,
+          targetKind: d.athlete.targetKind,
+        }
+      })
+      .filter((g): g is NonNullable<typeof g> => !!g && g.targetKind === 'group')
+  }, [e])
 
   const patch = (p: Parameters<typeof updateAthlete>[1]) =>
     src && e.mutate(src.id, (d) => updateAthlete(d, p, e.by()))
 
-  const addMember = () => {
-    const val = newMember.trim()
-    if (!val || members.includes(val)) return
-    patch({ members: [...members, val] })
-    setNewMember('')
-  }
-
-  const removeMember = (m: string) => {
-    patch({ members: members.filter((x) => x !== m) })
+  const handleSlotsChange = (nextSlots: ScheduleSlot[]) => {
+    patch({
+      scheduleSlots: nextSlots,
+      schedule: formatSchedule(nextSlots),
+    })
   }
 
   const inviteCode =
@@ -365,17 +769,7 @@ export function ManageAthleteSheet({
               />
             </Field>
 
-            {isGroup && (
-              <Field label={t('Giorni e orari in palestra')}>
-                <input
-                  className="input"
-                  placeholder={t('es. Lun - Mer - Ven 16:30 - 18:00')}
-                  value={db.athlete.schedule ?? ''}
-                  onChange={(ev) => patch({ schedule: ev.target.value })}
-                />
-              </Field>
-            )}
-
+            {/* Goal spostato subito sotto il nome */}
             <Field label={t('Obiettivo / Programma atletico')}>
               <input
                 className="input"
@@ -384,75 +778,32 @@ export function ManageAthleteSheet({
               />
             </Field>
 
+            {/* Giorni e orari in palestra per i gruppi con datepicker e time picker */}
             {isGroup && (
-              <div className="space-y-3 rounded-2xl border border-line bg-surface p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">
-                    {t('Componenti del gruppo ({n})', { n: members.length })}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {members.map((m) => (
-                    <span
-                      key={m}
-                      className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-bold text-brand"
-                    >
-                      {m}
-                      <button
-                        type="button"
-                        onClick={() => removeMember(m)}
-                        className="ml-0.5 text-muted hover:text-exp"
-                        aria-label={t('Rimuovi {name}', { name: m })}
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-                  {!members.length && (
-                    <p className="text-xs text-muted">{t('Nessun componente aggiunto al gruppo.')}</p>
-                  )}
-                </div>
+              <ScheduleSlotEditor
+                slots={currentSlots}
+                onChange={handleSlotsChange}
+                otherGroups={otherGroups}
+                currentId={src.id}
+              />
+            )}
 
-                {availableToAdd.length > 0 && (
-                  <div className="space-y-1.5 border-t border-line/60 pt-2">
-                    <p className="text-xs font-semibold text-muted">
-                      {t('Aggiungi dalla lista della scuola tennis:')}
-                    </p>
-                    <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
-                      {availableToAdd.map((name) => (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => patch({ members: [...members, name] })}
-                          className="inline-flex items-center gap-1 rounded-full border border-line bg-bg px-2.5 py-1 text-xs font-medium text-ink transition hover:border-brand/40 active:scale-95"
-                        >
-                          <Plus size={12} />
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Icona e colore personalizzato */}
+            <ColorIconPicker
+              color={db.athlete.color ?? (isGroup ? 'blue' : 'yellow')}
+              icon={db.athlete.icon ?? (isGroup ? 'users' : 'trophy')}
+              onColorChange={(c) => patch({ color: c })}
+              onIconChange={(i) => patch({ icon: i })}
+              isGroup={isGroup}
+            />
 
-                <div className="flex items-center gap-2 border-t border-line/60 pt-2">
-                  <input
-                    className="input flex-1 !py-1.5 text-xs"
-                    placeholder={t('Nuovo atleta...')}
-                    value={newMember}
-                    onChange={(e) => setNewMember(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addMember()
-                      }
-                    }}
-                  />
-                  <button type="button" className="btn btn-soft !px-3 !py-1.5 !text-xs" onClick={addMember}>
-                    <Plus size={14} />
-                    {t('Aggiungi')}
-                  </button>
-                </div>
-              </div>
+            {/* Componenti del gruppo con filtro e aggiunta in alto */}
+            {isGroup && (
+              <GroupMembersSelector
+                selectedMembers={members}
+                onChange={(m) => patch({ members: m })}
+                allAthletesPool={allAthletesPool}
+              />
             )}
 
             {/* Condivisione codice invito (come in clean-duo, meal-duo e money-duo) */}
