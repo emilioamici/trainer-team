@@ -182,16 +182,16 @@ export function TutorialModal({
     },
     {
       id: 'coach-team',
-      title: t('Gestione Gruppi e Sezioni (Tab Team)'),
+      title: t('Gestione Gruppi e Atleti (schede Gruppi e Atleti)'),
       subtitle: t('Organizza i tuoi allievi e pianifica gli orari'),
-      badge: t('Sezione Team'),
+      badge: t('Gruppi e Atleti'),
       icon: Users,
       color: 'from-blue-600 to-cyan-500',
       content: (
         <div className="space-y-3 text-sm text-ink/90">
           <p>
             {t(
-              'Dalla tab "Team" puoi creare nuove sezioni di allenamento o schede per atleti individuali.'
+              'Dalle schede "Gruppi" e "Atleti" puoi creare nuovi gruppi di allenamento o schede per atleti individuali.'
             )}
           </p>
           <ul className="space-y-2 text-xs">
@@ -242,7 +242,7 @@ export function TutorialModal({
               <span>{t('Come invitare i ragazzi:')}</span>
             </div>
             <ol className="list-decimal pl-4 space-y-1.5 text-xs text-muted">
-              <li>{t('Tocca l’ingranaggio (Impostazioni) sulla scheda del gruppo o atleta in Team.')}</li>
+              <li>{t('Tocca l’ingranaggio (Impostazioni) sulla scheda del gruppo o atleta, in Gruppi o Atleti.')}</li>
               <li>{t('Copia il codice d’invito o tocca "Condividi" per inviare il link.')}</li>
               <li>
                 {t(

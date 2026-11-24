@@ -1,7 +1,7 @@
 import { t } from '../i18n'
 import type { UserRole } from '../types'
 
-export type TourTab = 'today' | 'plan' | 'team'
+export type TourTab = 'today' | 'plan' | 'team' | 'groups' | 'athletes'
 
 export interface TourStep {
   id: string
@@ -27,7 +27,7 @@ export const resetWalkthrough = () => { try { localStorage.removeItem(KEY) } cat
 export const stepsFor = (role: UserRole): TourStep[] => {
   const common = {
     nav: { id: 'nav', target: 'nav', tab: 'today' as const, title: t('Le sezioni dell’app'), body: role === 'coach'
-      ? t('Oggi mostra l’allenamento del giorno, Piano il calendario e Team i tuoi gruppi e atleti.')
+      ? t('Oggi mostra l’allenamento del giorno, Piano il calendario, Gruppi e Atleti le tue schede.')
       : t('Oggi mostra l’allenamento del giorno, Piano il calendario e Progressi le tue statistiche.') },
     sync: { id: 'sync', target: 'sync', tab: 'today' as const, title: t('Sincronizzazione'), body: t('Mostra lo stato di Google Drive. Toccalo per sincronizzare subito: avviene anche da sola ogni 2 minuti e funziona anche offline.') },
     bell: { id: 'bell', target: 'notifications', tab: 'today' as const, title: t('Notifiche'), body: role === 'coach'
@@ -37,9 +37,9 @@ export const stepsFor = (role: UserRole): TourStep[] => {
   if (role === 'coach') {
     return [
       common.nav,
-      { id: 'team-add', target: 'team-add', tab: 'team', title: t('Aggiungi gruppi e atleti'), body: t('Crea un gruppo della scuola tennis o un atleta individuale. Ognuno ha un file dedicato sul tuo Drive, così i dati restano separati.') },
-      { id: 'team-card', target: 'team-card', tab: 'team', title: t('La scheda di un atleta'), body: t('Vedi i progressi della settimana e lo stato della sincronizzazione. «Vedi piano» apre il suo calendario; l’icona a destra apre impostazioni e invito (codice o link da dare all’atleta).') },
-      { id: 'team-import', target: 'team-import', tab: 'team', title: t('Importa ed esporta'), body: t('Carica un piano in formato JSON o esporta quello di un atleta, anche per riusarlo con altri.') },
+      { id: 'team-add', target: 'team-add', tab: 'groups', title: t('Aggiungi gruppi e atleti'), body: t('Nelle schede Gruppi e Atleti: da qui crei un gruppo della scuola tennis o un atleta individuale. Ognuno ha un file dedicato sul tuo Drive, così i dati restano separati.') },
+      { id: 'team-card', target: 'team-card', tab: 'groups', title: t('La scheda di un gruppo o atleta'), body: t('Vedi i progressi della settimana e lo stato della sincronizzazione. «Vedi piano» apre il suo calendario; l’icona a destra apre impostazioni e invito (codice o link da dare all’atleta).') },
+      { id: 'team-import', target: 'team-import', tab: 'groups', title: t('Importa ed esporta'), body: t('Carica un piano in formato JSON o esporta quello di un atleta, anche per riusarlo con altri.') },
       { id: 'source', target: 'source-picker', tab: 'plan', optional: true, title: t('Scegli di chi è il piano'), body: t('Con questi pulsanti passi da un gruppo o atleta all’altro, oppure al tuo piano personale.') },
       { id: 'plan-view', target: 'plan-view', tab: 'plan', title: t('Settimana e mese'), body: t('Cambia vista e scorri i periodi. Tocca un allenamento per vedere i dettagli, modificarlo, duplicarlo o eliminarlo.') },
       { id: 'plan-add', target: 'plan-add', tab: 'plan', title: t('Programma un allenamento'), body: t('Il pulsante + crea un allenamento: titolo, disciplina, orario e blocchi di riscaldamento, lavoro centrale e defaticamento.') },
