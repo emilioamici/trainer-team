@@ -1,4 +1,5 @@
-import { emailOf, exchangeCode, hasFileAccess, refreshAccess, revoke, SCOPE, verifyBearer } from './google'
+import { bridgeReady, canAccessFile, dbMeta, dbRead, dbWrite, houseJoin, houseMine, houseRegister } from './bridge'
+import { emailOf, exchangeCode, refreshAccess, revoke, SCOPE, verifyBearer } from './google'
 import { HttpError, allowedOrigins, json, randomId, seal, unseal, type Env } from './util'
 import { isPushHost, sendPush, type PushPayload, type PushSub } from './webpush'
 
@@ -119,7 +120,7 @@ async function subscribe(env: Env, req: Request, cors: Record<string, string>): 
   dev.p256dh = sub.keys.p256dh; dev.auth = sub.keys.auth; dev.updatedAt = Date.now()
   // l'accesso si verifica (con il token dell'utente) solo per i file nuovi di questo dispositivo
   const fresh = wanted.filter((f) => !dev!.fileIds.includes(f))
-  const ok = await Promise.all(fresh.map((f) => hasFileAccess(me.token, f)))
+  const ok = await Promise.all(fresh.map((f) => canAccessFile(env, me, f)))
   const verified = new Set([...dev.fileIds.filter((f) => wanted.includes(f)), ...fresh.filter((_, i) => ok[i])])
   dev.fileIds = [...verified]
   for (const f of fresh.filter((_, i) => ok[i])) {
@@ -166,7 +167,7 @@ async function notify(env: Env, req: Request, cors: Record<string, string>): Pro
   const me = await verifyBearer(env, req)
   const b = await readJson<{ fileId?: string; title?: string; body?: string; tag?: string; url?: string }>(req)
   const fileId = clip(b.fileId, 100)
-  if (!(await hasFileAccess(me.token, fileId))) throw new HttpError(403, 'Nessun accesso al file')
+  if (!(await canAccessFile(env, me, fileId))) throw new HttpError(403, 'Nessun accesso al file')
   const raw = await env.KV.get(`fid:${fileId}`)
   const emails = ((raw ? JSON.parse(raw) : []) as string[]).filter((e) => e !== me.email)
   const url = b.url && allowedOrigins(env).has(new URL(b.url).origin) ? b.url : undefined
@@ -190,7 +191,7 @@ export default {
     const cors = corsHeaders(env, req)
     try {
       if (req.method === 'OPTIONS') return new Response(null, { status: cors['access-control-allow-origin'] ? 204 : 403, headers: cors })
-      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env) }, 200, cors)
+      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env), bridge: bridgeReady(env) }, 200, cors)
       // navigazione del browser: l'origine non c'è, l'indirizzo di ritorno viene validato
       if (req.method === 'GET' && url.pathname === '/auth/start') return await authStart(env, url)
       if (req.method === 'GET' && url.pathname === '/auth/callback') return await authCallback(env, url)
@@ -204,6 +205,12 @@ export default {
           case '/unsubscribe': return await unsubscribe(env, req, cors)
           case '/notify': return await notify(env, req, cors)
           case '/test': return await selfTest(env, req, cors)
+          case '/house/register': return await houseRegister(env, req, cors)
+          case '/house/join': return await houseJoin(env, req, cors)
+          case '/house/mine': return await houseMine(env, req, cors)
+          case '/db/meta': return await dbMeta(env, req, cors)
+          case '/db/read': return await dbRead(env, req, cors)
+          case '/db/write': return await dbWrite(env, req, cors)
         }
       }
       throw new HttpError(404, 'Non trovato')

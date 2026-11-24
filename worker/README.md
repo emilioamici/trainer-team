@@ -55,11 +55,23 @@ Dopo ogni modifica al Worker: `npx wrangler deploy` (a mano). Senza Git: scarica
 | `POST /subscribe`, `POST /unsubscribe` | iscrizione push del dispositivo, legata ai file Drive a cui l'account ha accesso |
 | `POST /notify` | avviso agli altri iscritti allo stesso file (chi invia deve avere accesso al file) |
 | `POST /test` | notifica di prova ai propri dispositivi |
+| `POST /house/register` | il **proprietario** del file lo collega al ponte (con la sua sessione persistente) |
+| `POST /house/join` | chi presenta il codice (ID del file) viene aggiunto tra gli scrittori del file |
+| `POST /house/mine` | i piani condivisi con l'account e collegati al ponte (inviti) |
+| `POST /db/meta`, `/db/read`, `/db/write` | lettura e scrittura del piano dal ponte (`/db/write` con `expectedVersion`: 409 se il file è cambiato) |
+
+## Ponte verso i piani (invitati senza Picker)
+Con il permesso ristretto `drive.file` un file creato dal coach non è accessibile direttamente a un altro account, a meno di passare dal Picker di Google (che richiede una chiave API valida e su iPhone spesso non funziona). Il ponte lo risolve:
+- Il **coach**, aprendo l'app con l'accesso persistente, *registra* sul Worker il file di ogni suo atleta (`/house/register`: solo il proprietario del file; il Worker tiene una copia **cifrata** del suo token di rinnovo). Si ripete ogni 3 giorni e subito dopo ogni invito.
+- L'**atleta** legge e scrive il piano da `/db/*`: il Worker usa l'accesso del coach, ma **ricontrolla a ogni chiamata** che l'account compaia tra le condivisioni del file su Drive (togliere l'atleta da Drive chiude subito l'accesso) e che il token Google sia stato emesso per questa app. Il contenuto del piano passa dal Worker ma non viene salvato.
+- **Invito con email**: il coach condivide il file (Drive manda l'email); l'atleta trova l'invito in `/house/mine`.
+- **Codice**: il codice è l'ID del file. `/house/join` aggiunge chi lo presenta tra gli scrittori del file (massimo 20 account). **Chi ha il codice può entrare**: va dato solo all'atleta; per revocare basta togliere l'account dalla condivisione su Drive.
+- Si attiva da solo se l'accesso persistente è configurato: `/health` mostra `"bridge": true`. Non servono chiavi API del Picker.
 
 ## Sicurezza (in breve)
 - Le chiamate dal browser sono accettate solo dalle origini in `ALLOWED_ORIGINS`; `/auth/start` accetta solo indirizzi di ritorno su quelle origini.
 - Ogni richiesta porta un token Google: il Worker verifica che sia emesso per **questa** app (`tokeninfo` → `aud`), con scope `drive.file`, e ne ricava l'email. Il token d'accesso non viene mai salvato.
-- Si può iscrivere un dispositivo a un file, e inviare avvisi su un file, solo se l'account **ha accesso a quel file** (verificato su Drive con il suo token).
+- Si può iscrivere un dispositivo a un file, e inviare avvisi su un file, solo se l'account **ha accesso a quel file** (verificato su Drive con il suo token, oppure perché compare tra le condivisioni di un piano collegato al ponte).
 - Solo host push noti (FCM, Mozilla, Apple, Windows); corpo massimo 8 KB; massimo 5 dispositivi per account, 20 destinatari per avviso; TTL su tutto.
 - I segreti si impostano con `wrangler secret put`, mai in `wrangler.toml`.
 

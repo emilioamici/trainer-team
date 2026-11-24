@@ -42,8 +42,8 @@ Le pagine devono essere online all'indirizzo che darai a Google.
 ## 3. API abilitate
 Google Drive API e Google Picker API.
 
-## 4. Chiave API del Picker
-Limitala per **referrer HTTP** (`https://emilioamici.github.io/*`, `http://localhost:5173/*`) e per **API** (*Google Picker API*).
+## 4. Chiave API del Picker (solo se non usi il ponte del Worker)
+Limitala per **referrer HTTP** (`https://emilioamici.github.io/*`, `http://localhost:5173/*`) e per **API** (*Google Picker API*). Se il Picker risponde «API key invalid» vedi il README (sezione *Se il Picker dice «API key invalid»*). Con il ponte del Worker il Picker non serve.
 
 ## 5. Dopo la pubblicazione
 1. In **Profilo → Scollega account** e poi **Collega Google**: serve un nuovo accesso, perché i token emessi in *Testing* scadono dopo 7 giorni.

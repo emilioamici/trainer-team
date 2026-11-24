@@ -3,7 +3,7 @@ import { idbDel, idbGet, idbSet } from '../lib/idb'
 import {
   emptyRegistry, mergeDb, placeholderDb, mergeRegistry, newAthlete, newDb, parseDb, parseRegistry, removeEntry, sameContent, updateAthlete, upsertEntry,
 } from '../lib/db'
-import { clearPendingJoin, inviteLink, parseInviteCode, setPendingJoin } from '../lib/invite'
+import { clearPendingJoin, inviteLink, parseInviteCode, pendingJoin, setPendingJoin } from '../lib/invite'
 import { slug, uid } from '../lib/ids'
 import { nowISO } from '../lib/dates'
 import { addNotification } from '../lib/notifications'
@@ -11,7 +11,8 @@ import { diffNotifications } from '../lib/notifyDiff'
 import { sampleDb } from '../lib/sample'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
-import { captureSession, getSession, health, logoutSession, workerUrl, type Health } from '../services/workerService'
+import * as bridge from '../services/bridgeService'
+import { captureSession, getSession, health, logoutSession, workerUrl, WorkerError, type Health } from '../services/workerService'
 import type { CoachRegistry, RegistryEntry, ScheduleSlot, SessionStatus, Source, SyncStatus, TargetKind, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 
 export const SYNC_EVERY_MS = 120_000
@@ -105,6 +106,7 @@ export class Engine {
       await this.loadAccount()
       if (this.sessionReturn === 'ok' && this.account) this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
       this.finishOnboarding()
+      void this.autoJoinPending()
     }
     this.authChecked = true
     this.emit()
@@ -278,6 +280,7 @@ export class Engine {
       this.setAuth('in')
       this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
       this.finishOnboarding()
+      void this.autoJoinPending()
       await this.syncAll()
     } catch (e) { this.notify(errMsg(e), 'err') }
   }
@@ -332,6 +335,8 @@ export class Engine {
     await this.syncRegistry()
     await Promise.all(this.allSources().filter((s) => s.kind !== 'demo').map((s) => this.syncSource(s.id)))
     void this.syncPush()
+    void this.registerHouses()
+    void this.checkInvites()
   }
 
   syncSource(id: string): Promise<void> {
@@ -391,7 +396,8 @@ export class Engine {
       if (!r.dirty) void this.flushNotices(id) // tutto ciò che è locale è su Drive: ora si può avvisare gli altri
     } catch (e) {
       const st = e instanceof drive.DriveError ? e.status : 0
-      if (st === 401) { this.setAuth('expired'); r.status = 'auth' }
+      if (st === 409) { r.reconciled = false; r.status = 'pending'; this.schedule(id) } // il file è cambiato nel frattempo (scrittura dal ponte): si rilegge, si unisce e si riprova
+      else if (st === 401) { this.setAuth('expired'); r.status = 'auth' }
       else if (st === 0) r.status = 'offline'
       else {
         r.status = 'error'
@@ -505,7 +511,7 @@ export class Engine {
   }
 
   /** Condivisione del file (ruolo scrittore) + email di Drive; restituisce link e codice da copiare. */
-  async inviteAthlete(athleteId: string): Promise<{ link: string; code: string; emailed: boolean }> {
+  async inviteAthlete(athleteId: string): Promise<{ link: string; code: string; emailed: boolean; bridge: boolean }> {
     const sid = 'athlete:' + athleteId
     let entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
     if (!entry) throw new Error(t('Atleta non trovato'))
@@ -522,9 +528,13 @@ export class Engine {
       await drive.shareFile(entry.fileId, entry.email, msg)
       emailed = true
     }
+    // il piano si registra sul ponte DOPO la condivisione (così l'atleta invitato risulta tra gli inviti); il codice funziona
+    // anche senza email, se il ponte è attivo (serve l'accesso persistente del coach)
+    await this.registerHouses(true, entry.fileId)
+    const bridged = !!getSession() && !!LS.get(`houseReg:${entry.fileId}`)
     this.registry = upsertEntry(this.registry, { ...entry, invitedAt: nowISO() })
     this.touchRegistry()
-    return { link, code: entry.fileId, emailed }
+    return { link, code: entry.fileId, emailed, bridge: bridged }
   }
   inviteInfo = (athleteId: string) => {
     const e = this.registry.athletes.find((x) => x.athleteId === athleteId)
@@ -532,20 +542,47 @@ export class Engine {
   }
 
   // ---------- atleta: collegarsi al piano di un coach ----------
-  async linkCoach(input: string): Promise<void> {
+  /**
+   * Collegamento al piano di un coach. Ordine: 1) accesso diretto al file; 2) ponte del Worker (nessun Picker, nessuna chiave API:
+   * il file viene condiviso con questo account dal Worker, con l'accesso del coach); 3) Google Picker (serve una chiave API valida).
+   * `picker: false` salta il passo 3 (per i tentativi automatici, che non hanno un tocco dell'utente).
+   */
+  async linkCoach(input: string, opts: { picker?: boolean } = {}): Promise<void> {
     const fileId = parseInviteCode(input)
     if (!fileId) throw new Error(t('Codice o link non valido'))
     const existing = this.linked.find((l) => l.fileId === fileId)
     if (existing) { this.role = 'athlete'; LS.set('role', 'athlete'); clearPendingJoin(); this.setActive(existing.id); return }
     if (!(await this.ensureToken())) throw new Error(t('Collega prima Google (Profilo → Sincronizzazione).'))
-    let meta: drive.FileMeta
-    try { meta = await drive.getMeta(fileId) } catch (e) {
-      if (e instanceof drive.DriveError && (e.status === 404 || e.status === 403)) {
-        // con drive.file un file condiviso da altri si apre solo scegliendolo con il Picker
-        const picked = await drive.pickSharedFile(fileId)
-        if (!picked) throw new Error(t('Operazione annullata'))
-        try { meta = await drive.getMeta(picked) } catch { throw new Error(t('Controlla il codice e che il coach ti abbia invitato con questo account Google.')) }
-      } else throw e
+    const noAccess = (e: unknown) => e instanceof drive.DriveError && (e.status === 404 || e.status === 403)
+    let meta: drive.FileMeta | null = null
+    let why = ''
+    // 1) accesso diretto
+    try { meta = await drive.getMeta(fileId) } catch (e) { if (!noAccess(e)) throw e }
+    // 2) ponte del Worker
+    if (!meta && (await bridge.bridgeAvailable())) {
+      try {
+        await bridge.joinHouse(fileId, drive.getToken()!)
+        drive.setBridged(fileId, true)
+        meta = await drive.getMeta(fileId)
+      } catch (e) {
+        drive.setBridged(fileId, false)
+        if (e instanceof WorkerError && e.status === 0) throw new Error(t('Nessuna connessione: riprova.'))
+        if (e instanceof WorkerError && e.status === 404) why = t('Il piano non è ancora collegato al server: il coach deve riaprire l’app con l’accesso persistente e riprovare.')
+        else if (e instanceof WorkerError && e.status === 403) why = e.message
+        else if (e instanceof WorkerError || e instanceof drive.DriveError) why = e.message
+        else throw e
+      }
+    }
+    // 3) Google Picker
+    if (!meta && opts.picker !== false && drive.pickerAvailable()) {
+      const picked = await drive.pickSharedFile(fileId)
+      if (!picked) throw new Error(t('Operazione annullata. Se il selettore mostrava «API key invalid», controlla la chiave API (vedi README).'))
+      try { meta = await drive.getMeta(picked) } catch { throw new Error(t('Controlla il codice e che il coach ti abbia invitato con questo account Google.')) }
+    }
+    if (!meta) {
+      throw new Error(why || (drive.pickerAvailable()
+        ? t('Non riesco ad aprire il piano: controlla il codice e che il coach ti abbia invitato con questo account Google.')
+        : t('Non riesco ad aprire il piano. Il coach deve inserire la tua email Google nell’invito (o servono il server e le chiavi del Picker: vedi README).')))
     }
     const db = parseDb(await drive.download(meta.id))
     const id = 'linked:' + meta.id
@@ -556,8 +593,65 @@ export class Engine {
     await this.persist(id)
     this.role = 'athlete'; LS.set('role', 'athlete')
     clearPendingJoin() // collegato: il codice non serve più (altrimenti Impostazioni si riaprirebbe a ogni avvio)
+    this.invites = this.invites.filter((h) => h.id !== meta!.id)
     this.setActive(id)
+    void this.syncPush()
   }
+
+  // ---------- inviti ricevuti e ponte ----------
+  /** Piani a cui questo account è stato invitato dal coach e non ancora collegati (da mostrare in Impostazioni). */
+  invites: bridge.BridgeHouse[] = []
+  private lastInviteCheck = 0
+  inviteName = (h: bridge.BridgeHouse) => bridge.prettyPlanName(h.name)
+
+  /** Atleta: cerca gli inviti sul ponte. Un solo invito e nessun piano collegato → collegamento automatico; altrimenti un avviso. */
+  async checkInvites(force = false) {
+    if (this.role !== 'athlete' || !workerUrl()) return
+    if (!force && Date.now() - this.lastInviteCheck < 10 * 60_000) return
+    const tok = drive.getToken()
+    if (!tok || !(await bridge.bridgeAvailable())) return
+    this.lastInviteCheck = Date.now()
+    const houses = (await bridge.myHouses(tok)).filter((h) => !this.linked.some((l) => l.fileId === h.id))
+    const changed = JSON.stringify(houses.map((h) => h.id)) !== JSON.stringify(this.invites.map((h) => h.id))
+    this.invites = houses
+    if (houses.length === 1 && this.linked.length === 0) {
+      try { await this.linkCoach(houses[0].id, { picker: false }); this.notify(t('Collegato al piano di {name}', { name: bridge.prettyPlanName(houses[0].name) })); return } catch { /* resta tra gli inviti */ }
+    }
+    let seen: string[] = []
+    try { seen = JSON.parse(LS.get('seenInvites') || '[]') as string[] } catch { seen = [] }
+    const fresh = houses.filter((h) => !seen.includes(h.id))
+    if (fresh.length) {
+      LS.set('seenInvites', JSON.stringify([...seen, ...fresh.map((h) => h.id)].slice(-50)))
+      for (const h of fresh) addNotification({ title: t('Invito dal tuo coach'), body: t('«{name}» ti ha invitato: apri Impostazioni → Collegati a un Coach.', { name: bridge.prettyPlanName(h.name) }), kind: 'info' })
+    }
+    if (changed) this.emit()
+  }
+
+  /** Coach: registra sul ponte i file dei suoi atleti (serve l'accesso persistente), così l'atleta entra con il codice o con l'email. Ripete ogni 3 giorni. */
+  async registerHouses(force = false, only?: string) {
+    const tok = drive.getToken()
+    if (!getSession() || !tok || !workerUrl() || !this.registry.athletes.length || !(await bridge.bridgeAvailable())) return
+    for (const e of this.registry.athletes) {
+      if (!e.fileId || (only && e.fileId !== only)) continue
+      const key = `houseReg:${e.fileId}`
+      const last = Number(LS.get(key)) || 0
+      if (!force && Date.now() - last < 3 * 86_400_000) continue
+      if (await bridge.registerHouse(e.fileId, tok)) LS.set(key, String(Date.now()))
+    }
+  }
+  /** Il ponte è utilizzabile da questo coach (server con ponte + accesso persistente)? Serve a far funzionare il codice senza email. */
+  bridgeReady = () => !!this.workerHealth?.bridge && !!getSession()
+
+  /** Dopo l'accesso: se c'era un codice d'invito in attesa, si prova a collegarsi da soli (senza Picker: non c'è un tocco dell'utente). */
+  async autoJoinPending() {
+    const code = pendingJoin()
+    if (!code || this.role !== 'athlete') return
+    const id = parseInviteCode(code)
+    if (id && this.linked.some((l) => l.fileId === id)) { clearPendingJoin(); return }
+    try { await this.linkCoach(code, { picker: false }); this.notify(t('Collegato con successo al piano del coach!')) }
+    catch (e) { this.notify(errMsg(e), 'err') } // il codice resta salvato: si può riprovare da Impostazioni
+  }
+
   unlinkCoach(id: string) {
     this.linked = this.linked.filter((l) => l.id !== id)
     LS.set('linked', JSON.stringify(this.linked))
