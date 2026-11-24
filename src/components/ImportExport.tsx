@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, FileUp } from 'lucide-react'
-import { t } from '../i18n'
-import { downloadJSON, readFileText } from '../lib/files'
+import { Copy, Download, FileUp, Sparkles } from 'lucide-react'
+import { lang, t } from '../i18n'
+import { buildImportPrompt } from '../lib/aiPrompt'
+import { copyText, downloadJSON, readFileText } from '../lib/files'
 import { addDays, todayISO, weekStart } from '../lib/dates'
 import { addSessions } from '../lib/db'
 import {
@@ -16,7 +17,7 @@ import {
 import { slug } from '../lib/ids'
 import { useEngine } from '../state/store'
 import type { Source, TrainingPlanDatabase } from '../types'
-import { Field, Notice, Segmented, Sheet } from './ui'
+import { Field, Fold, Notice, Segmented, Sheet } from './ui'
 
 export function ImportExportSheet({
   open,
@@ -280,6 +281,35 @@ export function ImportExportSheet({
                 />
               </Field>
             )}
+
+            {/* Prompt per qualsiasi AI: da un file con un piano già fatto al JSON importabile */}
+            <Fold id="import-ai" icon={<Sparkles size={18} />} title={t('Hai già un piano in un file? Fallo convertire da un’AI')} summary={t('Copia un prompt da incollare nella tua AI')}>
+              <p className="text-xs text-muted">
+                {t('Hai un piano in un PDF, Excel, Word, foto o altro file? 1) Copia il prompt. 2) Incollalo nella tua AI (ChatGPT, Claude, Gemini…) e allega il file. 3) Copia il JSON che ti risponde e incollalo qui sotto.')}
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary w-full"
+                onClick={async () => {
+                  const ok = await copyText(buildImportPrompt({ lang: lang(), athleteName: currentDb?.athlete.name, today: todayISO() }))
+                  e.notify(ok ? t('Prompt copiato: incollalo nella tua AI e allega il file') : t('Copia non riuscita'), ok ? 'ok' : 'err')
+                }}
+              >
+                <Copy size={16} />
+                {t('Copia il prompt per l’AI')}
+              </button>
+              <details className="text-xs">
+                <summary className="cursor-pointer py-1 font-semibold text-brand">{t('Mostra il prompt')}</summary>
+                <textarea
+                  readOnly
+                  className="input mt-2 min-h-40 font-mono text-[11px]"
+                  aria-label={t('Prompt per l’AI')}
+                  value={buildImportPrompt({ lang: lang(), athleteName: currentDb?.athlete.name, today: todayISO() })}
+                  onFocus={(ev) => ev.currentTarget.select()}
+                />
+              </details>
+              <p className="text-xs text-muted">{t('L’AI vede il contenuto del file: se contiene dati personali, usa un servizio di cui ti fidi.')}</p>
+            </Fold>
 
             <input
               ref={file}
