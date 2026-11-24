@@ -102,11 +102,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   await cp.keyboard.press('Escape')
 
   // coach crea atleta, invita, aggiunge un allenamento
-  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Aggiungi', exact: true }).first().click()
+  await nav(cp, 'Atleti'); await cp.getByRole('button', { name: 'Aggiungi', exact: true }).first().click()
   await cp.getByRole('tab', { name: 'Individual Athlete', exact: true }).click()
   await cp.getByLabel('Nome atleta').fill('Luca Rossi'); await cp.getByLabel('Email Google dell’atleta (facoltativa per invito)').fill('atleta@x.it')
   await cp.getByRole('button', { name: 'Crea atleta' }).click()
-  await nav(cp, 'Team'); await cp.getByRole('button', { name: 'Impostazioni', exact: true }).nth(1).click() // scheda dell'atleta (la creazione apre il suo piano)
+  await nav(cp, 'Atleti'); await cp.getByRole('button', { name: 'Impostazioni', exact: true }).nth(1).click() // scheda dell'atleta (la creazione apre il suo piano)
   await cp.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value.startsWith('file0000')), null, { timeout: 8000 })
   const f = [...files.values()].find((x) => x.props?.trainerteam === 'athlete' && x.name.includes('luca'))
   await cp.keyboard.press('Escape')

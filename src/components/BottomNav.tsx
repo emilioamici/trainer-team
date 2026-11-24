@@ -1,21 +1,27 @@
 import { m } from 'framer-motion'
-import { CalendarCheck, CalendarDays, ChartNoAxesColumn, Users } from 'lucide-react'
+import { CalendarCheck, CalendarDays, ChartNoAxesColumn, User, Users } from 'lucide-react'
 import { t } from '../i18n'
 import type { UserRole } from '../types'
 
-export type Tab = 'today' | 'plan' | 'team'
+/** 'team' = Progressi dell'atleta; 'groups' e 'athletes' = le due schede del coach */
+export type Tab = 'today' | 'plan' | 'team' | 'groups' | 'athletes'
 
 export function BottomNav({ tab, onChange, role }: { tab: Tab; onChange: (t: Tab) => void; role: UserRole }) {
   const items: { id: Tab; label: string; icon: typeof CalendarCheck }[] = [
     { id: 'today', label: t('Oggi'), icon: CalendarCheck },
     { id: 'plan', label: t('Piano'), icon: CalendarDays },
-    { id: 'team', label: role === 'coach' ? t('Team') : t('Progressi'), icon: role === 'coach' ? Users : ChartNoAxesColumn },
+    ...(role === 'coach'
+      ? [
+          { id: 'groups' as Tab, label: t('Gruppi'), icon: Users },
+          { id: 'athletes' as Tab, label: t('Atleti'), icon: User },
+        ]
+      : [{ id: 'team' as Tab, label: t('Progressi'), icon: ChartNoAxesColumn }]),
   ]
   return (
     <nav
       data-tour="nav"
       aria-label={t('Navigazione')}
-      className="glass fixed inset-x-4 bottom-4 z-40 grid grid-cols-3 !rounded-full p-1.5 md:inset-x-auto md:bottom-auto md:left-6 md:top-6 md:w-56 md:grid-cols-1 md:!rounded-[28px] md:p-2"
+      className={`glass fixed inset-x-4 bottom-4 z-40 grid ${items.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} !rounded-full p-1.5 md:inset-x-auto md:bottom-auto md:left-6 md:top-6 md:w-56 md:grid-cols-1 md:!rounded-[28px] md:p-2`}
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
     >
       {items.map((it) => {

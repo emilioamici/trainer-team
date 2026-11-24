@@ -23,18 +23,18 @@ import { lastCompleted, periodStats } from '../lib/db'
 import { useEngine } from '../state/store'
 import type { TrainingPlanDatabase, WorkoutSession } from '../types'
 
-export default function Team({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
+/** Coach: `kind` sceglie la scheda (Gruppi o Atleti). Atleta: Progressi. */
+export default function Team({ kind, onOpenPlan }: { kind: 'groups' | 'athletes'; onOpenPlan: (date?: string) => void }) {
   const e = useEngine()
-  return e.role === 'coach' ? <CoachView onOpenPlan={onOpenPlan} /> : <Progress />
+  return e.role === 'coach' ? <CoachView kind={kind} onOpenPlan={onOpenPlan} /> : <Progress />
 }
 
 // ================= Coach =================
-function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
+function CoachView({ kind, onOpenPlan }: { kind: 'groups' | 'athletes'; onOpenPlan: (date?: string) => void }) {
   const e = useEngine()
   const [newOpen, setNewOpen] = useState(false)
   const [manage, setManage] = useState<string | null>(null)
   const [ieSourceId, setIeSourceId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'groups' | 'pros'>('all')
   const [selectedGroupDb, setSelectedGroupDb] = useState<TrainingPlanDatabase | null>(null)
   const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null)
   const [viewSession, setViewSession] = useState<WorkoutSession | null>(null)
@@ -54,9 +54,9 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
     return db ? !isGroup(db) : false
   })
 
-  const filteredList = filter === 'groups' ? groups : filter === 'pros' ? pros : list
+  const filteredList = kind === 'groups' ? groups : pros
 
-  const feedbacks = list
+  const feedbacks = filteredList
     .flatMap((s) => {
       const db = e.dbOf(s.id)
       return (db?.sessions ?? [])
@@ -69,14 +69,14 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
   return (
     <div>
       <PageHeader
-        title={t('Team')}
-        sub={t('{g} gruppi · {a} atleti individuali', { g: groups.length, a: pros.length })}
+        title={kind === 'groups' ? t('Gruppi') : t('Atleti')}
+        sub={kind === 'groups' ? (groups.length === 1 ? t('1 gruppo') : t('{n} gruppi', { n: groups.length })) : pros.length === 1 ? t('1 atleta individuale') : t('{n} atleti individuali', { n: pros.length })}
         action={
           <div className="flex items-center gap-2">
             <button
               data-tour="team-import"
               className="icon-btn"
-              onClick={() => setIeSourceId(list[0]?.id ?? 'personal')}
+              onClick={() => setIeSourceId(filteredList[0]?.id ?? list[0]?.id ?? 'personal')}
               aria-label={t('Importa / Esporta')}
             >
               <ArrowUpDown size={18} />
@@ -89,22 +89,11 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
         }
       />
       <div className="space-y-3">
-        <Segmented
-          id="team-filter"
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: 'all', label: t('Tutti ({n})', { n: list.length }) },
-            { value: 'groups', label: t('Gruppi ({n})', { n: groups.length }) },
-            { value: 'pros', label: t('Individual Athlete ({n})', { n: pros.length }) },
-          ]}
-        />
-
         {filteredList.length === 0 && (
           <EmptyState
             icon={Users}
-            title={t('Nessun gruppo o atleta')}
-            text={t('Aggiungi un gruppo della scuola tennis o un atleta individuale.')}
+            title={kind === 'groups' ? t('Nessun gruppo') : t('Nessun atleta individuale')}
+            text={kind === 'groups' ? t('Aggiungi un gruppo della scuola tennis.') : t('Aggiungi un atleta individuale.')}
           />
         )}
         {filteredList.map((s) => {
@@ -266,6 +255,7 @@ function CoachView({ onOpenPlan }: { onOpenPlan: (date?: string) => void }) {
       </div>
 
       <NewAthleteSheet
+        defaultKind={kind === 'groups' ? 'group' : 'individual'}
         open={newOpen}
         onClose={() => setNewOpen(false)}
         onCreated={(id) => {

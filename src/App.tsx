@@ -31,6 +31,8 @@ export default function App() {
   }, [tab])
 
   const gate = e.gateMode()
+  // il ruolo decide quali schede esistono: coach = Gruppi + Atleti, atleta = Progressi (cambiando ruolo la scheda si adegua)
+  const tabNow: Tab = e.role === 'coach' ? (tab === 'team' ? 'groups' : tab) : tab === 'groups' || tab === 'athletes' ? 'team' : tab
   const goPlan = (date?: string) => {
     setPlanDate(date ?? null)
     setTab('plan')
@@ -54,7 +56,7 @@ export default function App() {
           </div>
           <AnimatePresence mode="wait" initial={false}>
             <m.main
-              key={tab}
+              key={tabNow}
               initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
@@ -62,12 +64,12 @@ export default function App() {
             >
               {tab === 'today' && <Today onGoPlan={goPlan} />}
               {tab === 'plan' && <Plan initialDate={planDate} />}
-              {tab === 'team' && <Team onOpenPlan={goPlan} />}
+              {(tabNow === 'team' || tabNow === 'groups' || tabNow === 'athletes') && <Team kind={tabNow === 'athletes' ? 'athletes' : 'groups'} onOpenPlan={goPlan} />}
             </m.main>
           </AnimatePresence>
         </div>
       )}
-      <BottomNav tab={tab} onChange={(t) => { setPlanDate(null); setTab(t) }} role={e.role} />
+      <BottomNav tab={tabNow} onChange={(t) => { setPlanDate(null); setTab(t) }} role={e.role} />
       <NotificationCenter open={notifOpen} onClose={() => setNotifOpen(false)} />
       <SettingsSheet
         open={settingsOpen}
@@ -84,7 +86,7 @@ export default function App() {
         initialRole={e.role}
         onStartTour={startTour}
       />
-      <Walkthrough open={tourOpen && !gate} role={e.role} tab={tab as TourTab} onTab={(x) => { setPlanDate(null); setTab(x) }} onClose={() => setTourOpen(false)} />
+      <Walkthrough open={tourOpen && !gate} role={e.role} tab={tabNow as TourTab} onTab={(x) => { setPlanDate(null); setTab(x) }} onClose={() => setTourOpen(false)} />
     </>
   )
 }

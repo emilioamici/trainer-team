@@ -8,7 +8,7 @@ const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.
   await ctx.addInitScript(() => { localStorage.setItem('trainer:gate', 'skip'); localStorage.setItem('trainer:tutorial_completed', 'true'); localStorage.setItem('trainer:role', 'coach') })
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(String(e)))
   await p.goto('http://localhost:4173/'); await p.waitForSelector('text=Oggi')
-  await p.getByRole('navigation').getByRole('button', { name: 'Team', exact: true }).click()
+  await p.getByRole('navigation').getByRole('button', { name: 'Gruppi', exact: true }).click()
   await p.getByRole('button', { name: 'Importa / Esporta' }).click()
   await p.getByRole('tab', { name: 'Importa' }).click()
   const fold = p.getByRole('button', { name: /Hai già un piano in un file/ })

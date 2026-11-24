@@ -413,13 +413,17 @@ export function NewAthleteSheet({
   open,
   onClose,
   onCreated,
+  defaultKind = 'group',
 }: {
   open: boolean
   onClose: () => void
   onCreated: (sourceId: string) => void
+  /** gruppo o atleta singolo, secondo la scheda (Gruppi / Atleti) da cui si aggiunge */
+  defaultKind?: TargetKind
 }) {
   const e = useEngine()
-  const [kind, setKind] = useState<TargetKind>('group')
+  const [kind, setKind] = useState<TargetKind>(defaultKind)
+  useEffect(() => { if (open) setKind(defaultKind) }, [open, defaultKind])
   const [name, setName] = useState('')
   const [focus, setFocus] = useState('')
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
