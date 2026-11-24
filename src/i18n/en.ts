@@ -661,4 +661,7 @@ export const en: Record<string, string> = {
   "Principale": "Main",
   "Sposta su: {name}": "Move up: {name}",
   "Sposta giù: {name}": "Move down: {name}",
+  "Componenti del gruppo": "Group members",
+  "{n} selezionati": "{n} selected",
+  "Codice, link ed email": "Code, link and email",
 }

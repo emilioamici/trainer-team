@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   Mail,
+  Palette,
   Plus,
   Share2,
   Trash2,
@@ -18,7 +19,7 @@ import { slug, uid } from '../lib/ids'
 import { updateAthlete } from '../lib/db'
 import { useEngine } from '../state/store'
 import type { ScheduleSlot, TargetKind } from '../types'
-import { Badge, Confirm, Field, Notice, Segmented, Sheet, Toggle } from './ui'
+import { Badge, Confirm, Field, Fold, Notice, Segmented, Sheet, Toggle } from './ui'
 import {
   GROUP_COLORS,
   GROUP_ICONS,
@@ -50,19 +51,22 @@ export function ColorIconPicker({
   onColorChange,
   onIconChange,
   isGroup = true,
+  bare = false,
 }: {
   color: string
   icon: string
   onColorChange: (c: string) => void
   onIconChange: (i: string) => void
   isGroup?: boolean
+  /** dentro una sezione collassabile: niente riquadro né titolo propri */
+  bare?: boolean
 }) {
   const currentColor = getGroupColor(color, isGroup)
   const CurrentIcon = getGroupIcon(icon, isGroup)
 
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-3">
-      <div className="flex items-center justify-between">
+    <div className={bare ? 'space-y-2.5' : 'space-y-2.5 rounded-2xl border border-line bg-surface p-3'}>
+      <div className={`items-center justify-between ${bare ? 'hidden' : 'flex'}`}>
         <span className="text-xs font-bold uppercase tracking-wide text-muted">
           {isGroup ? t('Icona e Colore del gruppo') : t('Icona e Colore dell’atleta')}
         </span>
@@ -273,10 +277,13 @@ export function GroupMembersSelector({
   selectedMembers,
   onChange,
   allAthletesPool,
+  bare = false,
 }: {
   selectedMembers: string[]
   onChange: (members: string[]) => void
   allAthletesPool: string[]
+  /** dentro una sezione collassabile: niente riquadro né titolo propri */
+  bare?: boolean
 }) {
   const [filter, setFilter] = useState('')
   const [customAthletes, setCustomAthletes] = useState<string[]>([])
@@ -311,8 +318,8 @@ export function GroupMembersSelector({
   }
 
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-surface p-3">
-      <div className="flex items-center justify-between">
+    <div className={bare ? 'space-y-2.5' : 'space-y-2.5 rounded-2xl border border-line bg-surface p-3'}>
+      <div className={`items-center justify-between ${bare ? 'hidden' : 'flex'}`}>
         <span className="text-sm font-semibold">
           {t('Componenti del gruppo ({n} selezionati)', { n: selectedMembers.length })}
         </span>
@@ -768,41 +775,44 @@ export function ManageAthleteSheet({
               />
             )}
 
-            {/* Icona e colore personalizzato */}
-            <ColorIconPicker
-              color={db.athlete.color ?? (isGroup ? 'blue' : 'yellow')}
-              icon={db.athlete.icon ?? (isGroup ? 'users' : 'trophy')}
-              onColorChange={(c) => patch({ color: c })}
-              onIconChange={(i) => patch({ icon: i })}
-              isGroup={isGroup}
-            />
-
-            {/* Componenti del gruppo con filtro e aggiunta in alto */}
-            {isGroup && (
-              <GroupMembersSelector
-                selectedMembers={members}
-                onChange={(m) => patch({ members: m })}
-                allAthletesPool={allAthletesPool}
+            {/* Icona e colore personalizzato (sezione collassabile) */}
+            <Fold id="ath-style" icon={<Palette size={18} />} title={isGroup ? t('Icona e Colore del gruppo') : t('Icona e Colore dell’atleta')}
+              summary={(() => {
+                const c = getGroupColor(db.athlete.color ?? (isGroup ? 'blue' : 'yellow'), isGroup)
+                const I = getGroupIcon(db.athlete.icon ?? (isGroup ? 'users' : 'trophy'), isGroup)
+                return <><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border ${c.bg} ${c.border}`}><I size={12} className={c.text} /></span><span className="truncate">{c.name}</span></>
+              })()}>
+              <ColorIconPicker
+                bare
+                color={db.athlete.color ?? (isGroup ? 'blue' : 'yellow')}
+                icon={db.athlete.icon ?? (isGroup ? 'users' : 'trophy')}
+                onColorChange={(c) => patch({ color: c })}
+                onIconChange={(i) => patch({ icon: i })}
+                isGroup={isGroup}
               />
+            </Fold>
+
+            {/* Componenti del gruppo con filtro e aggiunta in alto (sezione collassabile) */}
+            {isGroup && (
+              <Fold id="ath-members" icon={<Users size={18} />} title={t('Componenti del gruppo')} summary={t('{n} selezionati', { n: members.length })}>
+                <GroupMembersSelector
+                  bare
+                  selectedMembers={members}
+                  onChange={(m) => patch({ members: m })}
+                  allAthletesPool={allAthletesPool}
+                />
+              </Fold>
             )}
 
             {/* Condivisione codice invito (come in clean-duo, meal-duo e money-duo) */}
-            <div className="space-y-3 rounded-2xl border border-line bg-surface p-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Share2 size={16} className="text-brand" />
-                  <span className="text-sm font-bold">
-                    {isGroup ? t('Codice invito gruppo') : t('Codice invito per l’atleta')}
-                  </span>
-                </div>
-                {entry?.invitedAt && (
-                  <Badge className="bg-inc/15 text-[10px] font-bold text-inc">
-                    <Check size={10} />
-                    {t('Invitato')}
-                  </Badge>
-                )}
-              </div>
-
+            <Fold id="ath-invite" defaultOpen icon={<Share2 size={18} />} title={isGroup ? t('Codice invito gruppo') : t('Codice invito per l’atleta')}
+              summary={entry?.invitedAt ? <span className="inline-flex items-center gap-1 font-semibold text-inc"><Check size={12} />{t('Invitato')}</span> : t('Codice, link ed email')}>
+              {entry?.invitedAt && (
+                <Badge className="bg-inc/15 text-[10px] font-bold text-inc">
+                  <Check size={10} />
+                  {t('Invitato')}
+                </Badge>
+              )}
               <div>
                 <label className="label !mt-0 !text-[11px]">{t('Codice invito')}</label>
                 <div className="flex gap-2">
@@ -898,7 +908,7 @@ export function ManageAthleteSheet({
                   )}
                 </div>
               )}
-            </div>
+            </Fold>
 
             {!isGroup && (
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">

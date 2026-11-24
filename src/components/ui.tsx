@@ -218,6 +218,26 @@ export function Accordion({ id, icon, title, summary, children, defaultOpen = fa
   )
 }
 
+/** Sezione collassabile compatta (dentro fogli e schede). Lo stato aperto/chiuso si ricorda sul dispositivo. */
+export function Fold({ id, icon, title, summary, children, defaultOpen = false }: { id: string; icon: ReactNode; title: string; summary?: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(() => { try { const v = localStorage.getItem(accKey(id)); return v === null ? defaultOpen : v === '1' } catch { return defaultOpen } })
+  const toggle = () => { setOpen(!open); try { localStorage.setItem(accKey(id), open ? '0' : '1') } catch { /* ignora */ } }
+  const cid = useId()
+  return (
+    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+      <button type="button" className="flex min-h-12 w-full items-center gap-2.5 px-3.5 py-3 text-left active:bg-line/30" onClick={toggle} aria-expanded={open} aria-controls={cid}>
+        <span className="shrink-0 text-brand">{icon}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">{title}</span>
+          {!open && summary && <span className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-xs text-muted">{summary}</span>}
+        </span>
+        <ChevronDown size={18} className={`shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div id={cid} className="space-y-3 border-t border-line/60 p-3.5">{children}</div>}
+    </section>
+  )
+}
+
 // ---------- controlli ----------
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
