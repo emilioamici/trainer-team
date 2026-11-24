@@ -20,7 +20,7 @@ export function SyncBadge({ status }: { status: SyncStatus }) {
   return <Badge className={s.cls}><Icon size={12} className={status === 'syncing' ? 'animate-spin' : ''} />{t(s.label)}</Badge>
 }
 
-const kindIcon = (s: Source) => (s.kind === 'demo' ? FlaskConical : s.kind === 'linked' ? Link2 : s.kind === 'coach-athlete' ? Users : User)
+export const kindIcon = (s: Source) => (s.kind === 'demo' ? FlaskConical : s.kind === 'linked' ? Link2 : s.kind === 'coach-athlete' ? Users : User)
 
 /** Selettore rapido del piano attivo (profilo dell'atleta nel ruolo coach; piano personale/del coach nel ruolo atleta). */
 export function SourcePicker() {

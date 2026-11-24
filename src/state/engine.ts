@@ -9,6 +9,7 @@ import { nowISO } from '../lib/dates'
 import { addNotification } from '../lib/notifications'
 import { diffNotifications } from '../lib/notifyDiff'
 import { sampleDb } from '../lib/sample'
+import { moveInOrder, orderSources, withMainFirst } from '../lib/planOrder'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
 import * as bridge from '../services/bridgeService'
@@ -53,7 +54,9 @@ export class Engine {
   private interval: ReturnType<typeof setInterval> | null = null
 
   role: UserRole = (LS.get('role') as UserRole) === 'coach' ? 'coach' : 'athlete'
-  private storedActive: string | null = LS.get('active')
+  // all'avvio si apre il piano PRINCIPALE (il primo nell'ordine scelto), non l'ultimo usato
+  private storedActive: string | null = null
+  private planOrder: string[] = (() => { try { const v = JSON.parse(LS.get('planOrder') || '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [] } catch { return [] } })()
   demoEnabled = LS.get('demo') !== '0'
   profileName = LS.get('profileName') || ''
   private personalFileId: string | null = LS.get('personalFileId')
@@ -128,14 +131,24 @@ export class Engine {
   private linkedSources = (): Source[] => this.linked.map((l) => ({ id: l.id, kind: 'linked' as const, fileId: l.fileId, name: this.rt.get(l.id)?.db?.athlete.name || l.name }))
   allSources = (): Source[] => [this.personal(), ...this.athletes(), ...this.linkedSources(), ...this.demos()]
   /** Piani visibili con il ruolo corrente. */
+  /** Piani visibili con il ruolo corrente, nell'ordine scelto (predefinito: i piani dei coach prima del proprio). */
   sources = (): Source[] =>
-    this.role === 'coach'
-      ? [...this.athletes(), ...this.demos().slice(0, 2), this.personal()]
-      : [this.personal(), ...this.linkedSources(), ...this.demos().slice(0, 1)]
+    orderSources(
+      this.role === 'coach'
+        ? [...this.athletes(), ...this.demos().slice(0, 2), this.personal()]
+        : [...this.linkedSources(), this.personal(), ...this.demos().slice(0, 1)],
+      this.planOrder,
+    )
+  /** Il piano principale è il primo: si apre all'avvio e dopo il collegamento a un coach. */
   active = (): Source | null => {
     const list = this.sources()
-    return list.find((s) => s.id === this.storedActive) ?? (this.demoEnabled && this.role === 'athlete' ? list.find((s) => s.kind === 'demo') : undefined) ?? list[0] ?? null
+    const demoFirst = this.demoEnabled && this.role === 'athlete' && !this.linked.length // prima dell'accesso: si parte dalla demo
+    return list.find((s) => s.id === this.storedActive) ?? (demoFirst ? list.find((s) => s.kind === 'demo') : undefined) ?? list[0] ?? null
   }
+  private persistOrder() { LS.set('planOrder', JSON.stringify(this.planOrder)) }
+  /** Imposta l'ordine dei piani (primo = principale); mantiene la posizione degli altri ruoli. */
+  setPlanOrder(ids: string[]) { this.planOrder = [...ids, ...this.planOrder.filter((x) => !ids.includes(x))]; this.persistOrder(); this.emit() }
+  movePlan(id: string, dir: -1 | 1) { this.setPlanOrder(moveInOrder(this.sources().map((s) => s.id), id, dir)) }
   activeDb = () => { const a = this.active(); return a ? this.dbOf(a.id) : null }
   dbOf = (id: string) => this.rt.get(id)?.db ?? null
   statusOf = (id: string) => {
@@ -593,6 +606,7 @@ export class Engine {
     await this.persist(id)
     this.role = 'athlete'; LS.set('role', 'athlete')
     clearPendingJoin() // collegato: il codice non serve più (altrimenti Impostazioni si riaprirebbe a ogni avvio)
+    this.setPlanOrder(withMainFirst(this.sources().map((s) => s.id), id)) // il piano del coach diventa il principale
     this.invites = this.invites.filter((h) => h.id !== meta!.id)
     this.setActive(id)
     void this.syncPush()
@@ -656,6 +670,7 @@ export class Engine {
     this.linked = this.linked.filter((l) => l.id !== id)
     LS.set('linked', JSON.stringify(this.linked))
     this.rt.delete(id); void idbDel('db:' + id)
+    this.planOrder = this.planOrder.filter((x) => x !== id); this.persistOrder()
     if (this.storedActive === id) { this.storedActive = null; LS.set('active', null) }
     this.emit()
   }

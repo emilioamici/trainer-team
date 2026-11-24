@@ -655,4 +655,10 @@ export const en: Record<string, string> = {
   "Invito dal coach": "Invitation from the coach",
   "Senza il server (Worker) il coach deve condividere il file con la tua email Google; in alternativa servono API key e App ID del Google Picker (vedi README).": "Without the server (Worker) the coach must share the file with your Google email; otherwise the Google Picker API key and App ID are needed (see README).",
   "Basta il codice: il coach lo ha già collegato al server e il file viene condiviso in automatico con il tuo account Google.": "The code is enough: the coach has already linked it to the server and the file is shared automatically with your Google account.",
+  "Ordine dei piani": "Plan order",
+  "Principale: {name}": "Main: {name}",
+  "Il primo è il piano principale: è quello che si apre all’avvio dell’app. Usa le frecce per cambiare l’ordine.": "The first one is the main plan: it's the one that opens when the app starts. Use the arrows to change the order.",
+  "Principale": "Main",
+  "Sposta su: {name}": "Move up: {name}",
+  "Sposta giù: {name}": "Move down: {name}",
 }

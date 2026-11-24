@@ -138,6 +138,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   await ap.keyboard.press('Escape'); await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
   ok(true, 'l’atleta vede il piano del coach (letto dal ponte)')
 
+  // ---- ordine dei piani: dopo il collegamento il piano del coach è il PRINCIPALE; si può riordinare dalle impostazioni ----
+  const tabs = () => ap.getByRole('tablist', { name: 'Piano attivo' }).getByRole('tab')
+  ok((await tabs().first().innerText()).includes('Luca Rossi') && (await tabs().first().getAttribute('aria-selected')) === 'true', 'dopo il collegamento il piano del coach è il primo ed è quello attivo (non il mio)')
+  await openSettings(ap); await ap.getByRole('button', { name: /Ordine dei piani/ }).click()
+  await ap.getByRole('button', { name: 'Sposta su: Il mio piano' }).click(); await ap.keyboard.press('Escape')
+  await ap.reload(); await ap.waitForSelector('text=Oggi'); await sleep(800)
+  ok((await tabs().first().innerText()).includes('Il mio piano') && (await tabs().first().getAttribute('aria-selected')) === 'true', 'dopo il riordino e il riavvio il piano principale è il mio (l’ordine resta salvato)')
+  await openSettings(ap); { const h = ap.getByRole('button', { name: /Ordine dei piani/ }); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click() } // lo stato aperto si ricorda
+  await ap.getByRole('button', { name: 'Sposta su: Luca Rossi' }).click(); await ap.keyboard.press('Escape')
+  await ap.reload(); await ap.waitForSelector('text=Oggi'); await ap.waitForSelector('text=Test 10 km')
+
   // feedback dell'atleta: scritto dal ponte
   await ap.getByRole('button', { name: 'Completa & inserisci feedback' }).click()
   await ap.getByRole('button', { name: '7', exact: true }).click(); await ap.getByLabel('Commento per il coach').fill('Via ponte')
