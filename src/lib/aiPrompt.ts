@@ -39,7 +39,11 @@ export const PROMPT_EXAMPLE = {
     },
     {
       day: 3, week: 0, title: 'Forza gambe', discipline: 'strength',
-      blocks: [{ phase: 'main', title: 'Back squat', sets: '4', reps: '6', load: '70 kg', rest: "2'" }],
+      blocks: [
+        { phase: 'main', title: 'Back squat', sets: '4', reps: '6', load: '70 kg', rest: "2'" },
+        { phase: 'main', title: 'Trazioni', supersetId: 'A', sets: '3', reps: '8', rest: "60''" },
+        { phase: 'main', title: 'Plank', supersetId: 'A', sets: '3', duration: "45''", rest: "60''" },
+      ],
     },
   ],
 }
@@ -63,7 +67,7 @@ ${example}
 
 FIELDS
 - Session: date ("YYYY-MM-DD") OR day (1 = Monday … 7 = Sunday) with optional week (0 = first week); title; discipline; coachNotes; blocks; status; feedback.
-- Block: phase ("warmup" | "main" | "cooldown"), title, and only if present in the file (all as text): sets, reps, distance, duration, pace, zone, load, rest, equipment, notes.
+- Block: phase ("warmup" | "main" | "cooldown"), title, and only if present in the file (all as text): sets, reps, distance, duration, pace, zone, load, rest, equipment, notes, supersetId (same short text, e.g. "A", on consecutive exercises performed as a superset).
 - status: "planned" | "done" | "partial" | "skipped". feedback: comment (text), rpe (number 1-10), durationMin (number), distanceKm (number), avgPace (text), feel ("great" | "good" | "ok" | "tired" | "bad").
 - discipline must be one of these ids (if unsure use "other"):
 ${disciplines}
@@ -89,7 +93,7 @@ ${example}
 
 CAMPI
 - Sessione: date ("AAAA-MM-GG") OPPURE day (1 = lunedì … 7 = domenica) con week facoltativo (0 = prima settimana); title; discipline; coachNotes; blocks; status; feedback.
-- Blocco: phase ("warmup" | "main" | "cooldown"), title e, solo se presenti nel file (tutti come testo): sets, reps, distance, duration, pace, zone, load, rest, equipment, notes.
+- Blocco: phase ("warmup" | "main" | "cooldown"), title e, solo se presenti nel file (tutti come testo): sets, reps, distance, duration, pace, zone, load, rest, equipment, notes, supersetId (stesso testo breve, es. "A", su esercizi consecutivi eseguiti in superset).
 - status: "planned" | "done" | "partial" | "skipped". feedback: comment (testo), rpe (numero 1-10), durationMin (numero), distanceKm (numero), avgPace (testo), feel ("great" | "good" | "ok" | "tired" | "bad").
 - discipline deve essere uno di questi id (se non sei sicuro usa "other"):
 ${disciplines}

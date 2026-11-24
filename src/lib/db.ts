@@ -81,7 +81,7 @@ export const parseBlock = (raw: unknown): WorkoutBlock | null => {
     title: str(raw.title),
     sets: opt(raw.sets), reps: opt(raw.reps), distance: opt(raw.distance), duration: opt(raw.duration),
     pace: opt(raw.pace), zone: opt(raw.zone), load: opt(raw.load), rest: opt(raw.rest), notes: opt(raw.notes),
-    equipment: opt(raw.equipment),
+    equipment: opt(raw.equipment), supersetId: opt(raw.supersetId),
   }
 }
 
@@ -313,9 +313,11 @@ export const blankSession = (date: string, createdBy: UserRole): WorkoutSession 
 
 export const duplicateSession = (s: WorkoutSession, date: string): WorkoutSession => {
   const now = nowISO()
+  const ss = new Map<string, string>()
+  const remap = (id?: string) => (id ? (ss.get(id) ?? (ss.set(id, uid('ss-')), ss.get(id)!)) : undefined)
   return {
     ...s, id: uid('s-'), date, status: 'planned', feedback: null,
-    blocks: s.blocks.map((b) => ({ ...b, id: uid('b-') })), planUpdatedAt: now, logUpdatedAt: now, updatedAt: now,
+    blocks: s.blocks.map((b) => ({ ...b, id: uid('b-'), ...(b.supersetId ? { supersetId: remap(b.supersetId) } : {}) })), planUpdatedAt: now, logUpdatedAt: now, updatedAt: now,
   }
 }
 

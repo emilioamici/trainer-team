@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CirclePlus, Copy, Dumbbell, MessageSquare, Pencil, Trash2, Users, X } from 'lucide-react'
+import { Check, CirclePlus, Copy, Dumbbell, Link2, Link2Off, MessageSquare, Pencil, Timer, Trash2, Users, X } from 'lucide-react'
 import { t } from '../i18n'
 import { DISCIPLINES, DISCIPLINE_ORDER, FEELS, PHASES, PHASE_ORDER, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
 import { fmtLong } from '../lib/dates'
 import { parseNum } from '../lib/files'
 import { uid } from '../lib/ids'
+import { groupBlocks } from '../lib/timer'
 import { EXERCISE_CATEGORIES, searchExercises, type ExerciseCategory, type ExerciseItem } from '../lib/exercises'
 import type { SessionStatus, WorkoutBlock, WorkoutFeedback, WorkoutSession } from '../types'
 import { Badge, Confirm, Field, Segmented, Sheet } from './ui'
@@ -21,6 +22,34 @@ const detailPills = (b: WorkoutBlock): string[] => {
   return out
 }
 
+function BlockItem({ b, tag }: { b: WorkoutBlock; tag?: string }) {
+  return (
+    <div className="rounded-2xl bg-bg p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold">
+          {tag && <span className="mr-1.5 rounded-md bg-brand/15 px-1.5 py-0.5 text-[11px] font-bold text-brand">{tag}</span>}
+          {b.title || t('Senza titolo')}
+        </p>
+        {b.equipment && (
+          <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-muted">
+            {b.equipment}
+          </span>
+        )}
+      </div>
+      {detailPills(b).length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {detailPills(b).map((p, i) => (
+            <span key={i} className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold">
+              {p}
+            </span>
+          ))}
+        </div>
+      )}
+      {b.notes && <p className="mt-1.5 text-xs text-muted whitespace-pre-wrap">{b.notes}</p>}
+    </div>
+  )
+}
+
 export function BlockList({ blocks }: { blocks: WorkoutBlock[] }) {
   return (
     <div className="space-y-3">
@@ -31,28 +60,18 @@ export function BlockList({ blocks }: { blocks: WorkoutBlock[] }) {
           <div key={ph}>
             <p className="label">{t(PHASES[ph])}</p>
             <ul className="space-y-2">
-              {list.map((b) => (
-                <li key={b.id} className="rounded-2xl bg-bg p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">{b.title || t('Senza titolo')}</p>
-                    {b.equipment && (
-                      <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-muted">
-                        {b.equipment}
-                      </span>
-                    )}
-                  </div>
-                  {detailPills(b).length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {detailPills(b).map((p, i) => (
-                        <span key={i} className="rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-semibold">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {b.notes && <p className="mt-1.5 text-xs text-muted whitespace-pre-wrap">{b.notes}</p>}
-                </li>
-              ))}
+              {groupBlocks(list).map((g, gi) =>
+                g.length === 1 ? (
+                  <li key={g[0].id}><BlockItem b={g[0]} /></li>
+                ) : (
+                  <li key={g[0].id} data-testid="superset" className="space-y-1.5 rounded-2xl border border-brand/40 p-1.5">
+                    <p className="flex items-center gap-1 px-1.5 pt-0.5 text-[11px] font-bold uppercase tracking-wide text-brand">
+                      <Link2 size={12} />{t('Superset')} {String.fromCharCode(65 + (gi % 26))}
+                    </p>
+                    {g.map((b, i) => <BlockItem key={b.id} b={b} tag={`${String.fromCharCode(65 + (gi % 26))}${i + 1}`} />)}
+                  </li>
+                ),
+              )}
             </ul>
           </div>
         )
@@ -220,6 +239,7 @@ interface DetailProps {
   onDelete: (s: WorkoutSession) => void
   groupMembers?: string[]
   onAttendanceChange?: (attendance: string[]) => void
+  onStartTimer?: (s: WorkoutSession) => void
 }
 
 export function WorkoutDetail({
@@ -233,6 +253,7 @@ export function WorkoutDetail({
   onDelete,
   groupMembers,
   onAttendanceChange,
+  onStartTimer,
 }: DetailProps) {
   const [ask, setAsk] = useState(false)
   const d = s ? DISCIPLINES[s.discipline] : null
@@ -245,12 +266,20 @@ export function WorkoutDetail({
         onClose={onClose}
         title={s?.title || t('Allenamento')}
         footer={
-          s &&
-          canLog && (
-            <button className="btn btn-primary w-full !py-3" onClick={() => onFeedback(s)}>
-              <Check size={18} />
-              {s.status === 'planned' ? t('Completa & inserisci feedback') : t('Modifica feedback')}
-            </button>
+          s && (canLog || (onStartTimer && s.blocks.length > 0)) && (
+            <div className="flex gap-2">
+              {onStartTimer && s.blocks.length > 0 && (
+                <button className="btn btn-soft flex-1 !py-3" onClick={() => onStartTimer(s)}>
+                  <Timer size={18} />{t('Avvia timer')}
+                </button>
+              )}
+              {canLog && (
+                <button className="btn btn-primary flex-[2] !py-3" onClick={() => onFeedback(s)}>
+                  <Check size={18} />
+                  {s.status === 'planned' ? t('Completa & inserisci feedback') : t('Modifica feedback')}
+                </button>
+              )}
+            </div>
           )
         }
       >
@@ -456,6 +485,15 @@ export function WorkoutEditor({ open, initial, onClose, onSave, suggestions, gro
   )
 }
 
+/** Toglie supersetId ai blocchi rimasti soli (meno di 2 consecutivi). */
+const cleanSupersets = (blocks: WorkoutBlock[]): WorkoutBlock[] => {
+  const keep = new Set<string>()
+  for (const ph of PHASE_ORDER) {
+    for (const g of groupBlocks(blocks.filter((b) => b.phase === ph))) if (g.length > 1) g.forEach((b) => keep.add(b.id))
+  }
+  return blocks.map((b) => (b.supersetId && !keep.has(b.id) ? { ...b, supersetId: undefined } : b))
+}
+
 function EditorForm({
   initial,
   onSave,
@@ -492,6 +530,28 @@ function EditorForm({
         if (input) input.focus()
       }
     }, 150)
+  }
+
+  const addSuperset = (phase: WorkoutBlock['phase']) => {
+    const id = uid('ss-')
+    const a = { id: uid('b-'), phase, title: '', supersetId: id }
+    setS({ ...s, blocks: [...s.blocks, a, { id: uid('b-'), phase, title: '', supersetId: id }] })
+    setTimeout(() => document.getElementById(`block-${a.id}`)?.querySelector<HTMLInputElement>('input')?.focus(), 150)
+  }
+
+  /** Unisce il blocco al precedente (della stessa fase) in un superset, oppure lo separa. */
+  const toggleSuperset = (phase: WorkoutBlock['phase'], blockId: string) => {
+    const list = s.blocks.filter((b) => b.phase === phase)
+    const i = list.findIndex((b) => b.id === blockId)
+    if (i < 1) return
+    const cur = list[i]
+    const prev = list[i - 1]
+    if (cur.supersetId && cur.supersetId === prev.supersetId) {
+      setS({ ...s, blocks: s.blocks.map((b) => (b.id === cur.id ? { ...b, supersetId: undefined } : b)) })
+      return
+    }
+    const id = prev.supersetId ?? uid('ss-')
+    setS({ ...s, blocks: s.blocks.map((b) => (b.id === prev.id || b.id === cur.id ? { ...b, supersetId: id } : b)) })
   }
 
   const addFromLibrary = (phase: WorkoutBlock['phase'], item: ExerciseItem) => {
@@ -610,12 +670,22 @@ function EditorForm({
           <p className="label">{t(PHASES[ph])}</p>
           {s.blocks
             .filter((b) => b.phase === ph)
-            .map((b) => (
+            .map((b, bi, arr) => (
               <div
                 key={b.id}
                 id={`block-${b.id}`}
-                className="space-y-2.5 rounded-2xl border border-line bg-surface p-3 transition-colors focus-within:border-brand/60"
+                className={`space-y-2.5 rounded-2xl border bg-surface p-3 transition-colors focus-within:border-brand/60 ${b.supersetId ? 'border-brand/40 border-l-4' : 'border-line'}`}
               >
+                {bi > 0 && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-brand"
+                    onClick={() => toggleSuperset(ph, b.id)}
+                  >
+                    {b.supersetId && b.supersetId === arr[bi - 1].supersetId ? <Link2Off size={13} /> : <Link2 size={13} />}
+                    {b.supersetId && b.supersetId === arr[bi - 1].supersetId ? t('Separa dal superset') : t('Unisci al precedente in superset')}
+                  </button>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     className="input font-medium min-w-0"
@@ -715,6 +785,10 @@ function EditorForm({
               {t('Esercizio personalizzato')}
             </button>
           </div>
+          <button type="button" className="btn btn-soft w-full !py-2 !text-xs" onClick={() => addSuperset(ph)}>
+            <Link2 size={15} />
+            {t('Aggiungi superset')}
+          </button>
         </div>
       ))}
 
@@ -739,7 +813,7 @@ function EditorForm({
             onSave({
               ...s,
               title: s.title.trim(),
-              blocks: s.blocks.filter((b) => b.title.trim() || b.notes || b.duration || b.load),
+              blocks: cleanSupersets(s.blocks.filter((b) => b.title.trim() || b.notes || b.duration || b.load)),
             })
             onClose()
           }}
@@ -764,14 +838,16 @@ export function FeedbackSheet({
   s,
   onClose,
   onSave,
+  defaultDurationMin,
 }: {
   s: WorkoutSession | null
   onClose: () => void
   onSave: (status: SessionStatus, fb: WorkoutFeedback | null) => void
+  defaultDurationMin?: number
 }) {
   return (
     <Sheet open={!!s} onClose={onClose} title={t('Com’è andata?')}>
-      {s && <FeedbackForm key={s.id} s={s} onSave={onSave} onClose={onClose} />}
+      {s && <FeedbackForm key={s.id} s={s} onSave={onSave} onClose={onClose} defaultDurationMin={defaultDurationMin} />}
     </Sheet>
   )
 }
@@ -780,14 +856,16 @@ function FeedbackForm({
   s,
   onSave,
   onClose,
+  defaultDurationMin,
 }: {
   s: WorkoutSession
   onSave: (status: SessionStatus, fb: WorkoutFeedback | null) => void
   onClose: () => void
+  defaultDurationMin?: number
 }) {
   const fb = s.feedback
   const [status, setStatus] = useState<SessionStatus>(s.status === 'planned' ? 'done' : s.status)
-  const [dur, setDur] = useState(fb?.durationMin?.toString() ?? '')
+  const [dur, setDur] = useState((fb?.durationMin ?? defaultDurationMin)?.toString() ?? '')
   const [rpe, setRpe] = useState<number | undefined>(fb?.rpe)
   const [feel, setFeel] = useState(fb?.feel)
   const [comment, setComment] = useState(fb?.comment ?? '')
