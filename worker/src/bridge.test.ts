@@ -167,3 +167,15 @@ describe('ponte: inviti e notifiche', () => {
     expect(stranger).toMatchObject({ files: 0 })
   })
 })
+
+describe('ponte: annullare la condivisione', () => {
+  it('il proprietario scollega il file: il codice non funziona più e l’accesso dal ponte si chiude', async () => {
+    const env = await makeEnv(); await registered(env)
+    await call(env, '/house/join', { token: 'tok-atleta', body: { fileId: FILE } })
+    expect((await call(env, '/house/unregister', { token: 'tok-atleta', body: { fileId: FILE } })).status).toBe(403) // non proprietario
+    expect((await call(env, '/house/unregister', { token: 'tok-coach', body: { fileId: FILE } })).status).toBe(200)
+    expect(env.KV.m.has(`house:${FILE}`)).toBe(false)
+    expect((await call(env, '/house/join', { token: 'tok-estraneo', body: { fileId: FILE } })).status).toBe(404) // il codice non entra più
+    expect((await call(env, '/db/read', { token: 'tok-atleta', body: { fileId: FILE } })).status).toBe(404)
+  })
+})

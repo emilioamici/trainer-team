@@ -47,9 +47,12 @@ async function setup(browser, email, who) {
       const list = [...files.values()].filter((f) => f.owner === user && f.props?.trainerteam === 'registry')
       return json({ files: list.map((f) => metaOf(f, user)) })
     }
+    const mp = p.match(/\/files\/([^/]+)\/permissions\/([^/]+)$/)
+    if (mp && req.method() === 'DELETE') { const f = files.get(mp[1]); if (!f || f.owner !== user) return json({ error: { message: 'no' } }, 404); f.shared.delete(decodeURIComponent(mp[2]).replace('perm-', '')); f.granted.delete(decodeURIComponent(mp[2]).replace('perm-', '')); log.push('unshare:' + mp[2]); return route.fulfill({ status: 204, headers: cors }) }
     if (m) {
       const f = files.get(m[1])
       if (!f || !canSee(f, user)) return json({ error: { message: 'File not found' } }, 404)
+      if (m[2] && req.method() === 'GET') return json({ permissions: [{ id: 'perm-owner', emailAddress: f.owner, role: 'owner' }, ...[...f.shared].map((e) => ({ id: 'perm-' + e, emailAddress: e, role: 'writer' }))] })
       if (m[2]) { f.shares.push(JSON.parse(req.postData())); f.shared.add(JSON.parse(req.postData()).emailAddress); return json({}) } // condiviso ≠ accesso con drive.file: serve il Picker
       if (req.method() === 'PATCH') { f.content = req.postData(); f.version++; log.push('drive-update:' + f.id); return json(metaOf(f, user)) }
       if (u.searchParams.get('alt') === 'media') return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: f.content })
@@ -71,6 +74,7 @@ async function setup(browser, email, who) {
     const body = entry.body || {}; const f = body.fileId ? files.get(body.fileId) : null
     const member = (f) => f && (f.owner === me || f.shared.has(me))
     if (u.pathname === '/house/register') { if (!f || f.owner !== me) return jerr(403, 'Solo il proprietario'); houses.add(f.id); for (const e of f.shared) inv.set(e, [...new Set([...(inv.get(e) || []), f.id])]); return j({ ok: true }) }
+    if (u.pathname === '/house/unregister') { if (!f || f.owner !== me) return jerr(403, 'Solo il proprietario'); houses.delete(f.id); log.push('unregister'); return j({ ok: true }) }
     if (u.pathname === '/house/join') { if (!f || !houses.has(f.id)) return jerr(404, 'Codice non valido o piano non collegato'); const joined = !member(f); f.shared.add(me); inv.set(me, [...new Set([...(inv.get(me) || []), f.id])]); log.push('join:' + me); return j({ ok: true, joined, name: f.name }) }
     if (u.pathname === '/house/mine') return j({ houses: (inv.get(me) || []).map((id) => files.get(id)).filter((x) => houses.has(x.id) && member(x)).map((x) => ({ id: x.id, name: x.name, modifiedTime: 'now' })) })
     if (u.pathname === '/db/meta' || u.pathname === '/db/read' || u.pathname === '/db/write') {
@@ -138,6 +142,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   await ap.keyboard.press('Escape'); await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
   ok(true, 'l’atleta vede il piano del coach (letto dal ponte)')
 
+  // ---- ordine dei piani: dopo il collegamento il piano del coach è il PRINCIPALE; si può riordinare dalle impostazioni ----
+  const tabs = () => ap.getByRole('tablist', { name: 'Piano attivo' }).getByRole('tab')
+  ok((await tabs().first().innerText()).includes('Luca Rossi') && (await tabs().first().getAttribute('aria-selected')) === 'true', 'dopo il collegamento il piano del coach è il primo ed è quello attivo (non il mio)')
+  await openSettings(ap); await ap.getByRole('button', { name: /Ordine dei piani/ }).click()
+  await ap.getByRole('button', { name: 'Sposta su: Il mio piano' }).click(); await ap.keyboard.press('Escape')
+  await ap.reload(); await ap.waitForSelector('text=Oggi'); await sleep(800)
+  ok((await tabs().first().innerText()).includes('Il mio piano') && (await tabs().first().getAttribute('aria-selected')) === 'true', 'dopo il riordino e il riavvio il piano principale è il mio (l’ordine resta salvato)')
+  await openSettings(ap); { const h = ap.getByRole('button', { name: /Ordine dei piani/ }); if ((await h.getAttribute('aria-expanded')) === 'false') await h.click() } // lo stato aperto si ricorda
+  await ap.getByRole('button', { name: 'Sposta su: Luca Rossi' }).click(); await ap.keyboard.press('Escape')
+  await ap.reload(); await ap.waitForSelector('text=Oggi'); await ap.waitForSelector('text=Test 10 km')
+
   // feedback dell'atleta: scritto dal ponte
   await ap.getByRole('button', { name: 'Completa & inserisci feedback' }).click()
   await ap.getByRole('button', { name: '7', exact: true }).click(); await ap.getByLabel('Commento per il coach').fill('Via ponte')
@@ -155,6 +170,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   await sleep(7000)
   const s2 = JSON.parse(f.content).sessions.find((s) => s.title === 'Test 10 km')
   ok(s2.coachNotes === 'Nota del coach' && s2.feedback.comment === 'Via ponte 2', 'scritture concorrenti dal ponte: 409 gestito con rilettura e merge, nessuna perdita')
+
+  // ---- atleta di un GRUPPO: niente presenze né componenti, solo gli allenamenti ----
+  { const doc = JSON.parse(f.content); const later = new Date(Date.now() + 120000).toISOString()
+    doc.athlete = { ...doc.athlete, targetKind: 'group', members: ['Anna', 'Bruno'], updatedAt: later }
+    const sess = doc.sessions.find((x) => x.title === 'Test 10 km'); sess.attendance = ['Anna']; sess.planUpdatedAt = later; sess.updatedAt = later
+    f.content = JSON.stringify(doc); f.version++ }
+  await syncNow(ap); await nav(ap, 'Oggi'); await ap.waitForSelector('text=Test 10 km')
+  ok(await ap.getByText(/presenti/i).count() === 0 && await ap.getByText('Anna').count() === 0, 'atleta di un gruppo: nessuna presenza né componente in "Oggi"')
+  await nav(ap, 'Piano'); await ap.waitForSelector('text=Test 10 km')
+  ok(await ap.getByText('Anna').count() === 0 && await ap.getByText('1/2').count() === 0, 'atleta di un gruppo: nessun conteggio presenze nel piano')
+  await syncNow(cp); await nav(cp, 'Piano'); await cp.waitForSelector('text=Test 10 km')
+  ok(await cp.getByText('1/2').count() > 0, 'il coach continua a vedere i conteggi delle presenze')
+  // si torna a un atleta singolo per le prove successive
+  { const doc = JSON.parse(f.content); const later = new Date(Date.now() + 240000).toISOString(); doc.athlete = { ...doc.athlete, targetKind: 'individual', members: [], updatedAt: later }; f.content = JSON.stringify(doc); f.version++ }
+  await syncNow(cp); await syncNow(ap)
+
+  // ---- atleta singolo già condiviso: niente codice, «Annulla condivisione» ----
+  await nav(cp, 'Team'); await cp.locator('article', { hasText: 'Luca Rossi' }).getByRole('button', { name: 'Impostazioni', exact: true }).click()
+  await cp.getByRole('button', { name: 'Annulla condivisione' }).first().waitFor()
+  ok(await cp.evaluate(() => ![...document.querySelectorAll('input')].some((i) => i.value.startsWith('file0000'))), 'atleta singolo già condiviso: il codice non è mostrato')
+  ok(await cp.getByText('Condiviso con atleta@x.it').count() > 0, 'viene mostrato con chi è condiviso')
+  if (process.env.SHOT) await cp.screenshot({ path: process.env.SHOT + '/shared.png' })
+  await cp.getByRole('button', { name: 'Annulla condivisione' }).first().click()
+  await cp.getByRole('button', { name: 'Annulla condivisione' }).last().click()
+  await cp.getByRole('button', { name: 'Riattiva il codice' }).waitFor({ timeout: 8000 })
+  if (process.env.SHOT) await cp.screenshot({ path: process.env.SHOT + '/closed.png' })
+  ok(!f.shared.has('atleta@x.it') && !houses.has(f.id), 'condivisione tolta su Drive e file scollegato dal ponte (il vecchio codice non rientra)')
+  await sleep(2500)
+  ok(!houses.has(f.id), 'dopo la sincronizzazione il coach non lo ri-registra da solo')
+  await syncNow(ap); await sleep(1500)
+  await cp.getByRole('button', { name: 'Riattiva il codice' }).click(); await sleep(1500)
+  ok(houses.has(f.id), '«Riattiva il codice» registra di nuovo il piano sul ponte')
+  await cp.keyboard.press('Escape')
 
   // ---- SECONDO ATLETA: il coach inserisce la sua email → inviti automatici, senza codice ----
   await cp.getByRole('button', { name: 'Impostazioni', exact: true }).first().click()

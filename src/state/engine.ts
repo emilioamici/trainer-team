@@ -9,6 +9,7 @@ import { nowISO } from '../lib/dates'
 import { addNotification } from '../lib/notifications'
 import { diffNotifications } from '../lib/notifyDiff'
 import { sampleDb } from '../lib/sample'
+import { moveInOrder, orderSources, withMainFirst } from '../lib/planOrder'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
 import * as bridge from '../services/bridgeService'
@@ -53,7 +54,9 @@ export class Engine {
   private interval: ReturnType<typeof setInterval> | null = null
 
   role: UserRole = (LS.get('role') as UserRole) === 'coach' ? 'coach' : 'athlete'
-  private storedActive: string | null = LS.get('active')
+  // all'avvio si apre il piano PRINCIPALE (il primo nell'ordine scelto), non l'ultimo usato
+  private storedActive: string | null = null
+  private planOrder: string[] = (() => { try { const v = JSON.parse(LS.get('planOrder') || '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [] } catch { return [] } })()
   demoEnabled = LS.get('demo') !== '0'
   profileName = LS.get('profileName') || ''
   private personalFileId: string | null = LS.get('personalFileId')
@@ -128,14 +131,24 @@ export class Engine {
   private linkedSources = (): Source[] => this.linked.map((l) => ({ id: l.id, kind: 'linked' as const, fileId: l.fileId, name: this.rt.get(l.id)?.db?.athlete.name || l.name }))
   allSources = (): Source[] => [this.personal(), ...this.athletes(), ...this.linkedSources(), ...this.demos()]
   /** Piani visibili con il ruolo corrente. */
+  /** Piani visibili con il ruolo corrente, nell'ordine scelto (predefinito: i piani dei coach prima del proprio). */
   sources = (): Source[] =>
-    this.role === 'coach'
-      ? [...this.athletes(), ...this.demos().slice(0, 2), this.personal()]
-      : [this.personal(), ...this.linkedSources(), ...this.demos().slice(0, 1)]
+    orderSources(
+      this.role === 'coach'
+        ? [...this.athletes(), ...this.demos().slice(0, 2), this.personal()]
+        : [...this.linkedSources(), this.personal(), ...this.demos().slice(0, 1)],
+      this.planOrder,
+    )
+  /** Il piano principale è il primo: si apre all'avvio e dopo il collegamento a un coach. */
   active = (): Source | null => {
     const list = this.sources()
-    return list.find((s) => s.id === this.storedActive) ?? (this.demoEnabled && this.role === 'athlete' ? list.find((s) => s.kind === 'demo') : undefined) ?? list[0] ?? null
+    const demoFirst = this.demoEnabled && this.role === 'athlete' && !this.linked.length // prima dell'accesso: si parte dalla demo
+    return list.find((s) => s.id === this.storedActive) ?? (demoFirst ? list.find((s) => s.kind === 'demo') : undefined) ?? list[0] ?? null
   }
+  private persistOrder() { LS.set('planOrder', JSON.stringify(this.planOrder)) }
+  /** Imposta l'ordine dei piani (primo = principale); mantiene la posizione degli altri ruoli. */
+  setPlanOrder(ids: string[]) { this.planOrder = [...ids, ...this.planOrder.filter((x) => !ids.includes(x))]; this.persistOrder(); this.emit() }
+  movePlan(id: string, dir: -1 | 1) { this.setPlanOrder(moveInOrder(this.sources().map((s) => s.id), id, dir)) }
   activeDb = () => { const a = this.active(); return a ? this.dbOf(a.id) : null }
   dbOf = (id: string) => this.rt.get(id)?.db ?? null
   statusOf = (id: string) => {
@@ -522,6 +535,7 @@ export class Engine {
     }
     if (!entry?.fileId) throw new Error(t('Non riesco a creare il file su Drive.'))
     const link = inviteLink(entry.fileId)
+    if (entry.shareClosed) this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false }) // un nuovo invito riattiva la condivisione
     let emailed = false
     if (entry.email) {
       const msg = t('Il tuo coach ti ha condiviso il piano di allenamento. Apri Trainer Team, scegli "Collegati a un Coach" e incolla questo link: {link} — oppure il codice: {code}', { link, code: entry.fileId })
@@ -532,10 +546,43 @@ export class Engine {
     // anche senza email, se il ponte è attivo (serve l'accesso persistente del coach)
     await this.registerHouses(true, entry.fileId)
     const bridged = !!getSession() && !!LS.get(`houseReg:${entry.fileId}`)
-    this.registry = upsertEntry(this.registry, { ...entry, invitedAt: nowISO() })
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false, invitedAt: nowISO() })
     this.touchRegistry()
     return { link, code: entry.fileId, emailed, bridge: bridged }
   }
+  /** Account con cui il file dell'atleta è condiviso (esclusi il proprietario). */
+  async sharedWith(athleteId: string): Promise<{ id: string; email: string; role: string }[]> {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return []
+    if (!(await this.ensureToken())) throw new Error(t('Collega prima Google.'))
+    return (await drive.listPermissions(entry.fileId)).filter((p) => p.role !== 'owner' && !!p.emailAddress).map((p) => ({ id: p.id, email: p.emailAddress as string, role: p.role }))
+  }
+
+  /**
+   * Annulla la condivisione di un atleta singolo: toglie le condivisioni su Drive (l'atleta perde subito l'accesso, anche dal ponte)
+   * e scollega il file dal ponte, così nemmeno il vecchio codice rientra. Un nuovo invito la riattiva.
+   */
+  async unshare(athleteId: string): Promise<number> {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return 0
+    const list = await this.sharedWith(athleteId)
+    for (const p of list) await drive.removePermission(entry.fileId, p.id)
+    await bridge.unregisterHouse(entry.fileId, drive.getToken() ?? '')
+    LS.set(`houseReg:${entry.fileId}`, null)
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: true, invitedAt: null })
+    this.touchRegistry()
+    return list.length
+  }
+
+  /** Riattiva il codice di un atleta con la condivisione annullata (senza ancora invitare nessuno). */
+  async reopenShare(athleteId: string) {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false })
+    this.touchRegistry()
+    await this.registerHouses(true, entry.fileId)
+  }
+
   inviteInfo = (athleteId: string) => {
     const e = this.registry.athletes.find((x) => x.athleteId === athleteId)
     return e?.fileId ? { link: inviteLink(e.fileId), code: e.fileId } : null
@@ -593,6 +640,7 @@ export class Engine {
     await this.persist(id)
     this.role = 'athlete'; LS.set('role', 'athlete')
     clearPendingJoin() // collegato: il codice non serve più (altrimenti Impostazioni si riaprirebbe a ogni avvio)
+    this.setPlanOrder(withMainFirst(this.sources().map((s) => s.id), id)) // il piano del coach diventa il principale
     this.invites = this.invites.filter((h) => h.id !== meta!.id)
     this.setActive(id)
     void this.syncPush()
@@ -632,7 +680,7 @@ export class Engine {
     const tok = drive.getToken()
     if (!getSession() || !tok || !workerUrl() || !this.registry.athletes.length || !(await bridge.bridgeAvailable())) return
     for (const e of this.registry.athletes) {
-      if (!e.fileId || (only && e.fileId !== only)) continue
+      if (!e.fileId || e.shareClosed || (only && e.fileId !== only)) continue
       const key = `houseReg:${e.fileId}`
       const last = Number(LS.get(key)) || 0
       if (!force && Date.now() - last < 3 * 86_400_000) continue
@@ -656,6 +704,7 @@ export class Engine {
     this.linked = this.linked.filter((l) => l.id !== id)
     LS.set('linked', JSON.stringify(this.linked))
     this.rt.delete(id); void idbDel('db:' + id)
+    this.planOrder = this.planOrder.filter((x) => x !== id); this.persistOrder()
     if (this.storedActive === id) { this.storedActive = null; LS.set('active', null) }
     this.emit()
   }

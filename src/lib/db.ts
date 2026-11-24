@@ -190,6 +190,7 @@ export const parseRegistry = (raw: unknown): CoachRegistry => {
       addedAt: str(a.addedAt) || nowISO(), invitedAt: typeof a.invitedAt === 'string' ? a.invitedAt : null,
       updatedAt: str(a.updatedAt) || nowISO(),
       targetKind: a.targetKind === 'group' ? 'group' : 'individual',
+      ...(a.shareClosed === true ? { shareClosed: true } : {}),
       ...(members && members.length > 0 ? { members } : {}),
       schedule: opt(a.schedule),
       color: opt(a.color),

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, BookOpen, Cloud, Compass, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, Bell, BookOpen, Cloud, Compass, Database, Link2, ListOrdered, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
-import { SyncBadge, useActive } from '../components/common'
-import { Accordion, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
+import { kindIcon, SyncBadge, useActive } from '../components/common'
+import { Accordion, Badge, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
 import { applyTheme, getTheme, THEME_COLOR, type ThemePref } from '../lib/theme'
 import { clearPendingJoin, pendingJoin } from '../lib/invite'
 import { downloadJSON, readFileText } from '../lib/files'
@@ -145,6 +145,26 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
         {personal && <Field label={t('Disciplina / obiettivo del tuo piano personale')}><input className="input" defaultValue={personal.athlete.focus} placeholder={t('es. Preparazione Atletica Tennis')} onBlur={(ev) => ev.target.value !== personal.athlete.focus && e.mutate('personal', (d) => updateAthlete(d, { focus: ev.target.value.trim() }, e.by()))} /></Field>}
         <p className="text-xs text-muted">{t('Salvato nel profilo del piano e sincronizzato sui tuoi dispositivi.')}</p>
       </Accordion>
+
+      {e.sources().length > 1 && (
+        <Accordion id="order" icon={<ListOrdered size={22} />} title={t('Ordine dei piani')} summary={t('Principale: {name}', { name: e.sources()[0].name })}>
+          <p className="text-xs text-muted">{t('Il primo è il piano principale: è quello che si apre all’avvio dell’app. Usa le frecce per cambiare l’ordine.')}</p>
+          <ul className="space-y-2">
+            {e.sources().map((s, i, all) => {
+              const Icon = kindIcon(s)
+              return (
+                <li key={s.id} className="flex items-center gap-2 rounded-2xl bg-bg p-2.5">
+                  <Icon size={16} className="shrink-0 text-muted" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{s.kind === 'demo' ? `${s.name} · ${t('demo')}` : s.name}</span>
+                  {i === 0 && <Badge className="bg-brand/10 text-brand">{t('Principale')}</Badge>}
+                  <button type="button" className="icon-btn !min-h-9 !min-w-9 !p-1.5 disabled:opacity-35" disabled={i === 0} onClick={() => e.movePlan(s.id, -1)} aria-label={t('Sposta su: {name}', { name: s.name })}><ArrowUp size={16} /></button>
+                  <button type="button" className="icon-btn !min-h-9 !min-w-9 !p-1.5 disabled:opacity-35" disabled={i === all.length - 1} onClick={() => e.movePlan(s.id, 1)} aria-label={t('Sposta giù: {name}', { name: s.name })}><ArrowDown size={16} /></button>
+                </li>
+              )
+            })}
+          </ul>
+        </Accordion>
+      )}
 
       <Accordion id="sync" icon={<Cloud size={22} />} title={t('Sincronizzazione e account')} summary={e.account?.email ?? (e.authState === 'expired' ? t('Sessione scaduta') : t('Non collegato'))} defaultOpen={!e.isAuthed()}>
         {!config.fromBuild() && (

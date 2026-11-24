@@ -10,7 +10,7 @@ import { setAttendance } from '../lib/db'
 import type { WorkoutSession } from '../types'
 
 export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void }) {
-  const { e, src, db, canEdit, canLog, role } = useActive()
+  const { e, src, db, canEdit, canLog, role, members: groupMembers } = useActive()
   const sheets = useWorkoutSheets(src, db, canEdit, canLog)
   const today = todayISO()
   if (!src || !db) return <PageHeader title={t('Oggi')} />
@@ -19,7 +19,6 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
   const upcoming = db.sessions.filter((s) => s.date > today && s.status === 'planned').sort((a, b) => a.date.localeCompare(b.date))[0]
   const week = weekDays(weekStart(today))
   const isCoachView = role === 'coach' && src.kind !== 'personal'
-  const groupMembers = db.athlete.members ?? []
 
   const Card = ({ s }: { s: WorkoutSession }) => {
     const d = DISCIPLINES[s.discipline]
