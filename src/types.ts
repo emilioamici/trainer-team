@@ -34,6 +34,7 @@ export interface WorkoutBlock {
   rest?: string // es. "90''"
   notes?: string
   equipment?: string // attrezzo principale consigliato
+  supersetId?: string // blocchi consecutivi con lo stesso id formano un superset
 }
 
 export interface WorkoutFeedback {

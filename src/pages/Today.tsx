@@ -1,4 +1,4 @@
-import { CalendarOff, Check, Plus } from 'lucide-react'
+import { CalendarOff, Check, Plus, Timer } from 'lucide-react'
 import { t } from '../i18n'
 import { SourcePicker, useActive } from '../components/common'
 import { AttendanceBox, BlockList, FeedbackSummary } from '../components/Workout'
@@ -46,6 +46,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
         <BlockList blocks={s.blocks} />
         <FeedbackSummary fb={s.feedback} status={s.status} />
         <div className="flex gap-2">
+          {(canLog || canEdit) && s.blocks.length > 0 && <button data-tour="today-timer" className="btn btn-soft !py-3" aria-label={t('Avvia timer')} onClick={() => sheets.openTimer(s)}><Timer size={18} />{t('Timer')}</button>}
           {canLog && <button data-tour="today-feedback" className={`btn flex-1 !py-3 ${s.status === 'planned' ? 'btn-primary' : 'btn-soft'}`} onClick={() => sheets.openFeedback(s)}><Check size={18} />{s.status === 'planned' ? t('Completa & inserisci feedback') : t('Modifica feedback')}</button>}
           {canEdit && <button className="btn btn-soft" onClick={() => sheets.openDetail(s)}>{t('Dettagli')}</button>}
         </div>
@@ -58,6 +59,9 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
     <div>
       <PageHeader title={t('Oggi')} sub={isCoachView ? `${db.athlete.name} · ${fmtLong(today)}` : fmtLong(today)} />
       <SourcePicker />
+      <div className="mb-3 flex justify-end">
+        <button className="btn btn-soft !py-2 !text-xs" onClick={() => sheets.openQuickTimer()}><Timer size={15} />{t('Timer rapido')}</button>
+      </div>
 
       <div className="space-y-3">
         {list.length ? list.map((s) => <Card key={s.id} s={s} />) : (
