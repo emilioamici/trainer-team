@@ -4,7 +4,7 @@
  * Un file JSON per atleta; il registro del coach è un file a parte.
  */
 import { t } from '../i18n'
-import { clearSession, getSession, health, refreshSession, startLogin, WorkerError } from './workerService'
+import { clearSession, getSession, health, refreshSession, startLogin, workerPost, WorkerError } from './workerService'
 
 export const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 const API = 'https://www.googleapis.com/drive/v3'
@@ -16,8 +16,8 @@ const CONNECTED_KEY = 'trainer:googleAccount'
 const stored = (k: string) => { try { return localStorage.getItem('trainer:cfg:' + k) || '' } catch { return '' } }
 export const config = {
   clientId: () => import.meta.env.VITE_GOOGLE_CLIENT_ID || stored('clientId'),
-  apiKey: () => import.meta.env.VITE_GOOGLE_API_KEY || stored('apiKey'),
-  appId: () => import.meta.env.VITE_GOOGLE_APP_ID || stored('appId'),
+  apiKey: () => (import.meta.env.VITE_GOOGLE_API_KEY || stored('apiKey')).trim(),
+  appId: () => (import.meta.env.VITE_GOOGLE_APP_ID || stored('appId')).trim(),
   fromBuild: () => !!import.meta.env.VITE_GOOGLE_CLIENT_ID,
   save: (k: 'clientId' | 'apiKey' | 'appId', v: string) => { try { v ? localStorage.setItem('trainer:cfg:' + k, v.trim()) : localStorage.removeItem('trainer:cfg:' + k) } catch { /* ignora */ } },
 }
@@ -140,11 +140,41 @@ const toMeta = (j: { id: string; name: string; version?: string; modifiedTime?: 
   id: j.id, name: j.name, version: String(j.version ?? ''), modifiedTime: j.modifiedTime ?? '', ownedByMe: j.ownedByMe !== false, canEdit: j.capabilities?.canEdit !== false,
 })
 
-export const getMeta = async (fileId: string): Promise<FileMeta> =>
-  toMeta(await (await call(`${API}/files/${encodeURIComponent(fileId)}?fields=${META_FIELDS}`)).json())
+// ---------- piani aperti dal ponte del Worker (invitati senza accesso diretto al file con drive.file) ----------
+const BRIDGED_KEY = 'trainer:bridged'
+const bridgedIds = (): string[] => { try { return JSON.parse(localStorage.getItem(BRIDGED_KEY) ?? '[]') as string[] } catch { return [] } }
+export const isBridged = (fileId: string) => bridgedIds().includes(fileId)
+export const setBridged = (fileId: string, on: boolean) => {
+  try { const rest = bridgedIds().filter((x) => x !== fileId); localStorage.setItem(BRIDGED_KEY, JSON.stringify(on ? [...rest, fileId] : rest)) } catch { /* ignora */ }
+}
+/** Ultima versione del file letta dal ponte: la scrittura la richiede ("scrivi solo se non è cambiato nel frattempo"). */
+const bridgeVersions = new Map<string, string>()
+interface BridgeMeta { id: string; name: string; version: string; modifiedTime: string }
+const bridgeCall = async <T>(path: string, body: unknown): Promise<T> => {
+  const token = getToken()
+  if (!token) throw new DriveError(401, t('Non sei collegato a Google.'))
+  try { return await workerPost<T>(path, token, body) }
+  catch (e) { if (e instanceof WorkerError) throw new DriveError(e.status, e.message); throw e }
+}
+const bridgeFileMeta = (m: BridgeMeta, canEdit: boolean): FileMeta => ({ id: m.id, name: m.name, version: String(m.version), modifiedTime: m.modifiedTime, ownedByMe: false, canEdit })
 
-export const download = async (fileId: string): Promise<unknown> =>
-  (await call(`${API}/files/${encodeURIComponent(fileId)}?alt=media`)).json()
+export const getMeta = async (fileId: string): Promise<FileMeta> => {
+  if (isBridged(fileId)) {
+    const j = await bridgeCall<{ meta: BridgeMeta; canEdit: boolean }>('/db/meta', { fileId })
+    bridgeVersions.set(fileId, String(j.meta.version))
+    return bridgeFileMeta(j.meta, j.canEdit)
+  }
+  return toMeta(await (await call(`${API}/files/${encodeURIComponent(fileId)}?fields=${META_FIELDS}`)).json())
+}
+
+export const download = async (fileId: string): Promise<unknown> => {
+  if (isBridged(fileId)) {
+    const j = await bridgeCall<{ meta: BridgeMeta; db: unknown }>('/db/read', { fileId })
+    bridgeVersions.set(fileId, String(j.meta.version))
+    return j.db
+  }
+  return (await call(`${API}/files/${encodeURIComponent(fileId)}?alt=media`)).json()
+}
 
 const multipart = (metadata: unknown, content: string) => {
   const boundary = 'tt' + Math.random().toString(36).slice(2)
@@ -161,6 +191,13 @@ export const createFile = async (name: string, json: unknown, kind: 'athlete' | 
 }
 
 export const updateFile = async (fileId: string, json: unknown): Promise<FileMeta> => {
+  if (isBridged(fileId)) {
+    const expectedVersion = bridgeVersions.get(fileId)
+    if (!expectedVersion) throw new DriveError(409, 'Versione sconosciuta') // prima si rilegge
+    const j = await bridgeCall<{ meta: BridgeMeta; canEdit: boolean }>('/db/write', { fileId, db: json, expectedVersion })
+    bridgeVersions.set(fileId, String(j.meta.version))
+    return bridgeFileMeta(j.meta, true)
+  }
   const res = await call(`${UPLOAD}/files/${encodeURIComponent(fileId)}?uploadType=media&fields=${META_FIELDS}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(json),
   })

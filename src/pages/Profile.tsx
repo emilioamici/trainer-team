@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bell, BookOpen, Cloud, Compass, Database, Link2, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { SyncBadge, useActive } from '../components/common'
@@ -33,6 +33,7 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
   const [importMsg, setImportMsg] = useState('')
   const file = useRef<HTMLInputElement>(null)
 
+  useEffect(() => { void e.checkInvites(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const st = src ? e.statusOf(src.id) : null
   const personal = e.dbOf('personal')
   const linked = e.sources().filter((s) => s.kind === 'linked')
@@ -198,10 +199,17 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
         )}
       </Accordion>
 
-      <Accordion id="link" icon={<Link2 size={22} />} title={t('Collegati a un Coach')} summary={linked.length ? linked.map((l) => l.name).join(', ') : t('Nessun piano collegato')} defaultOpen={!!pendingJoin()}>
+      <Accordion id="link" icon={<Link2 size={22} />} title={t('Collegati a un Coach')} summary={e.invites.length ? t('{n} inviti ricevuti', { n: e.invites.length }) : linked.length ? linked.map((l) => l.name).join(', ') : t('Nessun piano collegato')} defaultOpen={!!pendingJoin() || e.invites.length > 0}>
+        {e.invites.map((h) => (
+          <div key={h.id} className="flex items-center justify-between gap-2 rounded-2xl border border-brand/30 bg-brand/10 p-3">
+            <span className="min-w-0"><span className="block text-xs font-semibold text-muted">{t('Invito dal coach')}</span><span className="block truncate text-sm font-bold">{e.inviteName(h)}</span></span>
+            <button className="btn btn-primary !py-1.5" disabled={linking} onClick={async () => { setLinking(true); setLinkErr(''); try { await e.linkCoach(h.id); e.notify(t('Collegato! Ora vedi il piano del tuo coach.')) } catch (x) { setLinkErr(x instanceof Error ? x.message : String(x)) } setLinking(false) }}>{t('Collega')}</button>
+          </div>
+        ))}
         <Field label={t('Link d’invito o codice')}><input className="input" value={code} onChange={(ev) => setCode(ev.target.value)} placeholder="https://…#join=…" autoCapitalize="none" autoCorrect="off" /></Field>
         {pendingJoin() && <Notice kind="trf">{t('Invito rilevato dal link: tocca "Collega" (serve essere collegati a Google con l’account invitato).')}</Notice>}
-        {!pickerAvailable() && <Notice kind="warn">{t('Per aprire il file condiviso dal coach servono API key e App ID del Google Picker (vedi README).')}</Notice>}
+        {!e.workerHealth?.bridge && !pickerAvailable() && <Notice kind="warn">{t('Senza il server (Worker) il coach deve condividere il file con la tua email Google; in alternativa servono API key e App ID del Google Picker (vedi README).')}</Notice>}
+        {e.workerHealth?.bridge && <p className="text-xs text-muted">{t('Basta il codice: il coach lo ha già collegato al server e il file viene condiviso in automatico con il tuo account Google.')}</p>}
         {linkErr && <Notice kind="exp">{linkErr}</Notice>}
         <button className="btn btn-primary w-full" disabled={!code.trim() || linking} onClick={doLink}>{linking ? t('Collego…') : t('Collega')}</button>
         {linked.map((l) => (

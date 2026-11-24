@@ -31,7 +31,12 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 1. Il coach passa a **Ruolo: Coach** e collega Google.
 2. **Atleti → + Nuovo atleta**: l'app crea un file JSON **dedicato a quell'atleta sul Drive del coach** (dati e privacy di ogni atleta restano isolati) e aggiorna il *registro* `training-plan-registry.json` (l'elenco dei suoi atleti, ritrovato da qualsiasi dispositivo).
 3. Dal foglio **Gestisci atleta** il coach genera l'**invito**: l'app condivide il file con l'email dell'atleta (ruolo *writer*, con email di Drive) e mostra **link** `…/#join=<fileId>` e **codice** (= ID del file) da copiare o inviare.
-4. L'**atleta** apre il link (o **Profilo → Collegati a un Coach** e incolla link/codice), accedendo con **lo stesso account Google invitato**. Con `drive.file` un file condiviso da altri si apre solo con il **Picker**: l'app lo propone limitato a quel solo file (un tocco).
+4. L'**atleta** accede con Google e si collega in uno di questi modi (l'app prova nell'ordine: accesso diretto → **ponte del Worker** → Picker):
+   - **Invito con email**: il coach inserisce l'email Google dell'atleta e tocca *Invia*. Dopo l'accesso l'atleta trova l'invito **da solo** in *Impostazioni → Collegati a un Coach* (se è l'unico e non ha altri piani collegati, si collega automaticamente).
+   - **Solo codice o link**: l'atleta incolla il codice (o apre il link `…#join=`) in *Collegati a un Coach*. Il Worker condivide il file con il suo account Google; **chi ha il codice può entrare, quindi non va pubblicato**.
+   - **Picker** (ultima risorsa): con `drive.file` un file condiviso da altri si apre dal Picker di Google; serve una chiave API valida e su iPhone spesso non funziona.
+
+   Il **ponte del Worker** (`worker/src/bridge.ts`) evita il Picker: il coach, aprendo l'app con l'accesso persistente, *registra* il file di ogni atleta; da quel momento chi è tra le condivisioni del file su Drive lo legge e lo scrive passando dal Worker, senza Picker e senza chiave API. Senza Worker restano solo l'invito con email e il Picker.
 5. Da quel momento l'atleta vede il piano del coach, spunta gli allenamenti e scrive feedback **sullo stesso file**. Per impostazione predefinita non può creare/modificare allenamenti: il coach lo abilita da *Gestisci atleta → "L'atleta può modificare gli allenamenti"*.
 6. Un atleta può avere **sia** un piano personale **sia** uno o più piani collegati a coach (selettore rapido in cima a Oggi/Piano/Progressi). Un coach può allenare anche sé stesso scegliendo "Il mio piano".
 
@@ -49,7 +54,16 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 5. **Credenziali → Crea credenziali → Chiave API**: copiala e **limitala** (restrizione per sito web: `https://<tuo-utente>.github.io/*` e `http://localhost:5173/*`; restrizione API: *Google Picker API*).
 6. Il **numero del progetto** (Console → Impostazioni progetto) è l'`APP_ID` del Picker.
 
-> Il Picker (API key + App ID) serve **solo** per collegare un atleta al file del coach. Senza, la modalità Solo Atleta e il coach funzionano comunque.
+> Il Picker (API key + App ID) serve **solo** se non usi il ponte del Worker. Senza, la modalità Solo Atleta e il coach funzionano comunque.
+
+### Se il Picker dice «API key invalid»
+L'errore viene da Google, non dall'app: la chiave API della build non è accettata per il Picker. Controlla, nell'ordine:
+1. **Variabile giusta**: `VITE_GOOGLE_API_KEY` in GitHub → Settings → Secrets and variables → Actions → **Variables** (non Secrets), senza spazi o a capo, e il deploy rifatto dopo averla salvata. Deve essere la *chiave API* (inizia per `AIza…`), non il Client ID.
+2. **Stesso progetto**: la chiave API, il Client ID e l'App ID (numero del progetto) devono essere dello **stesso** progetto Google Cloud.
+3. **API abilitata**: nel progetto devono essere abilitate **Google Picker API** e **Google Drive API** (API e servizi → Libreria).
+4. **Restrizioni della chiave**: *Restrizioni applicazione* → *Siti web* con `https://<tuo-utente>.github.io/*` (con `/*` finale, senza il nome del repository nell'origine); *Restrizioni API* → *Google Picker API* (provando, anche senza restrizioni per escludere questa causa). Dopo la modifica Google impiega qualche minuto.
+5. **Cache dell'app**: dopo un nuovo deploy chiudi e riapri l'app (o aggiorna la pagina) per scaricare la versione nuova.
+Con il ponte del Worker attivo non serve nulla di tutto questo.
 
 ## Worker (facoltativo): accesso persistente e notifiche
 

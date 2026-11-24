@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpDown,
@@ -635,6 +635,7 @@ export function ManageAthleteSheet({
   const athleteId = src?.id.replace('athlete:', '') ?? ''
   const info = real ? e.inviteInfo(athleteId) : null
   const entry = real ? e.registry.athletes.find((x) => x.athleteId === athleteId) : null
+  useEffect(() => { if (entry?.fileId) void e.registerHouses(false, entry.fileId) }, [entry?.fileId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isGroup =
     db?.athlete.targetKind === 'group' || (db?.athlete.members && db.athlete.members.length > 0)
@@ -832,6 +833,9 @@ export function ManageAthleteSheet({
                     'Il codice da dare all’atleta: dopo l’accesso lo incolla in «Collegati a un Coach».'
                   )}
                 </p>
+                {real && (e.bridgeReady()
+                  ? <p className="mt-1 px-1 text-xs text-inc">{t('Il codice basta: il file viene condiviso in automatico con l’account Google di chi lo inserisce. Chi ha il codice può entrare: non pubblicarlo.')}</p>
+                  : <Notice kind="warn">{t('Il solo codice non basta: serve il server (Worker) con il ponte e il tuo accesso persistente. Altrimenti inserisci l’email Google dell’atleta qui sotto e tocca «Invia».')}</Notice>)}
               </div>
 
               <div className="flex gap-2">
