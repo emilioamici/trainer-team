@@ -218,6 +218,15 @@ export const shareFile = async (fileId: string, email: string, message: string):
   })
 }
 
+export interface DrivePermission { id: string; emailAddress?: string; role: string }
+/** Condivisioni del file (serve essere il proprietario o avere accesso diretto). */
+export const listPermissions = async (fileId: string): Promise<DrivePermission[]> =>
+  ((await (await call(`${API}/files/${encodeURIComponent(fileId)}/permissions?fields=permissions(id,emailAddress,role)`)).json()) as { permissions?: DrivePermission[] }).permissions ?? []
+/** Toglie una condivisione (il proprietario non si può togliere). */
+export const removePermission = async (fileId: string, permissionId: string): Promise<void> => {
+  await call(`${API}/files/${encodeURIComponent(fileId)}/permissions/${encodeURIComponent(permissionId)}`, { method: 'DELETE' })
+}
+
 export const trashFile = async (fileId: string): Promise<void> => {
   await call(`${API}/files/${encodeURIComponent(fileId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) })
 }

@@ -1,4 +1,4 @@
-import { bridgeReady, canAccessFile, dbMeta, dbRead, dbWrite, houseJoin, houseMine, houseRegister } from './bridge'
+import { bridgeReady, canAccessFile, dbMeta, dbRead, dbWrite, houseJoin, houseMine, houseRegister, houseUnregister } from './bridge'
 import { emailOf, exchangeCode, refreshAccess, revoke, SCOPE, verifyBearer } from './google'
 import { HttpError, allowedOrigins, json, randomId, seal, unseal, type Env } from './util'
 import { isPushHost, sendPush, type PushPayload, type PushSub } from './webpush'
@@ -206,6 +206,7 @@ export default {
           case '/notify': return await notify(env, req, cors)
           case '/test': return await selfTest(env, req, cors)
           case '/house/register': return await houseRegister(env, req, cors)
+          case '/house/unregister': return await houseUnregister(env, req, cors)
           case '/house/join': return await houseJoin(env, req, cors)
           case '/house/mine': return await houseMine(env, req, cors)
           case '/db/meta': return await dbMeta(env, req, cors)

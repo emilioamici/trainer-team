@@ -535,6 +535,7 @@ export class Engine {
     }
     if (!entry?.fileId) throw new Error(t('Non riesco a creare il file su Drive.'))
     const link = inviteLink(entry.fileId)
+    if (entry.shareClosed) this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false }) // un nuovo invito riattiva la condivisione
     let emailed = false
     if (entry.email) {
       const msg = t('Il tuo coach ti ha condiviso il piano di allenamento. Apri Trainer Team, scegli "Collegati a un Coach" e incolla questo link: {link} — oppure il codice: {code}', { link, code: entry.fileId })
@@ -545,10 +546,43 @@ export class Engine {
     // anche senza email, se il ponte è attivo (serve l'accesso persistente del coach)
     await this.registerHouses(true, entry.fileId)
     const bridged = !!getSession() && !!LS.get(`houseReg:${entry.fileId}`)
-    this.registry = upsertEntry(this.registry, { ...entry, invitedAt: nowISO() })
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false, invitedAt: nowISO() })
     this.touchRegistry()
     return { link, code: entry.fileId, emailed, bridge: bridged }
   }
+  /** Account con cui il file dell'atleta è condiviso (esclusi il proprietario). */
+  async sharedWith(athleteId: string): Promise<{ id: string; email: string; role: string }[]> {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return []
+    if (!(await this.ensureToken())) throw new Error(t('Collega prima Google.'))
+    return (await drive.listPermissions(entry.fileId)).filter((p) => p.role !== 'owner' && !!p.emailAddress).map((p) => ({ id: p.id, email: p.emailAddress as string, role: p.role }))
+  }
+
+  /**
+   * Annulla la condivisione di un atleta singolo: toglie le condivisioni su Drive (l'atleta perde subito l'accesso, anche dal ponte)
+   * e scollega il file dal ponte, così nemmeno il vecchio codice rientra. Un nuovo invito la riattiva.
+   */
+  async unshare(athleteId: string): Promise<number> {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return 0
+    const list = await this.sharedWith(athleteId)
+    for (const p of list) await drive.removePermission(entry.fileId, p.id)
+    await bridge.unregisterHouse(entry.fileId, drive.getToken() ?? '')
+    LS.set(`houseReg:${entry.fileId}`, null)
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: true, invitedAt: null })
+    this.touchRegistry()
+    return list.length
+  }
+
+  /** Riattiva il codice di un atleta con la condivisione annullata (senza ancora invitare nessuno). */
+  async reopenShare(athleteId: string) {
+    const entry = this.registry.athletes.find((x) => x.athleteId === athleteId)
+    if (!entry?.fileId) return
+    this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false })
+    this.touchRegistry()
+    await this.registerHouses(true, entry.fileId)
+  }
+
   inviteInfo = (athleteId: string) => {
     const e = this.registry.athletes.find((x) => x.athleteId === athleteId)
     return e?.fileId ? { link: inviteLink(e.fileId), code: e.fileId } : null
@@ -646,7 +680,7 @@ export class Engine {
     const tok = drive.getToken()
     if (!getSession() || !tok || !workerUrl() || !this.registry.athletes.length || !(await bridge.bridgeAvailable())) return
     for (const e of this.registry.athletes) {
-      if (!e.fileId || (only && e.fileId !== only)) continue
+      if (!e.fileId || e.shareClosed || (only && e.fileId !== only)) continue
       const key = `houseReg:${e.fileId}`
       const last = Number(LS.get(key)) || 0
       if (!force && Date.now() - last < 3 * 86_400_000) continue

@@ -105,6 +105,8 @@ export interface TrainingPlanDatabase {
 }
 
 export interface RegistryEntry {
+  /** condivisione annullata dal coach (atleta singolo): il codice non è attivo finché non si invita di nuovo */
+  shareClosed?: boolean
   athleteId: string
   name: string
   focus: string

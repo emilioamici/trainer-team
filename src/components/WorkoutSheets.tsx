@@ -4,6 +4,7 @@ import { blankSession, duplicateSession, removeSession, setAttendance, setLog, u
 import { addDays } from '../lib/dates'
 import type { Source, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 import { useEngine } from '../state/store'
+import { visibleMembers } from './common'
 import { FeedbackSheet, WorkoutDetail, WorkoutEditor } from './Workout'
 
 /** Gestisce dettaglio / editor / feedback di una sessione del piano attivo. */
@@ -20,7 +21,7 @@ export function useWorkoutSheets(src: Source | null, db: TrainingPlanDatabase | 
   const detail = live(detailId)
   const fb = live(fbId)
   const suggestions = [...new Set((db?.sessions ?? []).map((s) => s.title).filter(Boolean))]
-  const groupMembers = db?.athlete.members ?? []
+  const groupMembers = visibleMembers(src, db)
 
   const openNew = useCallback((date: string) => setEditing(blankSession(date, by)), [by])
 

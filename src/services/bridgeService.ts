@@ -15,6 +15,12 @@ export const registerHouse = async (fileId: string, token: string): Promise<bool
   try { await workerPost('/house/register', token, { fileId, session }); return true } catch { return false }
 }
 
+/** Il coach scollega il file dal ponte: il codice smette di funzionare. Silenzioso se non applicabile. */
+export const unregisterHouse = async (fileId: string, token: string): Promise<boolean> => {
+  if (!(await bridgeAvailable())) return false
+  try { await workerPost('/house/unregister', token, { fileId }); return true } catch { return false }
+}
+
 /** Chi presenta il codice viene aggiunto tra gli scrittori del file. Lancia WorkerError (404 = piano non collegato, 403 = non consentito). */
 export const joinHouse = (fileId: string, token: string) => workerPost<{ ok: boolean; joined: boolean; name: string }>('/house/join', token, { fileId })
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpDown,
+  CalendarClock,
   Check,
   Copy,
   Mail,
@@ -209,36 +210,45 @@ export function ScheduleSlotEditor({
       {sortedSlots.length > 0 ? (
         <div className="space-y-2 pt-1">
           {sortedSlots.map((slot) => (
-            <div
-              key={slot.id}
-              className="flex items-center gap-2 rounded-xl border border-line bg-bg p-2 text-xs"
-            >
-              <span className="w-24 shrink-0 font-bold text-ink truncate">{slot.day}</span>
-              <div className="flex flex-1 items-center gap-1 min-w-0">
-                <input
-                  type="time"
-                  className="input !py-1 !px-2 text-xs font-semibold min-w-0 flex-1 text-center"
-                  value={slot.startTime}
-                  onChange={(e) => updateSlot(slot.id, { startTime: e.target.value })}
-                  aria-label={t('Ora inizio')}
-                />
-                <span className="text-muted font-bold">–</span>
-                <input
-                  type="time"
-                  className="input !py-1 !px-2 text-xs font-semibold min-w-0 flex-1 text-center"
-                  value={slot.endTime}
-                  onChange={(e) => updateSlot(slot.id, { endTime: e.target.value })}
-                  aria-label={t('Ora fine')}
-                />
+            <div key={slot.id} className="space-y-2.5 rounded-2xl border border-line bg-bg p-3">
+              <div className="flex items-center justify-between gap-2">
+                {/* il giorno come "bolla", come i campi di testo */}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-sm font-bold text-brand">
+                  <CalendarClock size={14} />
+                  {slot.day}
+                </span>
+                <button
+                  type="button"
+                  className="icon-btn !text-exp shrink-0 !min-h-9 !min-w-9 !p-1.5"
+                  onClick={() => removeSlot(slot.id)}
+                  aria-label={t('Rimuovi fascia oraria')}
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button
-                type="button"
-                className="icon-btn !text-exp shrink-0 !min-h-7 !min-w-7 !p-1"
-                onClick={() => removeSlot(slot.id)}
-                aria-label={t('Rimuovi fascia oraria')}
-              >
-                <X size={14} />
-              </button>
+              <div className="flex items-end gap-2">
+                <label className="min-w-0 flex-1">
+                  <span className="mb-1 block px-3.5 text-[10px] font-bold uppercase tracking-wide text-muted">{t('Dalle')}</span>
+                  <input
+                    type="time"
+                    className="input !rounded-full !px-3 !py-2.5 text-center text-[15px] font-semibold tabular-nums"
+                    value={slot.startTime}
+                    onChange={(e) => updateSlot(slot.id, { startTime: e.target.value })}
+                    aria-label={t('Ora inizio')}
+                  />
+                </label>
+                <span className="pb-3 font-bold text-muted" aria-hidden>→</span>
+                <label className="min-w-0 flex-1">
+                  <span className="mb-1 block px-3.5 text-[10px] font-bold uppercase tracking-wide text-muted">{t('Alle')}</span>
+                  <input
+                    type="time"
+                    className="input !rounded-full !px-3 !py-2.5 text-center text-[15px] font-semibold tabular-nums"
+                    value={slot.endTime}
+                    onChange={(e) => updateSlot(slot.id, { endTime: e.target.value })}
+                    aria-label={t('Ora fine')}
+                  />
+                </label>
+              </div>
             </div>
           ))}
         </div>
@@ -648,6 +658,15 @@ export function ManageAthleteSheet({
     db?.athlete.targetKind === 'group' || (db?.athlete.members && db.athlete.members.length > 0)
   const members = db?.athlete.members ?? []
 
+  // Atleta singolo: se il piano è già condiviso si nasconde il codice e si offre «Annulla condivisione» (i gruppi restano come prima)
+  const [shares, setShares] = useState<{ id: string; email: string; role: string }[] | null>(null)
+  const [askUnshare, setAskUnshare] = useState(false)
+  const checkShares = !!real && !isGroup && !!entry?.fileId && e.isAuthed()
+  const loadShares = () => { if (!checkShares) { setShares(null); return } e.sharedWith(athleteId).then(setShares).catch(() => setShares([])) }
+  useEffect(() => { setShares(null); loadShares() }, [sourceId, entry?.fileId, checkShares]) // eslint-disable-line react-hooks/exhaustive-deps
+  const sharedNow = checkShares && (shares?.length ?? 0) > 0
+  const checking = checkShares && shares === null
+
   const currentSlots: ScheduleSlot[] = useMemo(() => {
     if (!db) return []
     if (db.athlete.scheduleSlots && db.athlete.scheduleSlots.length > 0) {
@@ -804,7 +823,22 @@ export function ManageAthleteSheet({
               </Fold>
             )}
 
+            {/* Atleta singolo già condiviso: niente codice, solo «Annulla condivisione» */}
+            {checking && <p className="px-1 text-xs text-muted">{t('Controllo della condivisione…')}</p>}
+            {sharedNow && (
+              <section className="space-y-3 rounded-2xl border border-line bg-surface p-3.5">
+                <div className="flex items-center gap-2">
+                  <Share2 size={18} className="text-brand" />
+                  <span className="text-sm font-bold">{t('Piano condiviso')}</span>
+                  <Badge className="bg-inc/15 text-[10px] font-bold text-inc"><Check size={10} />{t('Condiviso')}</Badge>
+                </div>
+                <p className="break-all text-xs text-muted">{t('Condiviso con {list}', { list: (shares ?? []).map((x) => x.email).join(', ') })}</p>
+                <p className="text-xs text-muted">{t('Il codice non serve più. Se annulli la condivisione l’atleta perde subito l’accesso al piano; potrai invitarlo di nuovo.')}</p>
+                <button type="button" className="btn btn-danger w-full" disabled={busy} onClick={() => setAskUnshare(true)}>{t('Annulla condivisione')}</button>
+              </section>
+            )}
             {/* Condivisione codice invito (come in clean-duo, meal-duo e money-duo) */}
+            {!sharedNow && !checking && (
             <Fold id="ath-invite" defaultOpen icon={<Share2 size={18} />} title={isGroup ? t('Codice invito gruppo') : t('Codice invito per l’atleta')}
               summary={entry?.invitedAt ? <span className="inline-flex items-center gap-1 font-semibold text-inc"><Check size={12} />{t('Invitato')}</span> : t('Codice, link ed email')}>
               {entry?.invitedAt && (
@@ -843,7 +877,13 @@ export function ManageAthleteSheet({
                     'Il codice da dare all’atleta: dopo l’accesso lo incolla in «Collegati a un Coach».'
                   )}
                 </p>
-                {real && (e.bridgeReady()
+                {real && entry?.shareClosed && !isGroup && (
+                  <div className="mt-1 space-y-2">
+                    <Notice kind="warn">{t('La condivisione è stata annullata: il codice non è attivo. Invita di nuovo l’atleta con l’email qui sotto, oppure riattiva il codice.')}</Notice>
+                    <button type="button" className="btn btn-soft w-full" disabled={busy} onClick={async () => { await e.reopenShare(athleteId); e.notify(t('Codice riattivato')) }}>{t('Riattiva il codice')}</button>
+                  </div>
+                )}
+                {real && !entry?.shareClosed && (e.bridgeReady()
                   ? <p className="mt-1 px-1 text-xs text-inc">{t('Il codice basta: il file viene condiviso in automatico con l’account Google di chi lo inserisce. Chi ha il codice può entrare: non pubblicarlo.')}</p>
                   : <Notice kind="warn">{t('Il solo codice non basta: serve il server (Worker) con il ponte e il tuo accesso persistente. Altrimenti inserisci l’email Google dell’atleta qui sotto e tocca «Invia».')}</Notice>)}
               </div>
@@ -909,6 +949,7 @@ export function ManageAthleteSheet({
                 </div>
               )}
             </Fold>
+            )}
 
             {!isGroup && (
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">
@@ -955,6 +996,18 @@ export function ManageAthleteSheet({
           </div>
         )}
       </Sheet>
+      <Confirm
+        open={askUnshare}
+        title={t('Annullare la condivisione?')}
+        text={t('L’atleta perde subito l’accesso al piano e il codice smette di funzionare. Il piano resta tuo e puoi invitarlo di nuovo quando vuoi.')}
+        confirmLabel={t('Annulla condivisione')}
+        onConfirm={async () => {
+          setBusy(true)
+          try { const n = await e.unshare(athleteId); e.notify(t('Condivisione annullata ({n})', { n })); loadShares() } catch (x) { setErr(x instanceof Error ? x.message : String(x)) }
+          setBusy(false)
+        }}
+        onClose={() => setAskUnshare(false)}
+      />
       <Confirm
         open={ask}
         title={isGroup ? t('Rimuovere il gruppo?') : t('Rimuovere l’atleta?')}

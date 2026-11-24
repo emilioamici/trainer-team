@@ -368,7 +368,7 @@ const sessionsLogged = (db: TrainingPlanDatabase) =>
   db.sessions.filter((s) => s.status === 'done' || s.status === 'partial')
 
 function Progress() {
-  const { src, db, canEdit, canLog } = useActive()
+  const { src, db, canEdit, canLog, members } = useActive()
   const sheets = useWorkoutSheets(src, db, canEdit, canLog)
   const [period, setPeriod] = useState<'week' | 'month'>('week')
   if (!src || !db) return <PageHeader title={t('Progressi')} />
@@ -447,7 +447,7 @@ function Progress() {
                   <p className="px-1 text-xs text-muted">{fmtDay(s.date)}</p>
                   <WorkoutRow
                     s={s}
-                    groupMembers={db.athlete.members ?? []}
+                    groupMembers={members}
                     onClick={() => sheets.openDetail(s)}
                   />
                 </div>

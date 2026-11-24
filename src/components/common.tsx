@@ -1,7 +1,7 @@
 import { Cloud, CloudOff, FlaskConical, Link2, Loader2, TriangleAlert, User, Users, CircleAlert, Check } from 'lucide-react'
 import { t, T } from '../i18n'
 import { useEngine } from '../state/store'
-import type { Source, SyncStatus } from '../types'
+import type { Source, SyncStatus, TrainingPlanDatabase } from '../types'
 import { Badge } from './ui'
 
 const STATUS: Record<SyncStatus, { label: string; cls: string; icon: typeof Cloud }> = {
@@ -42,10 +42,16 @@ export function SourcePicker() {
   )
 }
 
+/**
+ * Componenti del gruppo da mostrare (presenti/assenti, conteggi). Chi è ATLETA di un gruppo del coach (piano collegato) non
+ * deve vedere presenze e appartenenti: solo gli allenamenti. Il coach e il piano personale li vedono come prima.
+ */
+export const visibleMembers = (src: Source | null, db: TrainingPlanDatabase | null): string[] => (src?.kind === 'linked' ? [] : db?.athlete.members ?? [])
+
 /** Piano attivo + permessi, per le pagine che lavorano su un solo piano. */
 export function useActive() {
   const e = useEngine()
   const src = e.active()
   const db = src ? e.dbOf(src.id) : null
-  return { e, src, db, canEdit: e.canEditPlan(src), canLog: e.canLog(src), role: e.role }
+  return { e, src, db, canEdit: e.canEditPlan(src), canLog: e.canLog(src), role: e.role, members: visibleMembers(src, db) }
 }

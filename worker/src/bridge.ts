@@ -130,6 +130,18 @@ export async function houseRegister(env: Env, req: Request, cors: Record<string,
   return json({ ok: true, members: perms.length }, 200, cors)
 }
 
+/** POST /house/unregister {fileId}: il proprietario scollega il file dal ponte (il codice smette di funzionare finché non lo registra di nuovo). */
+export async function houseUnregister(env: Env, req: Request, cors: Record<string, string>): Promise<Response> {
+  if (!bridgeReady(env)) throw new HttpError(503, 'Il ponte non è configurato sul server')
+  const body = (await readBig(req)) as { fileId?: unknown }
+  if (!validFileId(body.fileId)) throw new HttpError(400, 'File non valido')
+  const me = await verifyBearer(env, req)
+  const own = await driveJson<{ ownedByMe?: boolean }>(me.token, `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(body.fileId)}?fields=ownedByMe&supportsAllDrives=true`)
+  if (own.status !== 200 || own.body.ownedByMe !== true) throw new HttpError(403, 'Solo chi ha creato il file può scollegarlo dal ponte')
+  await env.KV.delete(hkey(body.fileId))
+  return json({ ok: true }, 200, cors)
+}
+
 /** POST /house/join {fileId}: chi presenta il codice (ID del file) viene aggiunto tra gli scrittori del file dal Worker. */
 export async function houseJoin(env: Env, req: Request, cors: Record<string, string>): Promise<Response> {
   if (!bridgeReady(env)) throw new HttpError(503, 'Il ponte non è configurato sul server')
