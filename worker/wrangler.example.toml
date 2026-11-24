@@ -13,7 +13,13 @@ ALLOWED_ORIGINS = "https://TUO-UTENTE.github.io"          # solo schema + domini
 VAPID_PUBLIC_KEY = "INCOLLA_LA_CHIAVE_PUBBLICA_VAPID"       # output di scripts/gen-keys.mjs
 VAPID_SUBJECT = "mailto:tua-email@esempio.it"               # contatto per i servizi push (richiesto)
 
+# Importazione con AI (facoltativa): tetti mensili
+AI_MONTHLY_LIMIT = "10"        # importazioni per account al mese
+AI_GLOBAL_LIMIT = "60"         # importazioni totali al mese
+# AI_ALLOWED_EMAILS = "tua-email@gmail.com"   # facoltativo: solo questi account
+
 # SEGRETI: NON metterli qui. Si impostano con:
 #   npx wrangler secret put GOOGLE_CLIENT_SECRET
 #   npx wrangler secret put SESSION_KEY
 #   npx wrangler secret put VAPID_PRIVATE_KEY
+#   npx wrangler secret put GEMINI_API_KEY      # chiave gratuita da https://aistudio.google.com/apikey

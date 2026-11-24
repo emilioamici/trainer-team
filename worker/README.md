@@ -58,7 +58,15 @@ Dopo ogni modifica al Worker: `npx wrangler deploy` (a mano). Senza Git: scarica
 | `POST /house/register` | il **proprietario** del file lo collega al ponte (con la sua sessione persistente) |
 | `POST /house/join` | chi presenta il codice (ID del file) viene aggiunto tra gli scrittori del file |
 | `POST /house/mine` | i piani condivisi con l'account e collegati al ponte (inviti) |
+| `POST /ai/import`, `POST /ai/status` | importazione con AI: il file va a Gemini con la chiave del Worker; tetto mensile per account e totale (vedi sotto) |
 | `POST /db/meta`, `/db/read`, `/db/write` | lettura e scrittura del piano dal ponte (`/db/write` con `expectedVersion`: 409 se il file è cambiato) |
+
+## Importazione con AI (facoltativa, gratuita)
+1. Crea una chiave gratuita su <https://aistudio.google.com/apikey> e salvala: `npx wrangler secret put GEMINI_API_KEY`.
+2. In `wrangler.toml` (vedi `wrangler.example.toml`): `AI_MONTHLY_LIMIT` (importazioni per account al mese, default 10), `AI_GLOBAL_LIMIT` (totali al mese, default 60), `AI_ALLOWED_EMAILS` (facoltativo: solo questi account) e `GEMINI_MODEL` (default `gemini-2.5-flash`; se Google lo ritira cambia solo questa variabile).
+3. Rilancia `npx wrangler deploy`. `/health` mostra `ai: true` e nell'app (ruolo Coach) compare «Converti un file con l'AI» in Importa.
+- Formati: PDF, immagini, testo, CSV (Word/Excel vanno esportati in PDF). Massimo 5 MB.
+- Il contatore si consuma prima della chiamata e viene restituito se Gemini fallisce. Il piano gratuito di Google ha limiti propri (richieste al minuto/giorno) e può usare i contenuti per migliorare i suoi prodotti: per dati sensibili collega la fatturazione.
 
 ## Ponte verso i piani (invitati senza Picker)
 Con il permesso ristretto `drive.file` un file creato dal coach non è accessibile direttamente a un altro account, a meno di passare dal Picker di Google (che richiede una chiave API valida e su iPhone spesso non funziona). Il ponte lo risolve:

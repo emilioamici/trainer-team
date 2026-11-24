@@ -719,4 +719,10 @@ export const en: Record<string, string> = {
   "Meno giri": "Fewer rounds",
   "Più giri": "More rounds",
   "Timer": "Timer",
+  "Accedi con Google per usare l’AI.": "Sign in with Google to use the AI.",
+  "Importazioni AI rimaste questo mese: {n} su {tot}": "AI imports left this month: {n} of {tot}",
+  "Fatto: controlla il JSON qui sotto, poi premi «Importa nel piano»": "Done: check the JSON below, then tap “Import into the plan”",
+  "Sto leggendo il file…": "Reading the file…",
+  "Converti un file con l’AI": "Convert a file with AI",
+  "Scegli un PDF, una foto o un CSV: il file viene letto da Gemini (Google) e il risultato compare qui sotto per un controllo. Per Word o Excel esporta prima in PDF. Massimo 5 MB e poche importazioni al mese.": "Pick a PDF, photo or CSV: the file is read by Gemini (Google) and the result appears below for you to check. For Word or Excel, export to PDF first. Max 5 MB and a few imports per month.",
 }

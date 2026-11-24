@@ -1,3 +1,4 @@
+import { aiImport, aiReady, aiStatus } from './ai'
 import { bridgeReady, canAccessFile, dbMeta, dbRead, dbWrite, houseJoin, houseMine, houseRegister, houseUnregister } from './bridge'
 import { emailOf, exchangeCode, refreshAccess, revoke, SCOPE, verifyBearer } from './google'
 import { HttpError, allowedOrigins, json, randomId, seal, unseal, type Env } from './util'
@@ -191,7 +192,7 @@ export default {
     const cors = corsHeaders(env, req)
     try {
       if (req.method === 'OPTIONS') return new Response(null, { status: cors['access-control-allow-origin'] ? 204 : 403, headers: cors })
-      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env), bridge: bridgeReady(env) }, 200, cors)
+      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env), bridge: bridgeReady(env), ai: aiReady(env) }, 200, cors)
       // navigazione del browser: l'origine non c'è, l'indirizzo di ritorno viene validato
       if (req.method === 'GET' && url.pathname === '/auth/start') return await authStart(env, url)
       if (req.method === 'GET' && url.pathname === '/auth/callback') return await authCallback(env, url)
@@ -212,6 +213,8 @@ export default {
           case '/db/meta': return await dbMeta(env, req, cors)
           case '/db/read': return await dbRead(env, req, cors)
           case '/db/write': return await dbWrite(env, req, cors)
+          case '/ai/status': return await aiStatus(env, req, cors)
+          case '/ai/import': return await aiImport(env, req, cors)
         }
       }
       throw new HttpError(404, 'Non trovato')

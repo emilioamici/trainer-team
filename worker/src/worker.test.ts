@@ -115,9 +115,9 @@ describe('web push', () => {
 describe('health e CORS', () => {
   it('dichiara cosa è configurato', async () => {
     const env = await makeEnv()
-    expect(await (await call(env, '/health', { method: 'GET' })).json()).toEqual({ ok: true, auth: true, push: true, bridge: true })
+    expect(await (await call(env, '/health', { method: 'GET' })).json()).toEqual({ ok: true, auth: true, push: true, bridge: true, ai: false })
     const bare = { ...env, GOOGLE_CLIENT_SECRET: undefined, VAPID_PRIVATE_KEY: undefined } as typeof env
-    expect(await (await call(bare, '/health', { method: 'GET' })).json()).toEqual({ ok: true, auth: false, push: false, bridge: false })
+    expect(await (await call(bare, '/health', { method: 'GET' })).json()).toEqual({ ok: true, auth: false, push: false, bridge: false, ai: false })
   })
   it('le POST dal browser solo da origini autorizzate', async () => {
     const env = await makeEnv()
