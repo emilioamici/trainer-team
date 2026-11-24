@@ -7,6 +7,21 @@ import { uid } from './ids'
 export const PLAN_FORMAT = 'trainer-team-plan'
 export const COACH_EXPORT_FORMAT = 'trainer-team-coach-export'
 
+/**
+ * JSON.parse tollerante per le risposte delle AI: toglie i blocchi ``` e il testo prima/dopo il JSON.
+ * Se non riesce lancia l'errore normale di JSON.parse.
+ */
+export const parseJsonLoose = (text: string): unknown => {
+  try { return JSON.parse(text) } catch (first) {
+    const noFence = text.replace(/^\s*```[a-zA-Z]*\s*/, '').replace(/\s*```\s*$/, '')
+    try { return JSON.parse(noFence) } catch { /* sotto */ }
+    const open = noFence.search(/[[{]/)
+    const close = Math.max(noFence.lastIndexOf('}'), noFence.lastIndexOf(']'))
+    if (open >= 0 && close > open) { try { return JSON.parse(noFence.slice(open, close + 1)) } catch { /* sotto */ } }
+    throw first
+  }
+}
+
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Esporta sessioni in un file JSON portabile (date assolute). */
@@ -52,7 +67,7 @@ export interface MultiAthleteImportItem {
 /** Verifica se il testo JSON rappresenta un'esportazione multi-atleta del coach. */
 export const isMultiAthletePlan = (text: string): boolean => {
   try {
-    const raw = JSON.parse(text)
+    const raw = parseJsonLoose(text)
     return isObj(raw) && (raw.format === COACH_EXPORT_FORMAT || (Array.isArray(raw.athletes) && raw.athletes.length > 0))
   } catch {
     return false
@@ -66,7 +81,7 @@ export const parseMultiAthletePlan = (
   by: 'coach' | 'athlete'
 ): { athletes: MultiAthleteImportItem[] } => {
   let raw: unknown
-  try { raw = JSON.parse(text) } catch { throw new Error(T('Il file non è un JSON valido.')) }
+  try { raw = parseJsonLoose(text) } catch { throw new Error(T('Il file non è un JSON valido.')) }
   if (!isObj(raw) || !Array.isArray(raw.athletes)) throw new Error(T('Non trovo l’elenco "athletes" nel file.'))
   const out: MultiAthleteImportItem[] = []
   for (const item of raw.athletes) {
@@ -107,7 +122,7 @@ export const cloneSessionsWithNewIds = (sessions: WorkoutSession[]): WorkoutSess
  */
 export const parsePlanFile = (text: string, startMonday: string, by: 'coach' | 'athlete'): ImportResult => {
   let raw: unknown
-  try { raw = JSON.parse(text) } catch { throw new Error(T('Il file non è un JSON valido.')) }
+  try { raw = parseJsonLoose(text) } catch { throw new Error(T('Il file non è un JSON valido.')) }
   const list = Array.isArray(raw) ? raw : isObj(raw) && Array.isArray(raw.sessions) ? raw.sessions : null
   if (!list) throw new Error(T('Non trovo l’elenco "sessions" nel file.'))
   const out: WorkoutSession[] = []

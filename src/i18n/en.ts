@@ -678,4 +678,12 @@ export const en: Record<string, string> = {
   "Condivisione annullata ({n})": "Sharing cancelled ({n})",
   "Dalle": "From",
   "Alle": "To",
+  "Hai già un piano in un file? Fallo convertire da un’AI": "Already have a plan in a file? Have an AI convert it",
+  "Copia un prompt da incollare nella tua AI": "Copy a prompt to paste into your AI",
+  "Hai un piano in un PDF, Excel, Word, foto o altro file? 1) Copia il prompt. 2) Incollalo nella tua AI (ChatGPT, Claude, Gemini…) e allega il file. 3) Copia il JSON che ti risponde e incollalo qui sotto.": "Do you have a plan in a PDF, Excel, Word, photo or other file? 1) Copy the prompt. 2) Paste it into your AI (ChatGPT, Claude, Gemini…) and attach the file. 3) Copy the JSON it replies with and paste it below.",
+  "Prompt copiato: incollalo nella tua AI e allega il file": "Prompt copied: paste it into your AI and attach the file",
+  "Copia il prompt per l’AI": "Copy the prompt for the AI",
+  "Mostra il prompt": "Show the prompt",
+  "Prompt per l’AI": "Prompt for the AI",
+  "L’AI vede il contenuto del file: se contiene dati personali, usa un servizio di cui ti fidi.": "The AI sees the content of the file: if it contains personal data, use a service you trust.",
 }

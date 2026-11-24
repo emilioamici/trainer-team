@@ -60,6 +60,14 @@ input, textarea, select, form {
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top); }
 
+/* Campi data/ora: su iOS Safari ignorano la larghezza e sforano il contenitore, con il testo centrato */
+input[type='date'], input[type='time'], input[type='datetime-local'] {
+  display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
+  -webkit-appearance: none; appearance: none;
+}
+input[type='date']::-webkit-date-and-time-value { text-align: left; }
+input[type='date'], input[type='time'], input[type='datetime-local'] { line-height: 1.4; min-height: 2.75rem; }
+
 @layer components {
   .card { @apply rounded-3xl border border-line/80 bg-surface shadow-[0_1px_2px_rgb(var(--ink)/0.04),0_4px_14px_-6px_rgb(var(--ink)/0.08)]; }
 

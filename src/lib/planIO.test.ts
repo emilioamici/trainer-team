@@ -79,3 +79,20 @@ describe('import/export piano', () => {
     expect(cloned[0].title).toBe('Corsa')
   })
 })
+
+describe('risposte delle AI (JSON tollerante)', () => {
+  const plan = JSON.stringify({ format: 'trainer-team-plan', version: 1, sessions: [{ date: '2026-03-02', title: 'Corsa' }] })
+  it('accetta il JSON dentro un blocco ``` o con testo attorno', () => {
+    for (const t of ['```json\n' + plan + '\n```', 'Ecco il piano:\n' + plan + '\nSpero vada bene!', '```\n' + plan + '\n```\n', '  ' + plan + '  ']) {
+      expect(parsePlanFile(t, '2026-03-02', 'coach').sessions).toHaveLength(1)
+    }
+  })
+  it('riconosce il formato multi-atleta anche nel blocco ```', () => {
+    const multi = JSON.stringify({ format: 'trainer-team-coach-export', athletes: [{ athleteName: 'A', plan: JSON.parse(plan) }] })
+    expect(isMultiAthletePlan('```json\n' + multi + '\n```')).toBe(true)
+    expect(parseMultiAthletePlan('```json\n' + multi + '\n```', '2026-03-02', 'coach').athletes[0].sessions).toHaveLength(1)
+  })
+  it('un testo che non è JSON dà ancora errore', () => {
+    expect(() => parsePlanFile('ciao, non ho capito il file', '2026-03-02', 'coach')).toThrow()
+  })
+})
