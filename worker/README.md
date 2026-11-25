@@ -59,6 +59,7 @@ Dopo ogni modifica al Worker: `npx wrangler deploy` (a mano). Senza Git: scarica
 | `POST /house/join` | chi presenta il codice (ID del file) viene aggiunto tra gli scrittori del file |
 | `POST /house/mine` | i piani condivisi con l'account e collegati al ponte (inviti) |
 | `POST /ai/import`, `POST /ai/status` | importazione con AI: il file va a Gemini con la chiave del Worker; tetto mensile per account e totale (vedi sotto) |
+| `GET /strava/callback`, `POST /strava/connect`, `/strava/status`, `/strava/activities`, `/strava/disconnect` | collegamento Strava: l'atleta sceglie nel feedback una sua attività; si salva solo il link (vedi sotto) |
 | `POST /db/meta`, `/db/read`, `/db/write` | lettura e scrittura del piano dal ponte (`/db/write` con `expectedVersion`: 409 se il file è cambiato) |
 
 ## Importazione con AI (facoltativa, gratuita)
@@ -67,6 +68,16 @@ Dopo ogni modifica al Worker: `npx wrangler deploy` (a mano). Senza Git: scarica
 3. Rilancia `npx wrangler deploy`. `/health` mostra `ai: true` e nell'app (ruolo Coach) compare «Converti un file con l'AI» in Importa.
 - Formati: PDF, immagini, testo, CSV (Word/Excel vanno esportati in PDF). Massimo 5 MB.
 - Il contatore si consuma prima della chiamata e viene restituito se Gemini fallisce. Il piano gratuito di Google ha limiti propri (richieste al minuto/giorno) e può usare i contenuti per migliorare i suoi prodotti: per dati sensibili collega la fatturazione.
+
+## Collegamento Strava (facoltativo)
+Ogni utente collega il **proprio** account Strava dalle Impostazioni; nel feedback di un allenamento sceglie da un elenco una sua attività. Il Worker legge solo id, nome, sport e data (nessuna statistica); a Drive arriva soltanto il link `strava.com/activities/<id>`. Il coach apre il link su Strava, secondo i permessi di Strava.
+1. Su <https://www.strava.com/settings/api> crea l'app. **Authorization Callback Domain**: il dominio del Worker (es. `trainer-team.TUO-UTENTE.workers.dev`, senza `https://`). Scrivi un nome, una descrizione e carica un'icona.
+2. `npx wrangler secret put STRAVA_CLIENT_SECRET`; in `wrangler.toml` imposta `STRAVA_CLIENT_ID` (il numero dell'app) e, se vuoi, `STRAVA_MAX_ATHLETES` (default 10).
+3. `npx wrangler deploy`: `/health` mostra `strava: true`.
+- **Tetto:** un'app Strava non approvata può collegare pochi atleti (10 dopo l'upgrade). Il Worker applica lo stesso tetto in anticipo (`STRAVA_MAX_ATHLETES`) per mostrare un messaggio chiaro; chi è già collegato può sempre ricollegarsi e «Scollega» libera il posto. Oltre il tetto Strava richiede una revisione dell'app (developers.strava.com).
+- **Permesso:** si chiede solo `activity:read` (attività pubbliche e per i follower; quelle «solo io» non compaiono).
+- **Marchio:** Strava chiede di rispettare le sue linee guida (pulsante «Connect with Strava», «Powered by Strava»). Nell'app c'è il testo «Powered by Strava»; per la revisione sostituisci il pulsante con la grafica ufficiale.
+- **Cosa salva il Worker:** token Strava cifrato (stessa chiave dei token Google) e l'elenco delle email collegate (per il tetto). «Scollega» revoca il permesso su Strava e cancella tutto.
 
 ## Ponte verso i piani (invitati senza Picker)
 Con il permesso ristretto `drive.file` un file creato dal coach non è accessibile direttamente a un altro account, a meno di passare dal Picker di Google (che richiede una chiave API valida e su iPhone spesso non funziona). Il ponte lo risolve:

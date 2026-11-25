@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, Bell, BookOpen, Cloud, Compass, Database, Link2, ListOrdered, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, Bell, BookOpen, Cloud, Compass, Database, Link2, ListOrdered, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, lang, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { kindIcon, SyncBadge, useActive } from '../components/common'
 import { Accordion, Badge, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
@@ -9,6 +9,7 @@ import { clearPendingJoin, pendingJoin } from '../lib/invite'
 import { downloadJSON, readFileText } from '../lib/files'
 import { slug } from '../lib/ids'
 import { updateAthlete } from '../lib/db'
+import { StravaSettings } from '../components/StravaLink'
 import { fmtDay } from '../lib/dates'
 import { config, pickerAvailable } from '../services/googleDriveService'
 import { isIos, isStandalone, pushSupported } from '../services/pushService'
@@ -240,6 +241,10 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
             <p className="text-xs text-muted">{t('Il contenuto delle notifiche passa dal server in forma cifrata e non viene conservato. Vale per questo dispositivo.')}</p>
           </>
         )}
+      </Accordion>
+
+      <Accordion id="strava" icon={<Activity size={22} />} title="Strava" summary={t('Collega le tue attività')}>
+        <StravaSettings onNotify={e.notify} />
       </Accordion>
 
       <Accordion id="link" icon={<Link2 size={22} />} title={t('Collegati a un Coach')} summary={e.invites.length ? t('{n} inviti ricevuti', { n: e.invites.length }) : linked.length ? linked.map((l) => l.name).join(', ') : t('Nessun piano collegato')} defaultOpen={!!pendingJoin() || e.invites.length > 0}>

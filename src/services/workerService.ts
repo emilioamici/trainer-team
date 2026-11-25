@@ -11,7 +11,7 @@ export class WorkerError extends Error {
   constructor(public status: number, message: string) { super(message) }
 }
 
-export interface Health { ok: boolean; auth: boolean; push: boolean; bridge?: boolean; ai?: boolean }
+export interface Health { ok: boolean; auth: boolean; push: boolean; bridge?: boolean; ai?: boolean; strava?: boolean }
 let healthP: Promise<Health | null> | null = null
 /** Funzioni del server attive? (feature detection: un Worker vecchio o assente non rompe nulla) */
 export const health = (): Promise<Health | null> => {

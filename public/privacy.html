@@ -46,7 +46,11 @@
   <li><strong>Accesso persistente</strong>: il Worker conserva il token di rinnovo di Google <em>cifrato</em> (fino a 180 giorni, cancellato al logout); all'app arriva solo un identificativo di sessione casuale.</li>
   <li><strong>Notifiche</strong>: il Worker conserva l'iscrizione push del dispositivo e, per ogni file condiviso, l'elenco delle email iscritte. Il testo delle notifiche (es. "Completato: Test 10 km") lo attraversa cifrato e non viene salvato.</li>
 </ul>
-<p>Il Worker non legge né conserva i piani di allenamento, con una sola eccezione facoltativa:</p>
+<p>Il Worker non legge né conserva i piani di allenamento, con due eccezioni facoltative:</p>
+<ul>
+  <li><strong>Collegamento a Strava</strong> (facoltativo, per ogni utente): il Worker conserva <em>cifrato</em> il token di accesso a Strava e l'email dell'account collegato. Legge soltanto l'elenco delle tue attività (id, nome, sport, data) per farti scegliere quale collegare; nell'app e su Drive resta solo il link all'attività. Nessuna statistica Strava viene salvata o mostrata ad altri. «Scollega Strava» revoca il permesso e cancella i dati.</li>
+</ul>
+<p>L'altra eccezione:</p>
 <ul>
   <li><strong>Importazione con AI</strong> (solo coach, solo se attivata): quando scegli «Converti un file con l'AI», il file che selezioni viene inviato tramite il Worker al servizio Gemini di Google per essere trasformato in un piano. Il Worker non salva il file né il risultato; conserva solo un contatore mensile di utilizzo per account (tetto mensile). Evita di caricare file con dati sensibili di terzi senza il loro consenso.</li>
 </ul>
@@ -103,7 +107,11 @@
   <li><strong>Persistent sign-in</strong>: the Worker stores Google's refresh token <em>encrypted</em> (up to 180 days, deleted on logout); the app only receives a random session identifier.</li>
   <li><strong>Notifications</strong>: the Worker stores the device's push subscription and, for each shared file, the list of subscribed emails. Notification text (e.g. "Completed: Test 10 km") passes through it encrypted and is not stored.</li>
 </ul>
-<p>The Worker does not read or store training plans, with one optional exception:</p>
+<p>The Worker does not read or store training plans, with two optional exceptions:</p>
+<ul>
+  <li><strong>Strava connection</strong> (optional, per user): the Worker stores your Strava access token <em>encrypted</em> and the email of the connected account. It only reads the list of your activities (id, name, sport, date) so you can pick one to link; only the link to the activity stays in the app and on Drive. No Strava statistics are stored or shown to others. "Disconnect Strava" revokes the permission and deletes the data.</li>
+</ul>
+<p>The other exception:</p>
 <ul>
   <li><strong>AI import</strong> (coaches only, only if enabled): when you choose "Convert a file with AI", the file you select is sent through the Worker to Google's Gemini service to be turned into a plan. The Worker does not store the file or the result; it only keeps a monthly usage counter per account (monthly cap). Avoid uploading files with third parties' sensitive data without their consent.</li>
 </ul>

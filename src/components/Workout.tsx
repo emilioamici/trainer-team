@@ -7,6 +7,7 @@ import { parseNum } from '../lib/files'
 import { uid } from '../lib/ids'
 import { groupBlocks } from '../lib/timer'
 import { extractStravaUrl } from '../lib/strava'
+import { StravaField, useStrava } from './StravaLink'
 import { EXERCISE_CATEGORIES, searchExercises, type ExerciseCategory, type ExerciseItem } from '../lib/exercises'
 import type { SessionStatus, WorkoutBlock, WorkoutFeedback, WorkoutSession } from '../types'
 import { Badge, Confirm, Field, Segmented, Sheet } from './ui'
@@ -894,6 +895,8 @@ function FeedbackForm({
   const [comment, setComment] = useState(fb?.comment ?? '')
   const [strava, setStrava] = useState(fb?.stravaUrl ?? '')
   const [stravaErr, setStravaErr] = useState('')
+  const sv = useStrava().state
+  const stravaPicker = sv !== 'loading' && sv !== 'unavailable' // con il server Strava si sceglie dall'elenco, altrimenti si incolla il link
   const skipped = status === 'skipped'
 
   const save = () => {
@@ -994,7 +997,8 @@ function FeedbackForm({
           placeholder={t('Come ti sei sentito, carichi usati, affaticamento, dettagli utili…')}
         />
       </Field>
-      {!skipped && (
+      {!skipped && stravaPicker && <StravaField date={s.date} url={strava} onChange={setStrava} />}
+      {!skipped && !stravaPicker && (
         <Field label={t('Attività Strava (facoltativo)')}>
           <input
             className="input"

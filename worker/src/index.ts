@@ -1,4 +1,5 @@
 import { aiImport, aiReady, aiStatus } from './ai'
+import { stravaActivities, stravaCallback, stravaConnect, stravaDisconnect, stravaReady, stravaStatus } from './strava'
 import { bridgeReady, canAccessFile, dbMeta, dbRead, dbWrite, houseJoin, houseMine, houseRegister, houseUnregister } from './bridge'
 import { emailOf, exchangeCode, refreshAccess, revoke, SCOPE, verifyBearer } from './google'
 import { HttpError, allowedOrigins, json, randomId, seal, unseal, type Env } from './util'
@@ -192,10 +193,11 @@ export default {
     const cors = corsHeaders(env, req)
     try {
       if (req.method === 'OPTIONS') return new Response(null, { status: cors['access-control-allow-origin'] ? 204 : 403, headers: cors })
-      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env), bridge: bridgeReady(env), ai: aiReady(env) }, 200, cors)
+      if (url.pathname === '/health') return json({ ok: true, auth: authReady(env), push: pushReady(env), bridge: bridgeReady(env), ai: aiReady(env), strava: stravaReady(env) }, 200, cors)
       // navigazione del browser: l'origine non c'è, l'indirizzo di ritorno viene validato
       if (req.method === 'GET' && url.pathname === '/auth/start') return await authStart(env, url)
       if (req.method === 'GET' && url.pathname === '/auth/callback') return await authCallback(env, url)
+      if (req.method === 'GET' && url.pathname === '/strava/callback') return await stravaCallback(env, url)
       // dal browser: solo dalle origini autorizzate
       if (req.method === 'POST') {
         if (!cors['access-control-allow-origin']) throw new HttpError(403, 'Origine non autorizzata')
@@ -215,6 +217,10 @@ export default {
           case '/db/write': return await dbWrite(env, req, cors)
           case '/ai/status': return await aiStatus(env, req, cors)
           case '/ai/import': return await aiImport(env, req, cors)
+          case '/strava/connect': return await stravaConnect(env, req, cors, url.origin)
+          case '/strava/status': return await stravaStatus(env, req, cors)
+          case '/strava/activities': return await stravaActivities(env, req, cors)
+          case '/strava/disconnect': return await stravaDisconnect(env, req, cors)
         }
       }
       throw new HttpError(404, 'Non trovato')

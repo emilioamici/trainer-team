@@ -18,8 +18,13 @@ AI_MONTHLY_LIMIT = "10"        # importazioni per account al mese
 AI_GLOBAL_LIMIT = "60"         # importazioni totali al mese
 # AI_ALLOWED_EMAILS = "tua-email@gmail.com"   # facoltativo: solo questi account
 
+# Collegamento Strava (facoltativo)
+# STRAVA_CLIENT_ID = "12345"
+# STRAVA_MAX_ATHLETES = "10"
+
 # SEGRETI: NON metterli qui. Si impostano con:
 #   npx wrangler secret put GOOGLE_CLIENT_SECRET
 #   npx wrangler secret put SESSION_KEY
 #   npx wrangler secret put VAPID_PRIVATE_KEY
+#   npx wrangler secret put STRAVA_CLIENT_SECRET   # dall'app su strava.com/settings/api
 #   npx wrangler secret put GEMINI_API_KEY      # chiave gratuita da https://aistudio.google.com/apikey
