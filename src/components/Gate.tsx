@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, FlaskConical } from 'lucide-react'
+import { LogIn, Users, Dumbbell, FlaskConical } from 'lucide-react'
 import { t } from '../i18n'
 import { config } from '../services/googleDriveService'
 import { useEngine } from '../state/store'
@@ -32,10 +32,7 @@ export function Gate({ mode, onLoggedIn }: { mode: 'login' | 'relogin'; onLogged
       <Background />
       <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
         <div className="mx-auto mb-6 flex flex-col items-center gap-3 text-center" role="img" aria-label="FM Training">
-          <div className="flex items-end justify-center gap-1">
-            <Mascot who="atleta" className="h-44 drop-shadow-lg" />
-            <Mascot who="coach" className="h-44 drop-shadow-lg" />
-          </div>
+          <Mascot who="coach" kind="bust" fade className="h-44 drop-shadow-lg" />
           <span className="flex items-center gap-2.5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2B2E35] text-sm font-black tracking-tight text-white ring-1 ring-white/15">FM</span>
             <span className="text-2xl font-black tracking-tight text-ink">Training</span>
@@ -54,10 +51,10 @@ export function Gate({ mode, onLoggedIn }: { mode: 'login' | 'relogin'; onLogged
               <p className="text-sm text-muted">{t('Accedi con Google per salvare i piani di allenamento sul tuo Drive e sincronizzarli tra i dispositivi.')}</p>
               <div className="space-y-2">
                 <OptionRow selected={role === 'athlete'} onClick={() => setRole('athlete')}>
-                  <span className="flex items-center gap-3"><Mascot who="atleta" kind="bust" className="h-10 w-10 shrink-0 rounded-full bg-brand/10 object-cover object-top" /><span><span className="block font-semibold">{t('Sono un atleta')}</span><span className="block text-xs text-muted">{t('Segui il tuo piano e registra gli allenamenti')}</span></span></span>
+                  <span className="flex items-center gap-3"><Dumbbell size={20} className="text-brand" /><span><span className="block font-semibold">{t('Sono un atleta')}</span><span className="block text-xs text-muted">{t('Segui il tuo piano e registra gli allenamenti')}</span></span></span>
                 </OptionRow>
                 <OptionRow selected={role === 'coach'} onClick={() => setRole('coach')}>
-                  <span className="flex items-center gap-3"><Mascot who="coach" kind="bust" className="h-10 w-10 shrink-0 rounded-full bg-brand/10 object-cover object-top" /><span><span className="block font-semibold">{t('Sono un coach')}</span><span className="block text-xs text-muted">{t('Gestisci gli atleti e programma i loro allenamenti')}</span></span></span>
+                  <span className="flex items-center gap-3"><Users size={20} className="text-brand" /><span><span className="block font-semibold">{t('Sono un coach')}</span><span className="block text-xs text-muted">{t('Gestisci gli atleti e programma i loro allenamenti')}</span></span></span>
                 </OptionRow>
               </div>
               {role === 'athlete' && (
