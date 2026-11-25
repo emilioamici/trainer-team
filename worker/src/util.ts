@@ -11,9 +11,6 @@ export interface Env {
   AI_MONTHLY_LIMIT?: string // importazioni AI al mese per account (default 10)
   AI_GLOBAL_LIMIT?: string // importazioni AI al mese in totale (default 60)
   AI_ALLOWED_EMAILS?: string // facoltativo: solo questi account (separati da virgola)
-  STRAVA_CLIENT_ID?: string // collegamento Strava (facoltativo)
-  STRAVA_CLIENT_SECRET?: string // secret
-  STRAVA_MAX_ATHLETES?: string // atleti collegati al massimo (default 10: tetto di un'app Strava non ancora approvata)
   ALLOWED_ORIGINS: string // origini dell'app, separate da virgola (schema+dominio, senza percorso)
 }
 

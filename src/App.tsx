@@ -4,7 +4,7 @@ import { BottomNav, type Tab } from './components/BottomNav'
 import { Background, Logo, ToastHost } from './components/ui'
 import { NotificationCenter, TopHeader } from './components/HeaderControls'
 import { SettingsSheet } from './pages/Profile'
-import { t, useLangPref } from './i18n'
+import { useLangPref } from './i18n'
 import { Gate } from './components/Gate'
 import { captureJoinFromUrl, pendingJoin } from './lib/invite'
 import { isTutorialCompleted, TutorialModal } from './components/TutorialModal'
@@ -14,7 +14,6 @@ import Plan from './pages/Plan'
 import Team from './pages/Team'
 import Today from './pages/Today'
 import { useEngine } from './state/store'
-import { captureStrava, stravaMessage } from './services/stravaService'
 
 export default function App() {
   const e = useEngine()
@@ -30,13 +29,6 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [tab])
-
-  // ritorno dal consenso di Strava
-  useEffect(() => {
-    const r = captureStrava()
-    if (r) { setSettingsOpen(true); e.notify(t(stravaMessage(r)), r === 'ok' ? 'ok' : 'err') }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const gate = e.gateMode()
   // il ruolo decide quali schede esistono: coach = Gruppi + Atleti, atleta = Progressi (cambiando ruolo la scheda si adegua)
