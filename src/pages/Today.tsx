@@ -43,7 +43,7 @@ export default function Today({ onGoPlan }: { onGoPlan: (date?: string) => void 
           />
         )}
         {s.coachNotes && <p className="rounded-2xl bg-brand/10 p-3 text-sm"><span className="font-semibold text-brand">{t('Note del coach')}: </span>{s.coachNotes}</p>}
-        <BlockList blocks={s.blocks} />
+        <BlockList blocks={s.blocks} onTimer={canLog || canEdit ? (ids) => sheets.openTimer(s, ids) : undefined} />
         <FeedbackSummary fb={s.feedback} status={s.status} />
         <div className="flex gap-2">
           {(canLog || canEdit) && s.blocks.length > 0 && <button data-tour="today-timer" className="btn btn-soft !py-3" aria-label={t('Avvia timer')} onClick={() => sheets.openTimer(s)}><Timer size={18} />{t('Timer')}</button>}

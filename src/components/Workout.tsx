@@ -22,7 +22,7 @@ const detailPills = (b: WorkoutBlock): string[] => {
   return out
 }
 
-function BlockItem({ b, tag }: { b: WorkoutBlock; tag?: string }) {
+function BlockItem({ b, tag, onTimer }: { b: WorkoutBlock; tag?: string; onTimer?: () => void }) {
   return (
     <div className="rounded-2xl bg-bg p-3">
       <div className="flex items-center justify-between gap-2">
@@ -34,6 +34,11 @@ function BlockItem({ b, tag }: { b: WorkoutBlock; tag?: string }) {
           <span className="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-muted">
             {b.equipment}
           </span>
+        )}
+        {onTimer && (
+          <button type="button" className="icon-btn !min-h-9 !min-w-9 shrink-0 !text-brand" aria-label={`${t('Timer')}: ${b.title || t('Senza titolo')}`} onClick={onTimer}>
+            <Timer size={18} />
+          </button>
         )}
       </div>
       {detailPills(b).length > 0 && (
@@ -50,7 +55,8 @@ function BlockItem({ b, tag }: { b: WorkoutBlock; tag?: string }) {
   )
 }
 
-export function BlockList({ blocks }: { blocks: WorkoutBlock[] }) {
+/** `onTimer` (facoltativo): mostra un timer per ogni esercizio e per ogni superset; riceve gli id dei blocchi da cronometrare. */
+export function BlockList({ blocks, onTimer }: { blocks: WorkoutBlock[]; onTimer?: (blockIds: string[]) => void }) {
   return (
     <div className="space-y-3">
       {PHASE_ORDER.map((ph) => {
@@ -62,13 +68,18 @@ export function BlockList({ blocks }: { blocks: WorkoutBlock[] }) {
             <ul className="space-y-2">
               {groupBlocks(list).map((g, gi) =>
                 g.length === 1 ? (
-                  <li key={g[0].id}><BlockItem b={g[0]} /></li>
+                  <li key={g[0].id}><BlockItem b={g[0]} onTimer={onTimer && (() => onTimer([g[0].id]))} /></li>
                 ) : (
                   <li key={g[0].id} data-testid="superset" className="space-y-1.5 rounded-2xl border border-brand/40 p-1.5">
                     <p className="flex items-center gap-1 px-1.5 pt-0.5 text-[11px] font-bold uppercase tracking-wide text-brand">
                       <Link2 size={12} />{t('Superset')} {String.fromCharCode(65 + (gi % 26))}
+                      {onTimer && (
+                        <button type="button" className="ml-auto flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-bold normal-case tracking-normal" aria-label={`${t('Timer')}: ${t('Superset')} ${String.fromCharCode(65 + (gi % 26))}`} onClick={() => onTimer(g.map((b) => b.id))}>
+                          <Timer size={12} />{t('Timer')}
+                        </button>
+                      )}
                     </p>
-                    {g.map((b, i) => <BlockItem key={b.id} b={b} tag={`${String.fromCharCode(65 + (gi % 26))}${i + 1}`} />)}
+                    {g.map((b, i) => <BlockItem key={b.id} b={b} tag={`${String.fromCharCode(65 + (gi % 26))}${i + 1}`} onTimer={onTimer && (() => onTimer([b.id]))} />)}
                   </li>
                 ),
               )}
@@ -239,7 +250,7 @@ interface DetailProps {
   onDelete: (s: WorkoutSession) => void
   groupMembers?: string[]
   onAttendanceChange?: (attendance: string[]) => void
-  onStartTimer?: (s: WorkoutSession) => void
+  onStartTimer?: (s: WorkoutSession, blockIds?: string[]) => void
 }
 
 export function WorkoutDetail({
@@ -310,7 +321,7 @@ export function WorkoutDetail({
             )}
 
             {s.blocks.length ? (
-              <BlockList blocks={s.blocks} />
+              <BlockList blocks={s.blocks} onTimer={onStartTimer && ((ids) => onStartTimer(s, ids))} />
             ) : (
               <p className="text-sm text-muted">{t('Nessun blocco: aggiungili con Modifica.')}</p>
             )}
