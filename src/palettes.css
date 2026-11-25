@@ -1,0 +1,169 @@
+/* Generato da scripts/gen-palettes.mjs — non modificare a mano. */
+
+/* Notte viola */
+:root[data-palette='notte'] {
+    --bg: 239 227 235; --surface: 250 245 248; --ink: 14 27 72; --muted: 104 107 137; --line: 210 201 214;
+    --brand: 91 75 134; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 250 245 248 / 0.82; --glass-strong: 250 245 248 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 91 75 134 / 0.1; --scrim: 14 27 72 / 0.6;
+    --blob-a: 91 75 134 / 0.16; --blob-b: 53 51 103 / 0.2; --blob-c: 135 121 164 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='notte']:not([data-theme='light']) {
+    --bg: 14 31 47; --surface: 26 49 72; --ink: 226 202 216; --muted: 164 152 167; --line: 44 55 71;
+    --brand: 193 141 180; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 26 49 72 / 0.8; --glass-strong: 26 49 72 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 193 141 180 / 0.24; --blob-b: 210 172 198 / 0.18; --blob-c: 139 108 140 / 0.22;
+  }
+}
+:root[data-palette='notte'][data-theme='dark'] {
+    --bg: 14 31 47; --surface: 26 49 72; --ink: 226 202 216; --muted: 164 152 167; --line: 44 55 71;
+    --brand: 193 141 180; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 26 49 72 / 0.8; --glass-strong: 26 49 72 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 193 141 180 / 0.24; --blob-b: 210 172 198 / 0.18; --blob-c: 139 108 140 / 0.22;
+  }
+
+/* Caffè bordeaux */
+:root[data-palette='bordeaux'] {
+    --bg: 241 231 218; --surface: 251 247 241; --ink: 59 18 24; --muted: 132 103 102; --line: 217 203 193;
+    --brand: 109 41 50; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 251 247 241 / 0.82; --glass-strong: 251 247 241 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 109 41 50 / 0.1; --scrim: 59 18 24 / 0.6;
+    --blob-a: 109 41 50 / 0.16; --blob-b: 84 30 37 / 0.2; --blob-c: 149 98 100 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='bordeaux']:not([data-theme='light']) {
+    --bg: 43 14 19; --surface: 74 26 34; --ink: 232 216 196; --muted: 169 148 137; --line: 69 42 44;
+    --brand: 199 183 163; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 74 26 34 / 0.8; --glass-strong: 74 26 34 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 199 183 163 / 0.24; --blob-b: 216 200 180 / 0.18; --blob-c: 152 132 120 / 0.22;
+  }
+}
+:root[data-palette='bordeaux'][data-theme='dark'] {
+    --bg: 43 14 19; --surface: 74 26 34; --ink: 232 216 196; --muted: 169 148 137; --line: 69 42 44;
+    --brand: 199 183 163; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 74 26 34 / 0.8; --glass-strong: 74 26 34 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 199 183 163 / 0.24; --blob-b: 216 200 180 / 0.18; --blob-c: 152 132 120 / 0.22;
+  }
+
+/* Foresta */
+:root[data-palette='foresta'] {
+    --bg: 230 239 218; --surface: 246 249 240; --ink: 15 42 29; --muted: 91 112 96; --line: 202 213 193;
+    --brand: 55 85 52; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 246 249 240 / 0.82; --glass-strong: 246 249 240 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 55 85 52 / 0.1; --scrim: 15 42 29 / 0.6;
+    --blob-a: 55 85 52 / 0.16; --blob-b: 35 64 41 / 0.2; --blob-c: 108 131 102 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='foresta']:not([data-theme='light']) {
+    --bg: 11 31 21; --surface: 23 54 38; --ink: 227 238 212; --muted: 145 159 139; --line: 41 60 48;
+    --brand: 107 144 113; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 23 54 38 / 0.8; --glass-strong: 23 54 38 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 107 144 113 / 0.24; --blob-b: 167 191 163 / 0.18; --blob-c: 78 110 85 / 0.22;
+  }
+}
+:root[data-palette='foresta'][data-theme='dark'] {
+    --bg: 11 31 21; --surface: 23 54 38; --ink: 227 238 212; --muted: 145 159 139; --line: 41 60 48;
+    --brand: 107 144 113; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 23 54 38 / 0.8; --glass-strong: 23 54 38 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 107 144 113 / 0.24; --blob-b: 167 191 163 / 0.18; --blob-c: 78 110 85 / 0.22;
+  }
+
+/* Rubino e blu */
+:root[data-palette='rubino'] {
+    --bg: 247 233 235; --surface: 255 248 248; --ink: 42 12 18; --muted: 124 100 105; --line: 220 204 207;
+    --brand: 164 37 39; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 255 248 248 / 0.82; --glass-strong: 255 248 248 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 164 37 39 / 0.1; --scrim: 42 12 18 / 0.6;
+    --blob-a: 164 37 39 / 0.16; --blob-b: 103 25 29 / 0.2; --blob-c: 189 96 98 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='rubino']:not([data-theme='light']) {
+    --bg: 21 11 18; --surface: 43 18 25; --ink: 251 230 233; --muted: 164 147 151; --line: 53 42 48;
+    --brand: 254 132 146; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 43 18 25 / 0.8; --glass-strong: 43 18 25 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 254 132 146 / 0.24; --blob-b: 253 181 190 / 0.18; --blob-c: 184 96 108 / 0.22;
+  }
+}
+:root[data-palette='rubino'][data-theme='dark'] {
+    --bg: 21 11 18; --surface: 43 18 25; --ink: 251 230 233; --muted: 164 147 151; --line: 53 42 48;
+    --brand: 254 132 146; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 43 18 25 / 0.8; --glass-strong: 43 18 25 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 254 132 146 / 0.24; --blob-b: 253 181 190 / 0.18; --blob-c: 184 96 108 / 0.22;
+  }
+
+/* Oceano */
+:root[data-palette='oceano'] {
+    --bg: 227 243 253; --surface: 245 251 255; --ink: 2 16 36; --muted: 92 107 123; --line: 198 213 225;
+    --brand: 5 38 89; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 245 251 255 / 0.82; --glass-strong: 245 251 255 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 5 38 89 / 0.1; --scrim: 2 16 36 / 0.6;
+    --blob-a: 5 38 89 / 0.16; --blob-b: 4 27 63 / 0.2; --blob-c: 72 100 138 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='oceano']:not([data-theme='light']) {
+    --bg: 2 16 36; --surface: 10 33 71; --ink: 193 232 255; --muted: 120 150 172; --line: 29 46 67;
+    --brand: 84 131 179; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 10 33 71 / 0.8; --glass-strong: 10 33 71 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 84 131 179 / 0.24; --blob-b: 139 182 217 / 0.18; --blob-c: 59 97 136 / 0.22;
+  }
+}
+:root[data-palette='oceano'][data-theme='dark'] {
+    --bg: 2 16 36; --surface: 10 33 71; --ink: 193 232 255; --muted: 120 150 172; --line: 29 46 67;
+    --brand: 84 131 179; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 10 33 71 / 0.8; --glass-strong: 10 33 71 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 84 131 179 / 0.24; --blob-b: 139 182 217 / 0.18; --blob-c: 59 97 136 / 0.22;
+  }
+
+/* Pesca e rosa */
+:root[data-palette='pesca'] {
+    --bg: 245 230 222; --surface: 252 246 242; --ink: 74 36 32; --muted: 134 105 99; --line: 223 205 197;
+    --brand: 192 83 63; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 252 246 242 / 0.82; --glass-strong: 252 246 242 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 192 83 63 / 0.1; --scrim: 74 36 32 / 0.6;
+    --blob-a: 192 83 63 / 0.16; --blob-b: 133 60 48 / 0.2; --blob-c: 208 127 111 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='pesca']:not([data-theme='light']) {
+    --bg: 42 24 22; --surface: 60 35 32; --ink: 251 233 227; --muted: 172 154 149; --line: 71 53 51;
+    --brand: 254 163 142; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 60 35 32 / 0.8; --glass-strong: 60 35 32 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 254 163 142 / 0.24; --blob-b: 253 198 185 / 0.18; --blob-c: 190 121 106 / 0.22;
+  }
+}
+:root[data-palette='pesca'][data-theme='dark'] {
+    --bg: 42 24 22; --surface: 60 35 32; --ink: 251 233 227; --muted: 172 154 149; --line: 71 53 51;
+    --brand: 254 163 142; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 60 35 32 / 0.8; --glass-strong: 60 35 32 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 254 163 142 / 0.24; --blob-b: 253 198 185 / 0.18; --blob-c: 190 121 106 / 0.22;
+  }

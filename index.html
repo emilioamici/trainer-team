@@ -23,6 +23,8 @@
           var c = t === 'dark' ? '#26282b' : '#e8e9eb'
           document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.content = c })
         }
+        var pl = localStorage.getItem('trainer:palette')
+        if (pl && /^[a-z]+$/.test(pl)) document.documentElement.dataset.palette = pl
       } catch (e) {}
     </script>
   </head>

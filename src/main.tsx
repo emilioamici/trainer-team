@@ -5,6 +5,7 @@ import App from './App'
 import { StoreProvider } from './state/store'
 import { getTheme, applyTheme } from './lib/theme'
 import './index.css'
+import './palettes.css'
 
 applyTheme(getTheme())
 
