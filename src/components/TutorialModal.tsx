@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, m } from 'framer-motion'
+import { Mascot } from './Mascot'
 import {
   ArrowLeft,
   ArrowRight,
@@ -151,16 +152,20 @@ export function TutorialModal({
   const coachSteps: TutorialStep[] = [
     {
       id: 'coach-welcome',
-      title: t('Benvenuto Coach su Trainer Team'),
+      title: t('Benvenuto Coach su FM Training'),
       subtitle: t('La preparazione atletica per il tennis moderno'),
       badge: t('Panoramica'),
       icon: Trophy,
       color: 'from-amber-500 to-yellow-400',
       content: (
         <div className="space-y-3 text-sm text-ink/90">
+          <div className="flex items-end justify-center -space-x-3">
+            <Mascot who="atleta" kind="bust" fade className="h-28" />
+            <Mascot who="coach" kind="bust" fade className="h-28" />
+          </div>
           <p>
             {t(
-              'Trainer Team è l’applicazione progettata per preparatori atletici e maestri di tennis FIT: gestisci i gruppi della scuola tennis, gli atleti agonisti individuali e le tabelle di lavoro con facilità.'
+              'FM Training è l’applicazione progettata per preparatori atletici e maestri di tennis FIT: gestisci i gruppi della scuola tennis, gli atleti agonisti individuali e le tabelle di lavoro con facilità.'
             )}
           </p>
           <div className="grid grid-cols-2 gap-2 pt-2">
@@ -344,6 +349,7 @@ export function TutorialModal({
       color: 'from-brand to-blue-500',
       content: (
         <div className="space-y-3 text-sm text-ink/90">
+          <div className="flex justify-center"><Mascot who="atleta" kind="bust" fade className="h-28" /></div>
           <p className="text-xs text-muted">
             {t(
               'Incolla qui sotto il codice o il link di invito inviato dal tuo coach per collegare la tua scheda di allenamento.'
@@ -524,7 +530,7 @@ export function TutorialModal({
           </p>
           <div className="rounded-xl border border-line bg-surface/50 p-3 text-xs text-muted">
             {t(
-              'Con Trainer Team rimani sempre allineato con il tuo preparatore atletico per dare il massimo nei tornei e in campo.'
+              'Con FM Training rimani sempre allineato con il tuo preparatore atletico per dare il massimo nei tornei e in campo.'
             )}
           </div>
         </div>

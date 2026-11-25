@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, Pause, Play, Plus, Timer, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Pause, Play, Plus, Volume2, VolumeX, X } from 'lucide-react'
 import { t } from '../i18n'
 import { Fixed, Sheet } from './ui'
+import { Mascot } from './Mascot'
 import { fmtClock, intervalSteps, totalSeconds, type TimerStep } from '../lib/timer'
 
 const SOUND_KEY = 'trainer:timerSound'
@@ -142,7 +143,7 @@ export function WorkoutTimer({ open, title, steps, onClose, onFinish }: Props) {
 
         {!started ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-            <Timer size={48} className="text-brand" />
+            <Mascot kind="bust" fade className="h-36" />
             <h2 className="text-2xl font-extrabold">{title}</h2>
             <p className="text-sm text-muted">
               {t('{n} passaggi', { n: steps.length })}{total ? ` · ~${Math.ceil(total / 60)} min ${t('di tempo programmato')}` : ''}
@@ -154,7 +155,7 @@ export function WorkoutTimer({ open, title, steps, onClose, onFinish }: Props) {
           </div>
         ) : done ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-            <Check size={56} className="text-inc" />
+            <Mascot className="h-52 drop-shadow-lg" />
             <h2 className="text-2xl font-extrabold">{t('Allenamento finito!')}</h2>
             <p className="text-sm text-muted">{t('Tempo totale: {time}', { time: fmtClock(elapsed / 1000) })}</p>
             {onFinish && (

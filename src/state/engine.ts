@@ -538,7 +538,7 @@ export class Engine {
     if (entry.shareClosed) this.registry = upsertEntry(this.registry, { ...entry, shareClosed: false }) // un nuovo invito riattiva la condivisione
     let emailed = false
     if (entry.email) {
-      const msg = t('Il tuo coach ti ha condiviso il piano di allenamento. Apri Trainer Team, scegli "Collegati a un Coach" e incolla questo link: {link} — oppure il codice: {code}', { link, code: entry.fileId })
+      const msg = t('Il tuo coach ti ha condiviso il piano di allenamento. Apri FM Training, scegli "Collegati a un Coach" e incolla questo link: {link} — oppure il codice: {code}', { link, code: entry.fileId })
       await drive.shareFile(entry.fileId, entry.email, msg)
       emailed = true
     }

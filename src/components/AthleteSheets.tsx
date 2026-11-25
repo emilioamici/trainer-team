@@ -751,7 +751,7 @@ export function ManageAthleteSheet({
   const share = (link: string) => {
     if (navigator.share) {
       void navigator
-        .share({ title: 'Trainer Team', text: t('Ecco il tuo piano di allenamento'), url: link })
+        .share({ title: 'FM Training', text: t('Ecco il tuo piano di allenamento'), url: link })
         .catch(() => undefined)
     } else {
       void copy(link)

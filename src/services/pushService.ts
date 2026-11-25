@@ -63,7 +63,7 @@ export interface PushResult { sent: number; failed: number; removed: number; cod
 /** Prova di invio: dice la verità usando la risposta del server. */
 export const testPush = async (token: string): Promise<string> => {
   try {
-    const r = await workerPost<PushResult>('/test', token, { title: 'Trainer Team', body: t('Notifica di prova: funziona!'), url: location.origin + import.meta.env.BASE_URL })
+    const r = await workerPost<PushResult>('/test', token, { title: 'FM Training', body: t('Notifica di prova: funziona!'), url: location.origin + import.meta.env.BASE_URL })
     if (r.sent > 0) return t('Notifica inviata: dovrebbe comparire a breve.')
     if (r.removed > 0) return t('L’iscrizione di questo dispositivo era scaduta: disattiva e riattiva le notifiche.')
     if (r.failed > 0) return t('Il servizio push ha rifiutato l’invio (codice {code}).', { code: (r.codes ?? []).join(', ') || '?' })
