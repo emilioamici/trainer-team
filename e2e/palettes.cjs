@@ -2,7 +2,7 @@
 // Uso: npm run build && npx vite preview --port 4173 &  poi  node e2e/palettes.cjs [cartella-screenshot]
 const { chromium } = require('playwright')
 const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.exitCode = 1 }
-const IDS = [['Notte viola', 'notte'], ['Caffè bordeaux', 'bordeaux'], ['Foresta', 'foresta'], ['Rubino e blu', 'rubino'], ['Oceano', 'oceano'], ['Pesca e rosa', 'pesca']]
+const IDS = [['Notte viola', 'notte'], ['Caffè bordeaux', 'bordeaux'], ['Foresta', 'foresta'], ['Rubino e blu', 'rubino'], ['Oceano', 'oceano'], ['Pesca e rosa', 'pesca'], ['Junior Tennis Perugia', 'jtp']]
 ;(async () => {
   const b = await chromium.launch()
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'it-IT', colorScheme: 'dark' })
@@ -20,22 +20,32 @@ const IDS = [['Notte viola', 'notte'], ['Caffè bordeaux', 'bordeaux'], ['Forest
     await p.getByRole('button', { name: label, exact: true }).click(); await p.waitForTimeout(250)
     ok((await p.evaluate(() => document.documentElement.dataset.palette)) === id, `«${label}» → data-palette=${id}`)
     const bg = await tok('--bg'); ok(!seen.has(bg), `${id}: sfondo scuro proprio (${bg})`); seen.add(bg)
+    if (id === 'jtp') {
+      await p.keyboard.press('Escape'); await p.waitForTimeout(700)
+      const img = p.getByRole('img', { name: 'Junior Tennis Perugia' })
+      ok(await img.count() === 1 && await img.evaluate((i) => i.naturalWidth > 0), 'tema Junior Tennis Perugia: il logo dell’app cambia (immagine caricata)')
+      ok(await p.getByRole('img', { name: 'Trainer Team' }).count() === 0, 'il logo Trainer Team non c’è più')
+      if (process.argv[2]) await p.screenshot({ path: `${process.argv[2]}/pal-jtp-header.png` })
+      await p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click(); await p.waitForTimeout(800)
+    }
     if (process.argv[2]) { await p.screenshot({ path: `${process.argv[2]}/pal-${id}-dark.png` }) }
   }
   // chiaro
   await p.getByRole('button', { name: 'Modalità chiara', exact: true }).click(); await p.waitForTimeout(250)
   const lightBg = await tok('--bg')
-  ok(lightBg !== base && /^\d+ \d+ \d+$/.test(lightBg) && +lightBg.split(' ')[0] > 200, `modalità chiara con palette pesca: sfondo chiaro (${lightBg})`)
-  if (process.argv[2]) await p.screenshot({ path: process.argv[2] + '/pal-pesca-light.png' })
+  ok(lightBg !== base && /^\d+ \d+ \d+$/.test(lightBg) && +lightBg.split(' ')[0] > 200, `modalità chiara con palette jtp: sfondo chiaro (${lightBg})`)
+  if (process.argv[2]) await p.screenshot({ path: process.argv[2] + '/pal-jtp-light.png' })
   // persistenza
   await p.reload(); await p.waitForSelector('text=Oggi')
-  ok((await p.evaluate(() => document.documentElement.dataset.palette)) === 'pesca' && (await tok('--bg')) === lightBg, 'dopo il ricaricamento palette e modo restano')
+  ok((await p.evaluate(() => document.documentElement.dataset.palette)) === 'jtp' && (await tok('--bg')) === lightBg, 'dopo il ricaricamento palette e modo restano')
   // ritorno al classico
   await p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click()
   await p.waitForTimeout(800)
   const look2 = p.getByRole('button', { name: /Aspetto/ }); if ((await look2.getAttribute('aria-expanded')) === 'false') await look2.click()
   await p.locator('button', { hasText: /^Classico$/ }).click(); await p.waitForTimeout(250)
   ok((await p.evaluate(() => document.documentElement.dataset.palette)) === undefined, '«Classico» toglie la palette')
+  await p.keyboard.press('Escape'); await p.waitForTimeout(700)
+  ok(await p.getByRole('img', { name: 'Trainer Team' }).count() === 1, 'col Classico torna il logo Trainer Team')
   ok(errs.length === 0, 'nessun errore in console ' + errs.join(' | '))
   await b.close()
 })().catch((e) => { console.error('ERRORE', e); process.exit(1) })

@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { PALETTES, usePalette } from '../lib/palette'
 import { AnimatePresence, animate, m, useMotionValue } from 'framer-motion'
 import { Check, ChevronDown, Dumbbell, X, type LucideIcon } from 'lucide-react'
 import { t } from '../i18n'
@@ -18,6 +19,11 @@ export function Background() {
 
 // ---------- logo ----------
 export function Logo({ className = '' }: { className?: string }) {
+  const pal = usePalette()
+  const custom = PALETTES.find((p) => p.id === pal && p.logo)
+  if (custom?.logo) {
+    return <img src={`${import.meta.env.BASE_URL}${custom.logo}`} alt={custom.it} className={`h-12 w-12 shrink-0 object-contain ${className}`} />
+  }
   return (
     <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="Trainer Team">
       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand via-blue-600 to-indigo-600 text-white shadow-md shadow-brand/25 ring-1 ring-white/20">

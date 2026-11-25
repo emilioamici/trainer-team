@@ -167,3 +167,31 @@
     --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
     --blob-a: 254 163 142 / 0.24; --blob-b: 253 198 185 / 0.18; --blob-c: 190 121 106 / 0.22;
   }
+
+/* Junior Tennis Perugia */
+:root[data-palette='jtp'] {
+    --bg: 236 235 248; --surface: 255 255 255; --ink: 27 25 82; --muted: 111 109 148; --line: 209 208 226;
+    --brand: 56 53 134; --onbrand: 255 255 255;
+    --inc: 16 149 84; --exp: 225 29 72; --trf: 2 132 199; --warn: 217 130 0;
+    --glass: 255 255 255 / 0.82; --glass-strong: 255 255 255 / 0.94;
+    --glass-edge: 255 255 255 / 0.85; --glass-edge-soft: 255 255 255 / 0.45; --glass-shade: 56 53 134 / 0.1; --scrim: 27 25 82 / 0.6;
+    --blob-a: 56 53 134 / 0.16; --blob-b: 247 233 64 / 0.2; --blob-c: 110 108 168 / 0.14;
+  }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='jtp']:not([data-theme='light']) {
+    --bg: 18 16 58; --surface: 32 29 92; --ink: 244 242 255; --muted: 158 156 180; --line: 50 48 86;
+    --brand: 247 233 64; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 32 29 92 / 0.8; --glass-strong: 32 29 92 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 247 233 64 / 0.24; --blob-b: 247 233 64 / 0.18; --blob-c: 178 168 62 / 0.22;
+  }
+}
+:root[data-palette='jtp'][data-theme='dark'] {
+    --bg: 18 16 58; --surface: 32 29 92; --ink: 244 242 255; --muted: 158 156 180; --line: 50 48 86;
+    --brand: 247 233 64; --onbrand: 20 17 15;
+    --inc: 52 211 153; --exp: 251 113 133; --trf: 96 165 250; --warn: 250 204 21;
+    --glass: 32 29 92 / 0.8; --glass-strong: 32 29 92 / 0.94;
+    --glass-edge: 255 255 255 / 0.18; --glass-edge-soft: 255 255 255 / 0.07; --glass-shade: 0 0 0 / 0.45; --scrim: 0 0 0 / 0.62;
+    --blob-a: 247 233 64 / 0.24; --blob-b: 247 233 64 / 0.18; --blob-c: 178 168 62 / 0.22;
+  }
