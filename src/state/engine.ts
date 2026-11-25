@@ -13,6 +13,7 @@ import { moveInOrder, orderSources, withMainFirst } from '../lib/planOrder'
 import * as drive from '../services/googleDriveService'
 import * as push from '../services/pushService'
 import * as bridge from '../services/bridgeService'
+import { coachRestricted, isCoachEmail } from '../lib/coachAccess'
 import { captureSession, getSession, health, logoutSession, workerUrl, WorkerError, type Health } from '../services/workerService'
 import type { CoachRegistry, RegistryEntry, ScheduleSlot, SessionStatus, Source, SyncStatus, TargetKind, TrainingPlanDatabase, UserRole, WorkoutSession } from '../types'
 
@@ -166,7 +167,23 @@ export class Engine {
   by = () => this.account?.email || this.role
 
   setActive(id: string) { this.storedActive = id; LS.set('active', id); this.emit() }
-  setRole(r: UserRole) { this.role = r; LS.set('role', r); this.emit(); void this.syncAll() }
+  setRole(r: UserRole) {
+    if (r === 'coach' && !this.canBeCoach()) { this.notify(t('Solo l’account del coach può usare il ruolo Coach.'), 'err'); return }
+    this.role = r; LS.set('role', r); this.emit(); void this.syncAll()
+  }
+  /** Account abilitato al ruolo Coach? (vero se non c'è restrizione o se non si è ancora entrati con Google) */
+  private coachOk: boolean | null = null
+  canBeCoach = () => !coachRestricted() || this.coachOk !== false
+  /** Dopo aver saputo l'account: chi non è il coach torna atleta. */
+  private async checkCoach() {
+    this.coachOk = !coachRestricted() || (!!this.account && (await isCoachEmail(this.account.email)))
+    if (!this.coachOk && this.role === 'coach') {
+      this.role = 'athlete'; LS.set('role', 'athlete')
+      this.storedActive = 'personal'; LS.set('active', 'personal')
+      this.notify(t('Solo l’account del coach può usare il ruolo Coach: entri come atleta.'), 'err')
+      this.emit(); void this.syncAll()
+    } else this.emit()
+  }
   setDemo(on: boolean) {
     this.demoEnabled = on; LS.set('demo', on ? '1' : '0')
     if (!on) { void idbDel('db:demo:1'); void idbDel('db:demo:2'); this.rt.delete('demo:1'); this.rt.delete('demo:2') }
@@ -290,6 +307,7 @@ export class Engine {
     try {
       await drive.signIn(true)
       this.account = await drive.getAbout()
+      await this.checkCoach()
       this.setAuth('in')
       this.notify(t('Collegato a Google come {email}', { email: this.account.email }))
       this.finishOnboarding()
@@ -329,14 +347,14 @@ export class Engine {
   }
   async loadAccount() {
     if (this.account || !drive.getToken()) return
-    try { this.account = await drive.getAbout(); this.emit() } catch { /* ignora */ }
+    try { this.account = await drive.getAbout(); await this.checkCoach() } catch { /* ignora */ }
   }
   async disconnect() {
     const tok = drive.getToken()
     if (push.pushWanted()) await push.disablePush(tok).catch(() => undefined)
     await logoutSession()
     drive.signOut()
-    this.account = null; this.authState = 'out'
+    this.account = null; this.coachOk = null; this.authState = 'out'
     this.rt.forEach((r) => { if (r.status !== 'local') r.status = r.dirty ? 'pending' : 'local' })
     this.emit()
   }

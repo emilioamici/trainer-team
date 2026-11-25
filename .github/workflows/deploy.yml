@@ -31,6 +31,7 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_API_KEY: ${{ vars.VITE_GOOGLE_API_KEY }}
           VITE_GOOGLE_APP_ID: ${{ vars.VITE_GOOGLE_APP_ID }}
+          VITE_COACH_EMAILS: ${{ vars.VITE_COACH_EMAILS }}
           VITE_PUSH_URL: ${{ vars.VITE_PUSH_URL }}
           VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
       - run: cp dist/index.html dist/404.html

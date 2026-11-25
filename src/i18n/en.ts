@@ -427,7 +427,7 @@ export const en: Record<string, string> = {
   "Solo su questo dispositivo": "Only on this device",
   "Solo {name}": "Only {name}",
   "Sono un atleta": "I'm an athlete",
-  "Sono un coach": "I'm a coach",
+  "Sono il Coach": "I'm The Coach",
   "Sostituisci": "Replace",
   "Spalle addotte, piedi piantati a terra.": "Retracted scapulae, feet planted on the floor.",
   "Spider Drill (Test del Ragno con coni)": "Spider Drill (Tennis Cone Test)",
@@ -727,4 +727,6 @@ export const en: Record<string, string> = {
   "Scegli un PDF, una foto o un CSV: il file viene letto da Gemini (Google) e il risultato compare qui sotto per un controllo. Per Word o Excel esporta prima in PDF. Massimo 5 MB e poche importazioni al mese.": "Pick a PDF, photo or CSV: the file is read by Gemini (Google) and the result appears below for you to check. For Word or Excel, export to PDF first. Max 5 MB and a few imports per month.",
   "Colori": "Colors",
   "Classico": "Classic",
+  "Solo l’account del coach può usare il ruolo Coach.": "Only the coach’s account can use the Coach role.",
+  "Solo l’account del coach può usare il ruolo Coach: entri come atleta.": "Only the coach’s account can use the Coach role: you’re signed in as an athlete.",
 }

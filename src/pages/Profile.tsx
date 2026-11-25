@@ -129,7 +129,7 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
       )}
 
       <Accordion id="role" icon={<Users size={22} />} title={t('Ruolo')} summary={e.role === 'coach' ? t('Coach') : t('Atleta')} defaultOpen>
-        <Segmented id="role" value={e.role} onChange={(r: UserRole) => e.setRole(r)} options={[{ value: 'athlete', label: t('Atleta') }, { value: 'coach', label: t('Coach') }]} />
+        <Segmented id="role" value={e.role} onChange={(r: UserRole) => e.setRole(r)} options={[{ value: 'athlete', label: t('Atleta') }, ...(e.canBeCoach() ? [{ value: 'coach' as UserRole, label: t('Coach') }] : [])]} />
         <div className="flex items-center gap-3">
         <Mascot kind="bust" fade className="h-24 shrink-0" />
         <p className="text-xs text-muted">
