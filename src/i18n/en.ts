@@ -727,8 +727,4 @@ export const en: Record<string, string> = {
   "Scegli un PDF, una foto o un CSV: il file viene letto da Gemini (Google) e il risultato compare qui sotto per un controllo. Per Word o Excel esporta prima in PDF. Massimo 5 MB e poche importazioni al mese.": "Pick a PDF, photo or CSV: the file is read by Gemini (Google) and the result appears below for you to check. For Word or Excel, export to PDF first. Max 5 MB and a few imports per month.",
   "Colori": "Colors",
   "Classico": "Classic",
-  "Apri l’attività su Strava": "Open the activity on Strava",
-  "Il link non sembra di Strava: incolla l’indirizzo dell’attività (strava.com/activities/…).": "That doesn’t look like a Strava link: paste the activity address (strava.com/activities/…).",
-  "Attività Strava (facoltativo)": "Strava activity (optional)",
-  "Nell’app Strava apri l’attività, tocca Condividi e Copia link, poi incollalo qui. Il coach potrà aprirla da qui; nell’app non entra nessun dato di Strava.": "In the Strava app open the activity, tap Share and Copy link, then paste it here. Your coach can open it from here; no Strava data enters this app.",
 }

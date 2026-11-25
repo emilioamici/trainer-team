@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CirclePlus, Copy, Dumbbell, ExternalLink, Link2, Link2Off, MessageSquare, Pencil, Timer, Trash2, Users, X } from 'lucide-react'
+import { Check, CirclePlus, Copy, Dumbbell, Link2, Link2Off, MessageSquare, Pencil, Timer, Trash2, Users, X } from 'lucide-react'
 import { t } from '../i18n'
 import { DISCIPLINES, DISCIPLINE_ORDER, FEELS, PHASES, PHASE_ORDER, STATUS_BADGE, STATUS_LABEL } from '../lib/disciplines'
 import { fmtLong } from '../lib/dates'
 import { parseNum } from '../lib/files'
 import { uid } from '../lib/ids'
 import { groupBlocks } from '../lib/timer'
-import { extractStravaUrl } from '../lib/strava'
 import { EXERCISE_CATEGORIES, searchExercises, type ExerciseCategory, type ExerciseItem } from '../lib/exercises'
 import type { SessionStatus, WorkoutBlock, WorkoutFeedback, WorkoutSession } from '../types'
 import { Badge, Confirm, Field, Segmented, Sheet } from './ui'
@@ -115,17 +114,6 @@ export function FeedbackSummary({ fb, status }: { fb: WorkoutFeedback | null; st
           <MessageSquare size={14} className="mt-0.5 shrink-0 text-muted" />
           {fb.comment}
         </p>
-      )}
-      {fb?.stravaUrl && (
-        <a
-          href={fb.stravaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-soft mt-2.5 w-full !py-2.5 !text-sm"
-        >
-          <ExternalLink size={15} />
-          {t('Apri l’attività su Strava')}
-        </a>
       )}
     </div>
   )
@@ -892,16 +880,9 @@ function FeedbackForm({
   const [rpe, setRpe] = useState<number | undefined>(fb?.rpe)
   const [feel, setFeel] = useState(fb?.feel)
   const [comment, setComment] = useState(fb?.comment ?? '')
-  const [strava, setStrava] = useState(fb?.stravaUrl ?? '')
-  const [stravaErr, setStravaErr] = useState('')
   const skipped = status === 'skipped'
 
   const save = () => {
-    const link = strava.trim() ? extractStravaUrl(strava) : null
-    if (strava.trim() && !link) {
-      setStravaErr(t('Il link non sembra di Strava: incolla l’indirizzo dell’attività (strava.com/activities/…).'))
-      return
-    }
     onSave(status, {
       durationMin: skipped ? undefined : parseNum(dur),
       distanceKm: fb?.distanceKm,
@@ -909,7 +890,6 @@ function FeedbackForm({
       rpe: skipped ? undefined : rpe,
       feel,
       comment: comment.trim() || undefined,
-      stravaUrl: link ?? undefined,
       loggedAt: '',
     })
     onClose()
@@ -994,23 +974,6 @@ function FeedbackForm({
           placeholder={t('Come ti sei sentito, carichi usati, affaticamento, dettagli utili…')}
         />
       </Field>
-      {!skipped && (
-        <Field label={t('Attività Strava (facoltativo)')}>
-          <input
-            className="input"
-            inputMode="url"
-            autoCapitalize="none"
-            autoCorrect="off"
-            value={strava}
-            onChange={(e) => { setStrava(e.target.value); setStravaErr('') }}
-            placeholder="https://www.strava.com/activities/…"
-          />
-          <p className="mt-1 text-xs text-muted">
-            {t('Nell’app Strava apri l’attività, tocca Condividi e Copia link, poi incollalo qui. Il coach potrà aprirla da qui; nell’app non entra nessun dato di Strava.')}
-          </p>
-          {stravaErr && <p className="mt-1 text-xs font-semibold text-exp">{stravaErr}</p>}
-        </Field>
-      )}
       <div className="flex gap-2">
         <button type="button" className="btn btn-soft flex-1" onClick={onClose}>
           {t('Annulla')}

@@ -44,7 +44,6 @@ export interface WorkoutFeedback {
   rpe?: number // 1-10
   feel?: Feel
   comment?: string
-  stravaUrl?: string // link all'attività su Strava (solo il link, nessun dato)
   loggedAt: string
 }
 

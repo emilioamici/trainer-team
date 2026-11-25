@@ -3,7 +3,6 @@ import type {
   UserRole, WorkoutBlock, WorkoutFeedback, WorkoutSession,
 } from '../types'
 import { T } from '../i18n'
-import { extractStravaUrl } from './strava'
 import { uid } from './ids'
 import { nowISO } from './dates'
 
@@ -94,7 +93,6 @@ export const parseFeedback = (raw: unknown): WorkoutFeedback | null => {
     rpe: rpe === undefined ? undefined : Math.min(10, Math.max(1, Math.round(rpe))),
     feel: FEELS.includes(raw.feel as string) ? (raw.feel as WorkoutFeedback['feel']) : undefined,
     comment: opt(raw.comment),
-    stravaUrl: extractStravaUrl(opt(raw.stravaUrl)) ?? undefined,
     loggedAt: str(raw.loggedAt) || nowISO(),
   }
 }
