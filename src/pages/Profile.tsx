@@ -4,6 +4,7 @@ import { t, lang, getLangPref, setLangPref, type LangPref, useLangPref } from '.
 import { Mascot } from '../components/Mascot'
 import { kindIcon, SyncBadge, useActive } from '../components/common'
 import { Accordion, Badge, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
+import { setNostalgia, useNostalgia } from '../lib/nostalgia'
 import { applyTheme, getTheme, type ThemePref } from '../lib/theme'
 import { DEFAULT_COLORS, getPalette, PALETTES, paletteColors, type PaletteId } from '../lib/palette'
 import { clearPendingJoin, pendingJoin } from '../lib/invite'
@@ -21,6 +22,7 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
   useLangPref()
   const [theme, setTheme] = useState<ThemePref>(getTheme)
   const [palette, setPalette] = useState<PaletteId>(getPalette)
+  const nostalgiaOn = useNostalgia()
   const [name, setName] = useState(e.profileName)
   const [code, setCode] = useState(() => pendingJoin() ?? '')
   const [linking, setLinking] = useState(false)
@@ -141,7 +143,17 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
       </Accordion>
 
       <Accordion id="look" icon={<Palette size={22} />} title={t('Aspetto')} summary={`${paletteOpt.find((o) => o.id === palette)?.label} · ${themeOpt.find((o) => o.id === theme)?.label} · ${{ auto: t('Lingua automatica'), it: 'Italiano', en: 'English' }[getLangPref()]}`}>
-        <div className="grid grid-cols-3 gap-2">
+        {e.role === 'coach' && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-bg p-3">
+            <div>
+              <p className="font-semibold">{t('Modalità Nostalgia')}</p>
+              <p className="text-xs text-muted">{t('Tema sempre scuro, un’altra mascotte e un altro logo in alto a sinistra. Solo per il coach.')}</p>
+            </div>
+            <Toggle checked={nostalgiaOn} label={t('Modalità Nostalgia')} onChange={(v) => setNostalgia(v)} />
+          </div>
+        )}
+        {nostalgiaOn && <p className="text-xs text-muted">{t('Con la Modalità Nostalgia il tema è sempre scuro.')}</p>}
+        <div className={`grid grid-cols-3 gap-2 ${nostalgiaOn ? 'pointer-events-none opacity-50' : ''}`} aria-disabled={nostalgiaOn}>
           {themeOpt.map((o) => (
             <button key={o.id} onClick={() => pickTheme(o.id)} aria-pressed={theme === o.id} className={`rounded-2xl border p-2 text-center text-xs font-semibold ${theme === o.id ? 'border-brand bg-brand/10' : 'border-line'}`}>
               <span className="mb-1.5 block h-12 rounded-xl border border-line/60" style={{ background: o.bg }} />

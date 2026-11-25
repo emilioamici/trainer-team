@@ -14,6 +14,8 @@ import Plan from './pages/Plan'
 import Team from './pages/Team'
 import Today from './pages/Today'
 import { useEngine } from './state/store'
+import { setNostalgiaCoach, useNostalgia } from './lib/nostalgia'
+import { applyTheme, getTheme } from './lib/theme'
 
 export default function App() {
   const e = useEngine()
@@ -24,6 +26,10 @@ export default function App() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(() => !isTutorialCompleted())
   const [tourOpen, setTourOpen] = useState(false)
+  // Modalità Nostalgia: vale solo per il coach e rende il tema scuro
+  const nostalgia = useNostalgia()
+  useEffect(() => { setNostalgiaCoach(e.role === 'coach' && e.canBeCoach()) }, [e.role, e])
+  useEffect(() => { applyTheme(getTheme()) }, [nostalgia])
   const startTour = () => { setSettingsOpen(false); setTutorialOpen(false); setPlanDate(null); setTab('today'); setTourOpen(true) }
 
   useEffect(() => {

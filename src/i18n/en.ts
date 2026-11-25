@@ -729,4 +729,7 @@ export const en: Record<string, string> = {
   "Classico": "Classic",
   "Solo l’account del coach può usare il ruolo Coach.": "Only the coach’s account can use the Coach role.",
   "Solo l’account del coach può usare il ruolo Coach: entri come atleta.": "Only the coach’s account can use the Coach role: you’re signed in as an athlete.",
+  "Modalità Nostalgia": "Nostalgia Mode",
+  "Tema sempre scuro, un’altra mascotte e un altro logo in alto a sinistra. Solo per il coach.": "Always-dark theme, another mascot and another logo at the top left. Coach only.",
+  "Con la Modalità Nostalgia il tema è sempre scuro.": "With Nostalgia Mode the theme is always dark.",
 }

@@ -16,7 +16,7 @@ const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.
   const nav = (n) => p.getByRole('navigation').getByRole('button', { name: n, exact: true }).click()
   // Atleti: scheda di condivisione/invito
   await nav('Atleti'); await p.waitForSelector('h1:has-text("Atleti")'); await p.waitForTimeout(500)
-  await p.locator('article').first().click(); await p.waitForTimeout(900)
+  await p.locator('article[data-tour="team-card"]').first().getByRole('button', { name: 'Impostazioni' }).click(); await p.waitForTimeout(900)
   await check('scheda atleta')
   const sh = p.getByRole('button', { name: /Condividi|Invita|invito/i }).first()
   if (await sh.count()) { await sh.click().catch(() => {}); await p.waitForTimeout(600); await check('invito atleta') }

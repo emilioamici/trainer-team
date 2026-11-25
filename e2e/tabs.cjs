@@ -28,6 +28,16 @@ const mk = async (b, role, w = 390, h = 844) => {
   await p.getByRole('button', { name: 'Aggiungi', exact: true }).first().click()
   ok(await p.getByRole('dialog', { name: /Nuovo Individual Athlete/ }).count() === 1, 'da Atleti «Aggiungi» propone un nuovo atleta individuale')
   await p.keyboard.press('Escape'); await p.waitForTimeout(500)
+  // toccando un atleta (la scheda intera) si apre il suo piano; l'ingranaggio apre invece le impostazioni
+  const card = p.locator('article[data-tour="team-card"]').first()
+  const aName = (await card.locator('h2').innerText()).split('(')[0].replace('demo', '').trim()
+  await card.getByRole('button', { name: 'Impostazioni' }).click(); await p.waitForTimeout(700)
+  ok(await p.getByRole('heading', { level: 1, name: 'Piano' }).count() === 0 && await p.getByRole('dialog').count() >= 1, 'atleta: l’ingranaggio apre le impostazioni e non il piano')
+  await p.keyboard.press('Escape'); await p.waitForTimeout(500)
+  await card.locator('h2').click()
+  await p.waitForSelector('h1:has-text("Piano")')
+  ok(await p.getByText(aName, { exact: false }).count() >= 1, `atleta: toccando la scheda di ${aName} si apre il suo piano`)
+  await p.getByRole('navigation').getByRole('button', { name: 'Atleti', exact: true }).click(); await p.waitForSelector('h1:has-text("Atleti")')
   if (process.argv[2]) await p.screenshot({ path: process.argv[2] + '/tabs-coach.png' })
   ok(C.errs.length === 0, 'coach: nessun errore in console ' + C.errs.join(' | '))
   // cambiando ruolo la scheda si adegua senza schermate vuote
