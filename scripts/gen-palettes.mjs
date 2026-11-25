@@ -27,6 +27,8 @@ const PALETTES = [
     dark: { bg: '#021024', surface: '#0A2147', ink: '#C1E8FF', brand: '#5483B3' }, light: { bg: '#E3F3FD', surface: '#F5FBFF', ink: '#021024', brand: '#052659' } },
   { id: 'pesca', it: 'Pesca e rosa', en: 'Peach and rose', src: ['#FEA38E', '#F9E4D8~', '#FBA2A8', '#E3D5CE~', '#F3B5AD'],
     dark: { bg: '#2A1816', surface: '#3C2320', ink: '#FBE9E3', brand: '#FEA38E' }, light: { bg: '#F5E6DE', surface: '#FCF6F2', ink: '#4A2420', brand: '#C0533F' } },
+  { id: 'jtp', it: 'Junior Tennis Perugia', en: 'Junior Tennis Perugia', logo: 'brand/jtp-logo.png', src: ['#383586', '#F7E940', '#FFFFFF'], accent: '#F7E940',
+    dark: { bg: '#12103A', surface: '#201D5C', ink: '#F4F2FF', brand: '#F7E940' }, light: { bg: '#ECEBF8', surface: '#FFFFFF', ink: '#1B1952', brand: '#383586' } },
 ]
 
 const STATUS = {
@@ -35,7 +37,8 @@ const STATUS = {
 }
 const warnings = []
 
-const block = (id, mode, p) => {
+const block = (id, mode, p, accent) => {
+  p = { ...p, accent }
   const dark = mode === 'dark'
   const { bg, surface, ink } = p
   let muted = mix(ink, bg, dark ? 0.38 : 0.4)
@@ -45,7 +48,7 @@ const block = (id, mode, p) => {
   if (contrast(brand, bg) < 3) { brand = mix(brand, ink, 0.25); warnings.push(`${id}/${mode}: brand ravvicinato allo sfondo, corretto`) }
   const onb = contrast('#FFFFFF', brand) >= 4.5 ? '#FFFFFF' : contrast('#14110F', brand) >= 4.5 ? '#14110F' : (warnings.push(`${id}/${mode}: contrasto del tasto principale basso`), '#FFFFFF')
   const st = STATUS[mode]
-  const blobs = [brand, mix(brand, ink, 0.5), mix(brand, bg, 0.3)]
+  const blobs = [brand, p.accent ?? mix(brand, ink, 0.5), mix(brand, bg, 0.3)]
   const rgba = (h, a) => `${tok(h)} / ${a}`
   return [
     `--bg: ${tok(bg)}; --surface: ${tok(surface)}; --ink: ${tok(ink)}; --muted: ${tok(muted)}; --line: ${tok(line)};`,
@@ -63,14 +66,14 @@ let css = '/* Generato da scripts/gen-palettes.mjs — non modificare a mano. */
 const data = []
 for (const P of PALETTES) {
   const sel = `:root[data-palette='${P.id}']`
-  css += `\n/* ${P.it} */\n${sel} {\n    ${block(P.id, 'light', P.light)}\n  }\n`
-  css += `@media (prefers-color-scheme: dark) {\n  ${sel}:not([data-theme='light']) {\n    ${block(P.id, 'dark', P.dark)}\n  }\n}\n`
-  css += `${sel}[data-theme='dark'] {\n    ${block(P.id, 'dark', P.dark)}\n  }\n`
-  data.push({ id: P.id, it: P.it, en: P.en, light: P.light.bg, dark: P.dark.bg, swatch: P.src.map((s) => s.replace('~', '')) })
+  css += `\n/* ${P.it} */\n${sel} {\n    ${block(P.id, 'light', P.light, P.accent)}\n  }\n`
+  css += `@media (prefers-color-scheme: dark) {\n  ${sel}:not([data-theme='light']) {\n    ${block(P.id, 'dark', P.dark, P.accent)}\n  }\n}\n`
+  css += `${sel}[data-theme='dark'] {\n    ${block(P.id, 'dark', P.dark, P.accent)}\n  }\n`
+  data.push({ id: P.id, it: P.it, en: P.en, ...(P.logo ? { logo: P.logo } : {}), light: P.light.bg, dark: P.dark.bg, swatch: P.src.map((s) => s.replace('~', '')) })
 }
 writeFileSync('src/palettes.css', css)
 writeFileSync(
   'src/lib/palettes.data.ts',
-  `// Generato da scripts/gen-palettes.mjs — non modificare a mano.\nexport interface PaletteInfo { id: string; it: string; en: string; light: string; dark: string; swatch: string[] }\nexport const PALETTES: PaletteInfo[] = ${JSON.stringify(data, null, 2)}\n`,
+  `// Generato da scripts/gen-palettes.mjs — non modificare a mano.\nexport interface PaletteInfo { id: string; it: string; en: string; logo?: string; light: string; dark: string; swatch: string[] }\nexport const PALETTES: PaletteInfo[] = ${JSON.stringify(data, null, 2)}\n`,
 )
 console.log(warnings.length ? warnings.join('\n') : 'Contrasti ok')

@@ -1,5 +1,5 @@
 // Generato da scripts/gen-palettes.mjs — non modificare a mano.
-export interface PaletteInfo { id: string; it: string; en: string; light: string; dark: string; swatch: string[] }
+export interface PaletteInfo { id: string; it: string; en: string; logo?: string; light: string; dark: string; swatch: string[] }
 export const PALETTES: PaletteInfo[] = [
   {
     "id": "notte",
@@ -85,6 +85,19 @@ export const PALETTES: PaletteInfo[] = [
       "#FBA2A8",
       "#E3D5CE",
       "#F3B5AD"
+    ]
+  },
+  {
+    "id": "jtp",
+    "it": "Junior Tennis Perugia",
+    "en": "Junior Tennis Perugia",
+    "logo": "brand/jtp-logo.png",
+    "light": "#ECEBF8",
+    "dark": "#12103A",
+    "swatch": [
+      "#383586",
+      "#F7E940",
+      "#FFFFFF"
     ]
   }
 ]
