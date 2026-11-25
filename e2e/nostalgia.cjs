@@ -1,0 +1,42 @@
+// E2E: «Modalità Nostalgia» (solo coach) — tema scuro, mascotte e logo diversi. Modalità demo.
+// Uso: npm run build && npx vite preview --port 4173 &  poi  node e2e/nostalgia.cjs [cartella-screenshot]
+const { chromium } = require('playwright')
+const ok = (c, msg) => { console.log(c ? 'OK  ' : 'FAIL', msg); if (!c) process.exitCode = 1 }
+;(async () => {
+  const b = await chromium.launch()
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'it-IT', colorScheme: 'light' })
+  await ctx.addInitScript(() => { if (!localStorage.getItem('trainer:gate')) { localStorage.setItem('trainer:gate', 'skip'); localStorage.setItem('trainer:tutorial_completed', 'true'); localStorage.setItem('trainer:role', 'coach'); localStorage.setItem('trainer:theme', 'light') } })
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(String(e)))
+  await p.goto('http://localhost:4173/'); await p.waitForSelector('text=Oggi')
+  const theme = () => p.evaluate(() => document.documentElement.dataset.theme)
+  const mascot = () => p.locator('header img[src*="mascot"], button[data-tour="settings"] img').first().getAttribute('src')
+  ok((await theme()) === 'light' && await p.getByRole('img', { name: 'FM Training' }).count() === 1, 'partenza: tema chiaro e logo FM Training')
+  const open = async () => { await p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click(); await p.waitForTimeout(900); const l = p.getByRole('button', { name: /^Aspetto/ }); if ((await l.getAttribute('aria-expanded')) === 'false') await l.click() }
+  await open()
+  const sw = p.getByRole('switch', { name: 'Modalità Nostalgia' })
+  ok(await sw.count() === 1, 'coach: in Aspetto c’è «Modalità Nostalgia»')
+  await sw.click(); await p.waitForTimeout(500)
+  ok((await theme()) === 'dark', 'accesa: tema scuro anche se la preferenza era chiaro')
+  ok(/mascot-nostalgia-bust/.test(await mascot()), 'accesa: la mascotte (avatar) è quella nostalgia')
+  if (process.argv[2]) await p.screenshot({ path: process.argv[2] + '/nostalgia-settings.png' })
+  await p.keyboard.press('Escape'); await p.waitForTimeout(600)
+  const logo = p.getByRole('img', { name: 'LUCE' })
+  ok(await logo.count() === 1 && await logo.evaluate((i) => i.naturalWidth > 0) && await p.getByRole('img', { name: 'FM Training' }).count() === 0, 'accesa: in alto a sinistra il logo LUCE al posto di FM')
+  if (process.argv[2]) await p.screenshot({ path: process.argv[2] + '/nostalgia-today.png' })
+  await p.reload(); await p.waitForSelector('text=Oggi')
+  ok((await theme()) === 'dark' && await p.getByRole('img', { name: 'LUCE' }).count() === 1, 'dopo il ricaricamento resta accesa')
+  // l'atleta non la vede e torna tutto normale
+  await open()
+  await p.getByRole('tab', { name: 'Atleta' }).click(); await p.waitForTimeout(600)
+  ok(await p.getByRole('switch', { name: 'Modalità Nostalgia' }).count() === 0, 'atleta: l’interruttore non c’è')
+  ok((await theme()) === 'light' && /mascot-atleta-bust/.test(await mascot()), 'atleta: tema chiaro e mascotte atleta (il flag non vale)')
+  await p.getByRole('tab', { name: 'Coach' }).click(); await p.waitForTimeout(600)
+  ok((await theme()) === 'dark', 'tornando coach la modalità si riattiva')
+  // spegni
+  await p.getByRole('switch', { name: 'Modalità Nostalgia' }).click(); await p.waitForTimeout(500)
+  ok((await theme()) === 'light' && /mascot-coach-bust/.test(await mascot()), 'spenta: tema e mascotte tornano normali')
+  await p.keyboard.press('Escape'); await p.waitForTimeout(600)
+  ok(await p.getByRole('img', { name: 'FM Training' }).count() === 1, 'spenta: torna il logo FM')
+  ok(errs.length === 0, 'nessun errore in console ' + errs.join(' | '))
+  await b.close()
+})().catch((e) => { console.error('ERRORE', e); process.exit(1) })

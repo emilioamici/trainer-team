@@ -1,3 +1,4 @@
+import { nostalgiaActive } from './nostalgia'
 import { applyPalette, getPalette, paletteColors, type PaletteId } from './palette'
 
 export type ThemePref = 'auto' | 'light' | 'dark'
@@ -13,11 +14,12 @@ export const applyTheme = (pref: ThemePref, palette: PaletteId = getPalette()) =
   const colors = paletteColors(palette)
   const root = document.documentElement
   try { pref === 'auto' ? localStorage.removeItem(KEY) : localStorage.setItem(KEY, pref) } catch { /* ignora */ }
-  if (pref === 'auto') delete root.dataset.theme
-  else root.dataset.theme = pref
+  const eff: ThemePref = nostalgiaActive() ? 'dark' : pref // Modalità Nostalgia: sempre scuro (la preferenza resta salvata)
+  if (eff === 'auto') delete root.dataset.theme
+  else root.dataset.theme = eff
   const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
   metas.forEach((m) => {
-    if (pref === 'auto') m.content = m.media.includes('dark') ? colors.dark : colors.light
-    else m.content = colors[pref]
+    if (eff === 'auto') m.content = m.media.includes('dark') ? colors.dark : colors.light
+    else m.content = colors[eff]
   })
 }

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { PALETTES, usePalette } from '../lib/palette'
+import { useNostalgia } from '../lib/nostalgia'
 import { Mascot } from './Mascot'
 import { AnimatePresence, animate, m, useMotionValue } from 'framer-motion'
 import { Check, ChevronDown, X, type LucideIcon } from 'lucide-react'
@@ -21,6 +22,10 @@ export function Background() {
 // ---------- logo ----------
 export function Logo({ className = '' }: { className?: string }) {
   const pal = usePalette()
+  const nostalgia = useNostalgia()
+  if (nostalgia) {
+    return <img src={`${import.meta.env.BASE_URL}brand/luce-gold.png`} alt="LUCE" className={`h-12 w-12 shrink-0 object-contain ${className}`} />
+  }
   const custom = PALETTES.find((p) => p.id === pal && p.logo)
   if (custom?.logo) {
     return <img src={`${import.meta.env.BASE_URL}${custom.logo}`} alt={custom.it} className={`h-12 w-12 shrink-0 object-contain ${className}`} />

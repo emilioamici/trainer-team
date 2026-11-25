@@ -1,6 +1,7 @@
+import { useNostalgia } from '../lib/nostalgia'
 import { useEngine } from '../state/store'
 
-export type MascotWho = 'atleta' | 'coach'
+export type MascotWho = 'atleta' | 'coach' | 'nostalgia'
 
 /** Le due mascotte di FM Training. `auto` sceglie in base al ruolo (coach = cappellino e occhiali, atleta = sorridente). */
 export function Mascot({
@@ -18,7 +19,9 @@ export function Mascot({
   alt?: string
 }) {
   const e = useEngine()
-  const w: MascotWho = who === 'auto' ? (e.role === 'coach' ? 'coach' : 'atleta') : who
+  const nostalgia = useNostalgia()
+  let w: MascotWho = who === 'auto' ? (e.role === 'coach' ? 'coach' : 'atleta') : who
+  if (nostalgia && w === 'coach') w = 'nostalgia' // Modalità Nostalgia: la mascotte del coach cambia
   return (
     <img
       src={`${import.meta.env.BASE_URL}brand/mascot-${w}${kind === 'bust' ? '-bust' : ''}.webp`}
