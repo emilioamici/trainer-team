@@ -107,7 +107,19 @@ function CoachView({ kind, onOpenPlan }: { kind: 'groups' | 'athletes'; onOpenPl
           const last = lastCompleted(db)
           const pct = ws.length ? Math.round(((st.done + st.partial) / ws.length) * 100) : 0
           const card = (
-            <article data-tour="team-card" className="card space-y-3 p-4">
+            <article
+              data-tour="team-card"
+              className={`card space-y-3 p-4 ${isGrp ? '' : 'cursor-pointer transition-transform active:scale-[0.99]'}`}
+              {...(isGrp
+                ? {}
+                : {
+                    role: 'link',
+                    tabIndex: 0,
+                    'aria-label': `${t('Vedi piano')}: ${db.athlete.name}`,
+                    onClick: () => { e.setActive(s.id); onOpenPlan() },
+                    onKeyDown: (ev: React.KeyboardEvent) => { if (ev.key === 'Enter' && ev.target === ev.currentTarget) { e.setActive(s.id); onOpenPlan() } },
+                  })}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <span
@@ -138,7 +150,7 @@ function CoachView({ kind, onOpenPlan }: { kind: 'groups' | 'athletes'; onOpenPl
                   </div>
                 </div>
                 <div className="flex items-center shrink-0">
-                  <button className="icon-btn" onClick={() => setManage(s.id)} aria-label={t('Impostazioni')}>
+                  <button className="icon-btn" onClick={(ev) => { ev.stopPropagation(); setManage(s.id) }} aria-label={t('Impostazioni')}>
                     <Settings size={18} />
                   </button>
                 </div>
@@ -207,7 +219,8 @@ function CoachView({ kind, onOpenPlan }: { kind: 'groups' | 'athletes'; onOpenPl
                 </div>
                 <button
                   className="inline-flex items-center gap-1 font-semibold text-brand"
-                  onClick={() => {
+                  onClick={(ev) => {
+                    ev.stopPropagation()
                     e.setActive(s.id)
                     onOpenPlan()
                   }}
