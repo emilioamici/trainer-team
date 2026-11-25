@@ -108,6 +108,17 @@ input[type='date'], input[type='time'], input[type='datetime-local'] { line-heig
   .chip-on { @apply border-brand bg-brand text-onbrand; }
 }
 
+/* iOS Safari ingrandisce la pagina quando si tocca un campo con testo sotto i 16px: sui dispositivi touch i campi stanno a 16px
+   (!important per battere le utility Tailwind come !text-xs). */
+@media (pointer: coarse) {
+  /* :not(#_) alza la specificità: batte anche le utility importanti (!text-xs) */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not(#_),
+  textarea:not(#_),
+  select:not(#_) {
+    font-size: 16px !important;
+  }
+}
+
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass, .glass-strong { background: rgb(var(--surface)); }
 }
