@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { loadEnv } from 'vite'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -5,8 +7,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 // Su GitHub Pages l'app vive in /<nome-repo>/: la GitHub Action passa BASE_PATH.
 const base = process.env.BASE_PATH || '/'
 
-export default defineConfig({
+// Email dei coach (VITE_COACH_EMAILS, separate da virgola): nell'app entrano solo gli hash SHA-256, mai gli indirizzi in chiaro.
+const coachHashes = (mode: string) =>
+  (process.env.VITE_COACH_EMAILS || loadEnv(mode, process.cwd(), 'VITE_').VITE_COACH_EMAILS || '')
+    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+    .map((e) => createHash('sha256').update(e).digest('hex'))
+
+export default defineConfig(({ mode }) => ({
   base,
+  define: { __COACH_HASHES__: JSON.stringify(coachHashes(mode)) },
   plugins: [
     react(),
     VitePWA({
@@ -39,4 +48,4 @@ export default defineConfig({
     }),
   ],
   test: { environment: 'node', include: ['src/**/*.test.ts', 'worker/src/**/*.test.ts'] },
-})
+}))

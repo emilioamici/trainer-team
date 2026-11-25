@@ -82,6 +82,7 @@ Nessun segreto nel repository: sono variabili **pubbliche** della build (hanno l
 | `VITE_GOOGLE_CLIENT_ID` | Client ID OAuth (tipo Web) |
 | `VITE_GOOGLE_API_KEY` | Chiave API ristretta al Picker |
 | `VITE_GOOGLE_APP_ID` | Numero del progetto Google Cloud |
+| `VITE_COACH_EMAILS` | *(facoltativa)* email degli account Google che possono entrare come Coach, separate da virgola. Nell'app finiscono solo gli hash SHA-256, non gli indirizzi. Gli altri account restano atleti (la scelta Coach sparisce dalle impostazioni). Senza variabile nessuna restrizione. Per bloccare anche l'importazione con AI imposta lo stesso indirizzo in `AI_ALLOWED_EMAILS` sul Worker |
 | `VITE_PUSH_URL` | *(Worker)* indirizzo del Worker, senza `/` finale |
 | `VITE_VAPID_PUBLIC_KEY` | *(Worker)* chiave pubblica VAPID per le push |
 
