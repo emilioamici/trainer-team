@@ -6,6 +6,11 @@ export interface Env {
   VAPID_PUBLIC_KEY?: string // base64url, 65 byte (punto non compresso)
   VAPID_PRIVATE_KEY?: string // secret: base64url, 32 byte
   VAPID_SUBJECT?: string // "mailto:…" o "https://…" (richiesto dai servizi push)
+  GEMINI_API_KEY?: string // secret: chiave Google AI Studio (importazione con AI)
+  GEMINI_MODEL?: string // facoltativo, es. gemini-2.5-flash
+  AI_MONTHLY_LIMIT?: string // importazioni AI al mese per account (default 10)
+  AI_GLOBAL_LIMIT?: string // importazioni AI al mese in totale (default 60)
+  AI_ALLOWED_EMAILS?: string // facoltativo: solo questi account (separati da virgola)
   ALLOWED_ORIGINS: string // origini dell'app, separate da virgola (schema+dominio, senza percorso)
 }
 

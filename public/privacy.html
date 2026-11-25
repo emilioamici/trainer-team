@@ -46,7 +46,10 @@
   <li><strong>Accesso persistente</strong>: il Worker conserva il token di rinnovo di Google <em>cifrato</em> (fino a 180 giorni, cancellato al logout); all'app arriva solo un identificativo di sessione casuale.</li>
   <li><strong>Notifiche</strong>: il Worker conserva l'iscrizione push del dispositivo e, per ogni file condiviso, l'elenco delle email iscritte. Il testo delle notifiche (es. "Completato: Test 10 km") lo attraversa cifrato e non viene salvato.</li>
 </ul>
-<p>Il Worker non legge né conserva i piani di allenamento.</p>
+<p>Il Worker non legge né conserva i piani di allenamento, con una sola eccezione facoltativa:</p>
+<ul>
+  <li><strong>Importazione con AI</strong> (solo coach, solo se attivata): quando scegli «Converti un file con l'AI», il file che selezioni viene inviato tramite il Worker al servizio Gemini di Google per essere trasformato in un piano. Il Worker non salva il file né il risultato; conserva solo un contatore mensile di utilizzo per account (tetto mensile). Evita di caricare file con dati sensibili di terzi senza il loro consenso.</li>
+</ul>
 
 <h2>Condivisione</h2>
 <p>I dati di un atleta sono visibili solo a chi ha accesso al suo file su Drive: l'atleta e il coach che lo ha invitato. Il coach può togliere l'accesso in qualsiasi momento dalle impostazioni di condivisione di Drive. Non vendiamo né cediamo dati a terzi. I servizi tecnici coinvolti sono Google (Drive, accesso), Cloudflare (Worker, se attivo), i servizi push dei browser (Google, Apple, Mozilla, Microsoft, per consegnare le notifiche) e GitHub (hosting dell'app).</p>
@@ -100,7 +103,10 @@
   <li><strong>Persistent sign-in</strong>: the Worker stores Google's refresh token <em>encrypted</em> (up to 180 days, deleted on logout); the app only receives a random session identifier.</li>
   <li><strong>Notifications</strong>: the Worker stores the device's push subscription and, for each shared file, the list of subscribed emails. Notification text (e.g. "Completed: Test 10 km") passes through it encrypted and is not stored.</li>
 </ul>
-<p>The Worker does not read or store training plans.</p>
+<p>The Worker does not read or store training plans, with one optional exception:</p>
+<ul>
+  <li><strong>AI import</strong> (coaches only, only if enabled): when you choose "Convert a file with AI", the file you select is sent through the Worker to Google's Gemini service to be turned into a plan. The Worker does not store the file or the result; it only keeps a monthly usage counter per account (monthly cap). Avoid uploading files with third parties' sensitive data without their consent.</li>
+</ul>
 
 <h2>Sharing</h2>
 <p>An athlete's data is visible only to people with access to their Drive file: the athlete and the coach who invited them. The coach can remove access at any time from Drive's sharing settings. We do not sell or give data to third parties. The technical services involved are Google (Drive, sign-in), Cloudflare (Worker, if enabled), browser push services (Google, Apple, Mozilla, Microsoft, to deliver notifications) and GitHub (app hosting).</p>

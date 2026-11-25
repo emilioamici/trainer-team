@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Copy, Download, FileUp, Sparkles } from 'lucide-react'
+import { Copy, Download, FileUp, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import { lang, t } from '../i18n'
 import { buildImportPrompt } from '../lib/aiPrompt'
 import { copyText, downloadJSON, readFileText } from '../lib/files'
@@ -15,6 +15,9 @@ import {
   templatePlan,
 } from '../lib/planIO'
 import { slug } from '../lib/ids'
+import { aiAvailable, convertWithAi } from '../services/aiService'
+import { getToken } from '../services/googleDriveService'
+import { WorkerError } from '../services/workerService'
 import { useEngine } from '../state/store'
 import type { Source, TrainingPlanDatabase } from '../types'
 import { Field, Fold, Notice, Segmented, Sheet } from './ui'
@@ -51,6 +54,26 @@ export function ImportExportSheet({
   const [start, setStart] = useState(defaultWeek)
   const [err, setErr] = useState('')
   const file = useRef<HTMLInputElement>(null)
+  const aiFile = useRef<HTMLInputElement>(null)
+  const [aiOn, setAiOn] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiLeft, setAiLeft] = useState<string>('')
+  useEffect(() => { if (open && e.role === 'coach') void aiAvailable().then(setAiOn) }, [open, e.role])
+
+  const runAi = async (f: File) => {
+    setErr('')
+    const token = getToken()
+    if (!token) { setErr(t('Accedi con Google per usare l’AI.')); return }
+    setAiBusy(true)
+    try {
+      const r = await convertWithAi(f, buildImportPrompt({ lang: lang(), athleteName: currentDb?.athlete.name, today: todayISO() }), token)
+      setText(r.text)
+      setAiLeft(t('Importazioni AI rimaste questo mese: {n} su {tot}', { n: r.remaining, tot: r.limit }))
+      e.notify(t('Fatto: controlla il JSON qui sotto, poi premi «Importa nel piano»'))
+    } catch (x) {
+      setErr(x instanceof WorkerError ? x.message : x instanceof Error ? x.message : String(x))
+    } finally { setAiBusy(false) }
+  }
 
   useEffect(() => {
     if (open) {
@@ -284,6 +307,20 @@ export function ImportExportSheet({
 
             {/* Prompt per qualsiasi AI: da un file con un piano già fatto al JSON importabile */}
             <Fold id="import-ai" icon={<Sparkles size={18} />} title={t('Hai già un piano in un file? Fallo convertire da un’AI')} summary={t('Copia un prompt da incollare nella tua AI')}>
+              {aiOn && (
+                <div className="space-y-2 rounded-2xl bg-brand/10 p-3">
+                  <input ref={aiFile} type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.txt,.csv,.md,.html,image/*,application/pdf"
+                    onChange={(ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (f) void runAi(f) }} />
+                  <button type="button" className="btn btn-primary w-full" disabled={aiBusy} onClick={() => aiFile.current?.click()}>
+                    {aiBusy ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    {aiBusy ? t('Sto leggendo il file…') : t('Converti un file con l’AI')}
+                  </button>
+                  <p className="text-xs text-muted">
+                    {t('Scegli un PDF, una foto o un CSV: il file viene letto da Gemini (Google) e il risultato compare qui sotto per un controllo. Per Word o Excel esporta prima in PDF. Massimo 5 MB e poche importazioni al mese.')}
+                  </p>
+                  {aiLeft && <p className="text-xs font-semibold">{aiLeft}</p>}
+                </div>
+              )}
               <p className="text-xs text-muted">
                 {t('Hai un piano in un PDF, Excel, Word, foto o altro file? 1) Copia il prompt. 2) Incollalo nella tua AI (ChatGPT, Claude, Gemini…) e allega il file. 3) Copia il JSON che ti risponde e incollalo qui sotto.')}
               </p>
