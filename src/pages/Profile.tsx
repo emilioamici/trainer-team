@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Bell, BookOpen, Cloud, Compass, Database, Link2, ListOrdered, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
 import { t, lang, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
+import { Mascot } from '../components/Mascot'
 import { kindIcon, SyncBadge, useActive } from '../components/common'
 import { Accordion, Badge, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
 import { applyTheme, getTheme, type ThemePref } from '../lib/theme'
@@ -129,11 +130,14 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
 
       <Accordion id="role" icon={<Users size={22} />} title={t('Ruolo')} summary={e.role === 'coach' ? t('Coach') : t('Atleta')} defaultOpen>
         <Segmented id="role" value={e.role} onChange={(r: UserRole) => e.setRole(r)} options={[{ value: 'athlete', label: t('Atleta') }, { value: 'coach', label: t('Coach') }]} />
+        <div className="flex items-center gap-3">
+        <Mascot kind="bust" fade className="h-24 shrink-0" />
         <p className="text-xs text-muted">
           {e.role === 'coach'
             ? t('Come coach gestisci gli atleti: ognuno ha un file dedicato sul tuo Drive. Puoi allenare anche te stesso dal tab "Piano" scegliendo "Il mio piano".')
             : t('Come atleta vedi il tuo piano, completi gli allenamenti e lasci feedback. Puoi avere un piano personale e uno o più piani collegati a un coach.')}
         </p>
+        </div>
       </Accordion>
 
       <Accordion id="look" icon={<Palette size={22} />} title={t('Aspetto')} summary={`${paletteOpt.find((o) => o.id === palette)?.label} · ${themeOpt.find((o) => o.id === theme)?.label} · ${{ auto: t('Lingua automatica'), it: 'Italiano', en: 'English' }[getLangPref()]}`}>

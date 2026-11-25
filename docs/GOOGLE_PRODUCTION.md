@@ -15,7 +15,7 @@ Le pagine devono essere online all'indirizzo che darai a Google.
 **Branding**
 | Campo | Valore |
 |---|---|
-| Nome app | `Trainer Team` (deve coincidere con ciò che l'utente vede nell'app) |
+| Nome app | `FM Training` (deve coincidere con ciò che l'utente vede nell'app) |
 | Email di assistenza | la tua email |
 | Logo | **lascia vuoto** (caricarlo obbliga alla verifica) |
 | Home page dell'app | `https://emilioamici.github.io/trainer-team/` |

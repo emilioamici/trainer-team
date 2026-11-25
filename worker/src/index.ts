@@ -172,7 +172,7 @@ async function notify(env: Env, req: Request, cors: Record<string, string>): Pro
   const raw = await env.KV.get(`fid:${fileId}`)
   const emails = ((raw ? JSON.parse(raw) : []) as string[]).filter((e) => e !== me.email)
   const url = b.url && allowedOrigins(env).has(new URL(b.url).origin) ? b.url : undefined
-  const res = await deliver(env, emails.map((email) => ({ email, filter: fileId })), { title: clip(b.title, 120) || 'Trainer Team', body: clip(b.body, 240), tag: clip(b.tag, 80) || undefined, url })
+  const res = await deliver(env, emails.map((email) => ({ email, filter: fileId })), { title: clip(b.title, 120) || 'FM Training', body: clip(b.body, 240), tag: clip(b.tag, 80) || undefined, url })
   return json(res, 200, cors)
 }
 
@@ -182,7 +182,7 @@ async function selfTest(env: Env, req: Request, cors: Record<string, string>): P
   const me = await verifyBearer(env, req)
   const b = await readJson<{ title?: string; body?: string; url?: string }>(req)
   const url = b.url && allowedOrigins(env).has(new URL(b.url).origin) ? b.url : undefined
-  return json(await deliver(env, [{ email: me.email }], { title: clip(b.title, 120) || 'Trainer Team', body: clip(b.body, 240), tag: 'test', url }), 200, cors)
+  return json(await deliver(env, [{ email: me.email }], { title: clip(b.title, 120) || 'FM Training', body: clip(b.body, 240), tag: 'test', url }), 200, cors)
 }
 
 // ================= router =================

@@ -58,7 +58,7 @@ export const buildImportPrompt = ({ lang, athleteName, today }: PromptOptions): 
   const multi = JSON.stringify({ format: 'trainer-team-coach-export', version: 1, athletes: [{ athleteName: lang === 'it' ? 'Atleta 1' : 'Athlete 1', plan: { format: 'trainer-team-plan', version: 1, athlete: lang === 'it' ? 'Atleta 1' : 'Athlete 1', sessions: ['…'] } }] })
 
   if (lang === 'en') {
-    return `You convert a training plan into a JSON file for the app "Trainer Team". I am attaching a file (PDF, Excel, Word, photo, text…) that contains a ready-made training plan${athleteName ? ` for ${name}` : ''}.
+    return `You convert a training plan into a JSON file for the app "FM Training". I am attaching a file (PDF, Excel, Word, photo, text…) that contains a ready-made training plan${athleteName ? ` for ${name}` : ''}.
 
 GOAL: read the WHOLE file and reply with ONLY valid JSON (no text before or after, no comments, no markdown), in the format below.
 
@@ -84,7 +84,7 @@ RULES
 
 BEFORE REPLYING, CHECK: valid JSON, no trailing commas, valid dates, disciplines from the list, nothing invented.`
   }
-  return `Converti un piano di allenamento in un file JSON per l'app «Trainer Team». Ti allego un file (PDF, Excel, Word, foto, testo…) che contiene un piano di allenamento già fatto${athleteName ? ` per ${name}` : ''}.
+  return `Converti un piano di allenamento in un file JSON per l'app «FM Training». Ti allego un file (PDF, Excel, Word, foto, testo…) che contiene un piano di allenamento già fatto${athleteName ? ` per ${name}` : ''}.
 
 OBIETTIVO: leggi TUTTO il file e rispondi con SOLO un JSON valido (nessun testo prima o dopo, nessun commento, niente markdown), nel formato qui sotto.
 

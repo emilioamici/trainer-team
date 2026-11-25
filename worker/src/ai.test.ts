@@ -35,7 +35,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-const PROMPT = 'Converti il piano in JSON per Trainer Team, rispondi solo con JSON.'
+const PROMPT = 'Converti il piano in JSON per FM Training, rispondi solo con JSON.'
 const ai = (env: ReturnType<typeof mkEnv>, body: unknown, token = 'tok-coach', path = '/ai/import') =>
   worker.fetch(new Request('https://w.dev' + path, { method: 'POST', headers: { origin: ORIGIN, authorization: 'Bearer ' + token, 'content-type': 'application/json' }, body: JSON.stringify(body) }), env)
 const good = { mimeType: 'application/pdf', data: Buffer.from('%PDF-1.4 test').toString('base64'), prompt: PROMPT }

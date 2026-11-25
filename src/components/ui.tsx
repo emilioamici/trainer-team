@@ -1,8 +1,9 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { PALETTES, usePalette } from '../lib/palette'
+import { Mascot } from './Mascot'
 import { AnimatePresence, animate, m, useMotionValue } from 'framer-motion'
-import { Check, ChevronDown, Dumbbell, X, type LucideIcon } from 'lucide-react'
+import { Check, ChevronDown, X, type LucideIcon } from 'lucide-react'
 import { t } from '../i18n'
 import { useEngine } from '../state/store'
 
@@ -25,22 +26,19 @@ export function Logo({ className = '' }: { className?: string }) {
     return <img src={`${import.meta.env.BASE_URL}${custom.logo}`} alt={custom.it} className={`h-12 w-12 shrink-0 object-contain ${className}`} />
   }
   return (
-    <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="Trainer Team">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand via-blue-600 to-indigo-600 text-white shadow-md shadow-brand/25 ring-1 ring-white/20">
-        <Dumbbell size={18} strokeWidth={2.4} className="text-yellow-300" />
+    <div className={`flex items-center gap-2.5 ${className}`} role="img" aria-label="FM Training">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2B2E35] text-[13px] font-black tracking-tight text-white shadow-md shadow-black/20 ring-1 ring-white/15">
+        FM
       </span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-base font-extrabold tracking-tight text-ink">Trainer Team</span>
-        <span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />
-      </div>
+      <span className="text-base font-extrabold tracking-tight text-ink">Training</span>
     </div>
   )
 }
 
-export function EmptyState({ icon: Icon = Dumbbell, title, text, action }: { icon?: LucideIcon; title: string; text?: string; action?: ReactNode }) {
+export function EmptyState({ title, text, action }: { icon?: LucideIcon; title: string; text?: string; action?: ReactNode }) {
   return (
     <div className="card flex flex-col items-center px-5 py-8 text-center">
-      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-line/50 text-muted"><Icon size={26} /></span>
+      <Mascot kind="bust" fade className="mb-2 h-28" />
       <p className="font-bold">{title}</p>
       {text && <p className="mt-1 text-sm text-muted">{text}</p>}
       {action && <div className="mt-4">{action}</div>}

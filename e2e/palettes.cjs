@@ -24,7 +24,7 @@ const IDS = [['Notte viola', 'notte'], ['Caffè bordeaux', 'bordeaux'], ['Forest
       await p.keyboard.press('Escape'); await p.waitForTimeout(700)
       const img = p.getByRole('img', { name: 'Junior Tennis Perugia' })
       ok(await img.count() === 1 && await img.evaluate((i) => i.naturalWidth > 0), 'tema Junior Tennis Perugia: il logo dell’app cambia (immagine caricata)')
-      ok(await p.getByRole('img', { name: 'Trainer Team' }).count() === 0, 'il logo Trainer Team non c’è più')
+      ok(await p.getByRole('img', { name: 'FM Training' }).count() === 0, 'il logo FM Training non c’è più')
       if (process.argv[2]) await p.screenshot({ path: `${process.argv[2]}/pal-jtp-header.png` })
       await p.getByRole('button', { name: 'Impostazioni', exact: true }).first().click(); await p.waitForTimeout(800)
     }
@@ -45,7 +45,7 @@ const IDS = [['Notte viola', 'notte'], ['Caffè bordeaux', 'bordeaux'], ['Forest
   await p.locator('button', { hasText: /^Classico$/ }).click(); await p.waitForTimeout(250)
   ok((await p.evaluate(() => document.documentElement.dataset.palette)) === undefined, '«Classico» toglie la palette')
   await p.keyboard.press('Escape'); await p.waitForTimeout(700)
-  ok(await p.getByRole('img', { name: 'Trainer Team' }).count() === 1, 'col Classico torna il logo Trainer Team')
+  ok(await p.getByRole('img', { name: 'FM Training' }).count() === 1, 'col Classico torna il logo FM Training')
   ok(errs.length === 0, 'nessun errore in console ' + errs.join(' | '))
   await b.close()
 })().catch((e) => { console.error('ERRORE', e); process.exit(1) })

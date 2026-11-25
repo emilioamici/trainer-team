@@ -1,4 +1,4 @@
-# Trainer Team 🏋️
+# FM Training 🏋️
 
 Web app **mobile-first (PWA)** per gestire e tracciare piani di allenamento — running, Hyrox, fitness funzionale, palestra, tennis — con ruoli **Atleta** e **Coach** e sincronizzazione su **Google Drive**. Nessun backend per i dati: tutto gira nel browser e i dati stanno nel tuo Drive. Un **Worker Cloudflare facoltativo** aggiunge l'accesso persistente e le notifiche push (vedi sotto).
 
@@ -12,6 +12,7 @@ Stile grafico e architettura: temi grigio chiaro e grigio antracite + automatico
 - **Timer e superset** – dal tasto «Timer» (Oggi) o «Avvia timer» (dettaglio sessione) parte un timer guidato: serie, recuperi, esercizi a tempo (campo *Durata*) o da spuntare con «Fatto», +15 s di recupero, pausa/salta/indietro, suoni e vibrazione, schermo sempre acceso (Wake Lock); a fine allenamento il tempo precompila il feedback. «Timer rapido» in Oggi: lavoro/recupero/giri liberi. Nell'editor «Aggiungi superset» o «Unisci al precedente in superset»: gli esercizi si alternano (A1, B1, recupero, A2, B2…). Nel JSON basta lo stesso `supersetId` su blocchi consecutivi. Limite iPhone: a schermo bloccato il web non può suonare.
 - **Importa con AI** (Coach, serve il Worker con `GEMINI_API_KEY`) – in Importa, «Converti un file con l'AI»: PDF/foto/CSV letti da Gemini (piano gratuito) con tetto mensile; il JSON compare per il controllo prima dell'import. Vedi `worker/README.md`.
 - **Temi colore** – Profilo → Aspetto → Colori: 7 palette (Notte viola, Caffè bordeaux, Foresta, Rubino e blu, Oceano, Pesca e rosa, Junior Tennis Perugia con il suo logo al posto di quello dell'app) oltre al Classico, ognuna con variante chiara e scura. Si rigenerano con `node scripts/gen-palettes.mjs` (modifica i colori lì, non in `src/palettes.css`).
+- **FM Training, mascotte e icona** – nome «FM Training»; due mascotte (atleta e coach, in `public/brand/mascot-*.webp`, intere e a mezzobusto) compaiono in accesso, intestazione (avatar in base al ruolo), stati vuoti, timer, tutorial e impostazioni. L'icona è «FM» bianca su antracite: si rigenera con `python3 scripts/gen-icons.py` (serve Pillow).
 - **Piano** – vista settimanale e mensile, aggiunta/modifica/duplica/elimina sessioni, copia della settimana precedente, **import/export JSON** (con modello di esempio).
 - **Atleti / Progressi** – *Coach*: elenco atleti, completamento settimanale, feedback recenti, inviti. *Atleta*: sessioni, ore, km, RPE medio, grafici e storico.
 - **Profilo** – ruolo (Atleta/Coach, cambiabile in ogni momento), tema e lingua (italiano/inglese), Client ID, stato di sincronizzazione, collegamento a un coach, backup.
@@ -47,7 +48,7 @@ L'app chiede **solo** lo scope `https://www.googleapis.com/auth/drive.file`: ved
 
 ## Configurare Google Cloud (passo per passo)
 
-1. Vai su <https://console.cloud.google.com/> e crea un **progetto** (es. "Trainer Team").
+1. Vai su <https://console.cloud.google.com/> e crea un **progetto** (es. "FM Training").
 2. **API e servizi → Libreria** → abilita **Google Drive API** e **Google Picker API**.
 3. **API e servizi → Schermata consenso OAuth** (Google Auth Platform): tipo *Esterno*; nome app, email di supporto; in *Accesso ai dati* aggiungi lo scope `.../auth/drive.file` (non sensibile: non richiede verifica). Aggiungi come **utenti di prova** i tuoi account (e quelli di coach/atleti) finché l'app è in modalità *Testing*. **Attenzione:** in modalità *Testing* Google fa scadere il token di rinnovo dopo **7 giorni**, quindi l'accesso persistente del Worker non dura. Per la persistenza vera passa l'app in **Produzione** (*Pubblico → Pubblica app*): con il solo scope `drive.file` non serve nessuna verifica. *Non caricare un logo*: obbligherebbe alla verifica dell'app.
 4. **Credenziali → Crea credenziali → ID client OAuth** → tipo **Applicazione web**. In **Origini JavaScript autorizzate** aggiungi:

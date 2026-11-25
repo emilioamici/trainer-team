@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Loader2,
   RefreshCw,
-  Settings,
   TriangleAlert,
   Users,
 } from 'lucide-react'
@@ -17,6 +16,7 @@ import { t } from '../i18n'
 import { timeAgo } from '../lib/dates'
 import { useNotifications, type AppNotification } from '../lib/notifications'
 import { useActive } from './common'
+import { Mascot } from './Mascot'
 import { Sheet } from './ui'
 
 export function SyncPill() {
@@ -108,18 +108,15 @@ export function NotificationBell({ onClick }: { onClick: () => void }) {
 }
 
 export function SettingsButton({ onClick }: { onClick: () => void }) {
-  const { e } = useActive()
-  const initial = (e.profileName || (e.role === 'coach' ? 'Coach' : 'Atleta')).charAt(0).toUpperCase()
-
   return (
     <button
       type="button"
       onClick={onClick}
       data-tour="settings"
       aria-label={t('Impostazioni')}
-      className="flex h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-gradient-to-br from-brand/15 via-surface to-warn/15 text-xs font-bold text-brand shadow-sm transition hover:border-brand hover:scale-105 active:scale-95"
+      className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-brand/30 bg-gradient-to-br from-brand/15 via-surface to-warn/15 text-xs font-bold text-brand shadow-sm transition hover:border-brand hover:scale-105 active:scale-95"
     >
-      {initial || <Settings size={15} />}
+      <Mascot kind="bust" className="h-full w-full scale-[1.35] object-cover object-top" />
     </button>
   )
 }

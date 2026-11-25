@@ -4,6 +4,7 @@ import { t } from '../i18n'
 import { config } from '../services/googleDriveService'
 import { useEngine } from '../state/store'
 import type { UserRole } from '../types'
+import { Mascot } from './Mascot'
 import { Background, Field, Notice, OptionRow } from './ui'
 
 const asset = (p: string) => `${import.meta.env.BASE_URL}${p}`
@@ -30,11 +31,12 @@ export function Gate({ mode, onLoggedIn }: { mode: 'login' | 'relogin'; onLogged
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-bg" role="dialog" aria-label={t('Accesso')}>
       <Background />
       <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
-        <div className="mx-auto mb-6 flex flex-col items-center gap-2.5 text-center" role="img" aria-label="Trainer Team">
-          <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-ink text-surface shadow-lg shadow-ink/10">
-            <Dumbbell size={42} strokeWidth={2.2} />
+        <div className="mx-auto mb-6 flex flex-col items-center gap-3 text-center" role="img" aria-label="FM Training">
+          <Mascot who="coach" kind="bust" fade className="h-44 drop-shadow-lg" />
+          <span className="flex items-center gap-2.5">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2B2E35] text-sm font-black tracking-tight text-white ring-1 ring-white/15">FM</span>
+            <span className="text-2xl font-black tracking-tight text-ink">Training</span>
           </span>
-          <span className="text-2xl font-black tracking-tight text-ink">Trainer Team</span>
         </div>
 
         <div className="glass-strong space-y-4 rounded-[2rem] p-5">

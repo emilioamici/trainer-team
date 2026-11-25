@@ -11,10 +11,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['brand/*.png', 'icons/*.png', 'icons/*.svg', 'privacy.html', 'esempio-piano.json', 'push-sw.js'],
+      includeAssets: ['brand/*.png', 'brand/*.webp', 'icons/*.png', 'icons/*.svg', 'privacy.html', 'esempio-piano.json', 'push-sw.js'],
       manifest: {
-        name: 'Trainer Team',
-        short_name: 'Trainer',
+        name: 'FM Training',
+        short_name: 'FM Training',
         description: 'Piani di allenamento per atleti e coach, sincronizzati su Google Drive.',
         lang: 'it',
         start_url: base,
@@ -30,7 +30,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,json}'],
+        globPatterns: ['**/*.{js,css,html,png,webp,json}'],
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/privacy\.html$/],
         cleanupOutdatedCaches: true,
