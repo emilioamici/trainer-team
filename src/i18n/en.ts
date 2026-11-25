@@ -725,4 +725,6 @@ export const en: Record<string, string> = {
   "Sto leggendo il file…": "Reading the file…",
   "Converti un file con l’AI": "Convert a file with AI",
   "Scegli un PDF, una foto o un CSV: il file viene letto da Gemini (Google) e il risultato compare qui sotto per un controllo. Per Word o Excel esporta prima in PDF. Massimo 5 MB e poche importazioni al mese.": "Pick a PDF, photo or CSV: the file is read by Gemini (Google) and the result appears below for you to check. For Word or Excel, export to PDF first. Max 5 MB and a few imports per month.",
+  "Colori": "Colors",
+  "Classico": "Classic",
 }

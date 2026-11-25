@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Bell, BookOpen, Cloud, Compass, Database, Link2, ListOrdered, Palette, RefreshCw, UserRound, Users } from 'lucide-react'
-import { t, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
+import { t, lang, getLangPref, setLangPref, type LangPref, useLangPref } from '../i18n'
 import { kindIcon, SyncBadge, useActive } from '../components/common'
 import { Accordion, Badge, Field, Notice, PageHeader, Segmented, Sheet, Toggle } from '../components/ui'
-import { applyTheme, getTheme, THEME_COLOR, type ThemePref } from '../lib/theme'
+import { applyTheme, getTheme, type ThemePref } from '../lib/theme'
+import { DEFAULT_COLORS, getPalette, PALETTES, paletteColors, type PaletteId } from '../lib/palette'
 import { clearPendingJoin, pendingJoin } from '../lib/invite'
 import { downloadJSON, readFileText } from '../lib/files'
 import { slug } from '../lib/ids'
@@ -18,6 +19,7 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
   const { e, src, db } = useActive()
   useLangPref()
   const [theme, setTheme] = useState<ThemePref>(getTheme)
+  const [palette, setPalette] = useState<PaletteId>(getPalette)
   const [name, setName] = useState(e.profileName)
   const [code, setCode] = useState(() => pendingJoin() ?? '')
   const [linking, setLinking] = useState(false)
@@ -40,7 +42,11 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
 
   const pickTheme = (p: ThemePref) => {
     setTheme(p)
-    applyTheme(p)
+    applyTheme(p, palette)
+  }
+  const pickPalette = (id: PaletteId) => {
+    setPalette(id)
+    applyTheme(theme, id)
   }
   const doLink = async () => {
     setLinking(true)
@@ -65,10 +71,15 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
     }
   }
 
+  const pc = paletteColors(palette)
   const themeOpt: { id: ThemePref; label: string; bg: string }[] = [
-    { id: 'auto', label: t('Automatico'), bg: `linear-gradient(135deg, ${THEME_COLOR.light} 50%, ${THEME_COLOR.dark} 50%)` },
-    { id: 'light', label: t('Modalità chiara'), bg: THEME_COLOR.light },
-    { id: 'dark', label: t('Modalità scura'), bg: THEME_COLOR.dark },
+    { id: 'auto', label: t('Automatico'), bg: `linear-gradient(135deg, ${pc.light} 50%, ${pc.dark} 50%)` },
+    { id: 'light', label: t('Modalità chiara'), bg: pc.light },
+    { id: 'dark', label: t('Modalità scura'), bg: pc.dark },
+  ]
+  const paletteOpt = [
+    { id: 'default' as PaletteId, label: t('Classico'), swatch: ['#1D64EC', DEFAULT_COLORS.dark, DEFAULT_COLORS.light] },
+    ...PALETTES.map((p) => ({ id: p.id as PaletteId, label: lang() === 'en' ? p.en : p.it, swatch: p.swatch })),
   ]
 
   return (
@@ -125,7 +136,7 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
         </p>
       </Accordion>
 
-      <Accordion id="look" icon={<Palette size={22} />} title={t('Aspetto')} summary={`${themeOpt.find((o) => o.id === theme)?.label} · ${{ auto: t('Lingua automatica'), it: 'Italiano', en: 'English' }[getLangPref()]}`}>
+      <Accordion id="look" icon={<Palette size={22} />} title={t('Aspetto')} summary={`${paletteOpt.find((o) => o.id === palette)?.label} · ${themeOpt.find((o) => o.id === theme)?.label} · ${{ auto: t('Lingua automatica'), it: 'Italiano', en: 'English' }[getLangPref()]}`}>
         <div className="grid grid-cols-3 gap-2">
           {themeOpt.map((o) => (
             <button key={o.id} onClick={() => pickTheme(o.id)} aria-pressed={theme === o.id} className={`rounded-2xl border p-2 text-center text-xs font-semibold ${theme === o.id ? 'border-brand bg-brand/10' : 'border-line'}`}>
@@ -134,6 +145,18 @@ export function SettingsContent({ onOpenTutorial, onOpenTour }: { onOpenTutorial
             </button>
           ))}
         </div>
+        <Field label={t('Colori')}>
+          <div className="grid grid-cols-2 gap-2">
+            {paletteOpt.map((o) => (
+              <button key={o.id} onClick={() => pickPalette(o.id)} aria-pressed={palette === o.id} className={`rounded-2xl border p-2 text-left text-xs font-semibold ${palette === o.id ? 'border-brand bg-brand/10' : 'border-line'}`}>
+                <span className="mb-1.5 flex h-7 overflow-hidden rounded-lg border border-line/60">
+                  {o.swatch.map((c, i) => <span key={i} className="flex-1" style={{ background: c }} />)}
+                </span>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </Field>
         <Field label={t('Lingua')}>
           <Segmented id="lang" value={getLangPref()} onChange={(v: LangPref) => setLangPref(v)} options={[{ value: 'auto', label: t('Auto') }, { value: 'it', label: 'Italiano' }, { value: 'en', label: 'English' }]} />
         </Field>
